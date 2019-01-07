@@ -9,18 +9,35 @@ function polygon.new(color)
 
 	local shape = {}
 	local vertices = {}
+	local _lines = {}
+	
 	shape.kind = "polygon"
 	shape.color = color or {1, 1, 1, 1}
 	shape.raw = vertices
+	shape.cache = _lines
+	
 	table.insert(polygon.data, shape)
 
 end
 
 function polygon.addVertex(x, y, loc)
 
+	local copy = polygon.data[loc]
 	local point = {}
+	
 	point.x, point.y = x, y
-	table.insert(polygon.data[loc].raw, point)
+	table.insert(copy.raw, point)
+	
+	-- Connect the first 3 vertices
+	if #copy.raw == 2 then
+		copy.raw[1].va = 2
+		table.insert(copy.cache, {1, 2})
+	end
+	
+	if #copy.raw == 3 then
+		copy.raw[1].vb = 3
+		table.insert(copy.cache, {1, 3})
+	end
 
 end
 
@@ -41,15 +58,15 @@ function polygon.draw()
 			local j = 1
 			while j < #clone.raw do
 			
-				if j + 2 <= #clone.raw then
-					if clone.raw[j].x ~= nil and clone.raw[j + 1].x ~= nil and clone.raw[j + 2] ~= nil then
-						local aa, bb, cc = clone.raw[j], clone.raw[j + 1], clone.raw[j + 2]
-						lg.polygon("fill", aa.x, aa.y, bb.x, bb.y, cc.x, cc.y)
-						j = j + 2
-					end
-				else
-					j = #clone.raw -- Not enough vertex data to draw, jump to end of shape
+				if clone.raw[j].vb ~= nil then
+					
+					local a_loc, b_loc = clone.raw[j].va, clone.raw[j].vb
+					local aa, bb, cc = clone.raw[j], clone.raw[a_loc], clone.raw[b_loc]
+					lg.polygon("fill", aa.x, aa.y, bb.x, bb.y, cc.x, cc.y)
+					
 				end
+				
+				j = j + 1
 			
 			end
 		
