@@ -5,6 +5,14 @@ polygon.data = {}
 
 -- Generators
 
+function ccw(ax, ay, bx, by, cx, cy)
+	return ((cy-ay) * (bx-ax)) > ((by-ay) * (cx-ax))
+end
+
+function polygon.intersect(ax, ay, bx, by, cx, cy, dx, dy)
+	return (ccw(ax, ay, cx, cy, dx, dy) ~= ccw(bx, by, cx, cy, dx, dy)) and (ccw(ax, ay, bx, by, cx, cy) ~= ccw(ax, ay, bx, by, dx, dy))
+end
+
 function polygon.new(color)
 
 	local shape = {}
@@ -29,14 +37,29 @@ function polygon.addVertex(x, y, loc)
 	table.insert(copy.raw, point)
 	
 	-- Connect the first 3 vertices
-	if #copy.raw == 2 then
+	if #copy.raw == 1 then
+	elseif #copy.raw == 2 then
 		copy.raw[1].va = 2
 		table.insert(copy.cache, {1, 2})
-	end
-	
-	if #copy.raw == 3 then
+	elseif #copy.raw == 3 then
 		copy.raw[1].vb = 3
 		table.insert(copy.cache, {1, 3})
+		
+		copy.raw[3].va = 2
+		table.insert(copy.cache, {3, 2})
+	else
+		print(#copy.raw)
+		--find intersection of va, vb in lines and delete
+		local old_a, old_b = polygon.data[1].cache[global_close][1], polygon.data[1].cache[global_close][2]
+		
+		copy.raw[#copy.raw].va = old_a
+		copy.raw[#copy.raw].vb = old_b
+		
+		table.remove(polygon.data[1].cache, global_close)
+		
+		--add lines for new segment
+		table.insert(copy.cache, {#copy.raw, old_a})
+		table.insert(copy.cache, {#copy.raw, old_b})
 	end
 
 end
