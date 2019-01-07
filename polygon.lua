@@ -5,24 +5,16 @@ polygon.data = {}
 
 -- Generators
 
-function ccw(ax, ay, bx, by, cx, cy)
-	return ((cy-ay) * (bx-ax)) > ((by-ay) * (cx-ax))
-end
-
-function polygon.intersect(ax, ay, bx, by, cx, cy, dx, dy)
-	return (ccw(ax, ay, cx, cy, dx, dy) ~= ccw(bx, by, cx, cy, dx, dy)) and (ccw(ax, ay, bx, by, cx, cy) ~= ccw(ax, ay, bx, by, dx, dy))
-end
-
 function polygon.new(color)
 
 	local shape = {}
 	local vertices = {}
-	local _lines = {}
+	local line_cache = {}
 	
 	shape.kind = "polygon"
 	shape.color = color or {1, 1, 1, 1}
 	shape.raw = vertices
-	shape.cache = _lines
+	shape.cache = line_cache -- Each shape holds a cache of its perimeter in the form of a list of lines
 	
 	table.insert(polygon.data, shape)
 
@@ -36,28 +28,32 @@ function polygon.addVertex(x, y, loc)
 	point.x, point.y = x, y
 	table.insert(copy.raw, point)
 	
-	-- Connect the first 3 vertices
+	-- The first 3 vertices are stored in specific locations
 	if #copy.raw == 1 then
 	elseif #copy.raw == 2 then
+		-- Link line 2 to line 1
 		copy.raw[1].va = 2
 		table.insert(copy.cache, {1, 2})
 	elseif #copy.raw == 3 then
+		-- Link line 3 to line 1
 		copy.raw[1].vb = 3
 		table.insert(copy.cache, {1, 3})
 		
+		-- Link line 2 to line 3
 		copy.raw[3].va = 2
 		table.insert(copy.cache, {3, 2})
 	else
-		print(#copy.raw)
-		--find intersection of va, vb in lines and delete
+		-- Create a new triangle using points: va, vb, and the cursor position
 		local old_a, old_b = polygon.data[1].cache[global_close][1], polygon.data[1].cache[global_close][2]
 		
+		-- Link new vertex to va and vb
 		copy.raw[#copy.raw].va = old_a
 		copy.raw[#copy.raw].vb = old_b
 		
+		-- Remove the old line (va <-> vb) as it now resides inside the new shape
 		table.remove(polygon.data[1].cache, global_close)
 		
-		--add lines for new segment
+		-- Add two new lines to the perimeter cache
 		table.insert(copy.cache, {#copy.raw, old_a})
 		table.insert(copy.cache, {#copy.raw, old_b})
 	end
@@ -70,7 +66,6 @@ function polygon.draw()
 	
 	while i <= #polygon.data do
 		
-		-- Make a copy of the new shape
 		local clone = polygon.data[i]
 		
 		lg.setColor(clone.color)
@@ -79,8 +74,9 @@ function polygon.draw()
 		if clone.kind == "polygon" then
 		
 			local j = 1
-			while j < #clone.raw do
+			while j <= #clone.raw do
 			
+				-- Draw triangle if the vertex[i] contains references to two other vertices (va and vb)
 				if clone.raw[j].vb ~= nil then
 					
 					local a_loc, b_loc = clone.raw[j].va, clone.raw[j].vb
