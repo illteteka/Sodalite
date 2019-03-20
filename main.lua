@@ -1,32 +1,72 @@
 polygon = require "polygon"
-
-mouse_x = 0
-mouse_y = 0
-
-global_close = 0
+input = require "input"
+tm = require "timemachine"
 
 lg = love.graphics
 
 triangle_shape_counter = 1
-triangle_vertex_counter = 0
+triangle_vertex_counter = 0 --TODO remove and make into something better
+this_point = -1
 
 function love.load()
+
+	tm.init()
 
 end
 
 function love.update(dt)
 
-end
-
-function love.mousepressed( x, y, button, istouch, presses )
-
-	if button == 1 then
+	input.update(dt)
 	
+	if mouse_switch == _PRESS then
+	
+		-- Create a new shape if one doesn't exist
 		if triangle_vertex_counter == 0 then
 			polygon.new({1, 0, 0, 1})
 		end
 		
-		polygon.addVertex(x, y, triangle_shape_counter)
+		local line_to_purge = -1
+		
+		local i = 1
+		if polygon.data[1] ~= nil then
+		
+			-- Retrieve closest line segment to the new point
+			for i = 1, #polygon.data[1].cache do
+			
+				local cc = polygon.data[1].cache[i]
+				-- Line cache stores the lines index, so we need to get the actual x1, y1, x2, y2 of the line
+				local xa, ya, xb, yb = polygon.data[1].raw[cc[1]].x, polygon.data[1].raw[cc[1]].y, polygon.data[1].raw[cc[2]].x, polygon.data[1].raw[cc[2]].y
+				-- Calculate line distance to mouse position
+				local dp = (math.abs(((xa + xb)/2) - love.mouse.getX()) + math.abs(((ya + yb)/2) - love.mouse.getY()))
+				polygon.data[1].cache[i].dp = dp
+			
+			end
+			
+			closest_line = -1
+			closest_dist = -1
+			
+			-- Loop line cache to find the closest segment based on lowest scoring 'dp' value
+			for i = 1, #polygon.data[1].cache do
+			
+				if polygon.data[1].cache[i].dp ~= nil then
+					
+					if closest_dist == -1 or polygon.data[1].cache[i].dp < closest_dist then
+						closest_line = i
+						closest_dist = polygon.data[1].cache[i].dp
+					end
+					
+					-- Remove dp from the cache since it's no longer needed
+					polygon.data[1].cache[i].dp = nil
+					
+				end
+			
+			end
+			
+			line_to_purge = closest_line
+		
+		end
+		
+		this_point = polygon.addVertex(love.mouse.getX(), love.mouse.getY(), triangle_shape_counter, line_to_purge)
 		
 		-- Reset counter
 		triangle_vertex_counter = triangle_vertex_counter + 1
@@ -37,8 +77,25 @@ function love.mousepressed( x, y, button, istouch, presses )
 	
 	end
 	
+	--[[
+	if mouse_switch == _ON then
+	
+		if this_point ~= -1 then
+		
+			local pp = polygon.data[1].raw[this_point]
+			pp.x, pp.y = love.mouse.getX(), love.mouse.getY()
+		
+		end
+	
+	end--]]
+
+end
+
+function love.mousepressed( x, y, button, istouch, presses )
+	
 	if button == 2 then
-		print_r(polygon.data)
+		--print_r(polygon.data)
+		print_r(tm.data)
 	end
 
 end
@@ -51,38 +108,6 @@ function love.draw()
 	lg.print(love.mouse.getX() .. " " .. love.mouse.getY(), 100, 100)
 	
 	polygon.draw()
-	
-	local i = 1
-	if polygon.data[1] ~= nil then
-	
-		for i = 1, #polygon.data[1].cache do
-		
-			local cc = polygon.data[1].cache[i]
-			local xa, ya, xb, yb = polygon.data[1].raw[cc[1]].x, polygon.data[1].raw[cc[1]].y, polygon.data[1].raw[cc[2]].x, polygon.data[1].raw[cc[2]].y
-			local dp = (math.abs(((xa + xb)/2) - love.mouse.getX()) + math.abs(((ya + yb)/2) - love.mouse.getY()))
-			polygon.data[1].cache[i].dp = dp
-		
-		end
-		
-		closest_line = -1
-		closest_dist = -1
-		
-		for i = 1, #polygon.data[1].cache do
-		
-			if polygon.data[1].cache[i].dp ~= nil then
-				
-				if closest_dist == -1 or polygon.data[1].cache[i].dp < closest_dist then
-					closest_line = i
-					closest_dist = polygon.data[1].cache[i].dp
-				end
-				
-			end
-		
-		end
-		
-		global_close = closest_line
-	
-	end
 
 end
 
