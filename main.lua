@@ -8,6 +8,12 @@ triangle_shape_counter = 1
 triangle_vertex_counter = 0 --TODO remove and make into something better
 this_point = -1
 
+-- debug buttons
+one_button = _OFF
+two_button = _OFF
+
+undo_button = _OFF
+
 function love.load()
 
 	tm.init()
@@ -16,7 +22,27 @@ end
 
 function love.update(dt)
 
+	-- Update input
 	input.update(dt)
+	undo_button = input.pullSwitch(love.keyboard.isDown("z"), undo_button)
+	
+	-- debug buttons
+	one_button = input.pullSwitch(love.keyboard.isDown("1"), one_button)
+	two_button = input.pullSwitch(love.keyboard.isDown("2"), two_button)
+	-- End of input
+	
+	-- debug block
+	
+	if one_button == _PRESS then print_r(polygon.data) end
+	if two_button == _PRESS then print_r(tm.data) end
+	
+	-- end debug block
+	
+	if undo_button == _PRESS then
+	
+		polygon.undoVertex()
+	
+	end
 	
 	if mouse_switch == _PRESS then
 	
@@ -88,15 +114,6 @@ function love.update(dt)
 		end
 	
 	end--]]
-
-end
-
-function love.mousepressed( x, y, button, istouch, presses )
-	
-	if button == 2 then
-		--print_r(polygon.data)
-		print_r(tm.data)
-	end
 
 end
 

@@ -23,6 +23,40 @@ function polygon.new(color)
 
 end
 
+function polygon.undoVertex()
+	
+	--[[
+	
+	we could have another function do this and feed these
+	actions to this function
+	
+	--]]
+	
+	-- Retrieve undo sequence from time machine
+	if tm.data[1] ~= nil then
+		local i = 1
+		for i = 1, #tm.data[#tm.data] do
+		
+			local moment = tm.data[#tm.data][i]
+			local action = moment.action
+			
+			if (action == TM_NEW_POLYGON) then
+			print("TM_NEW_POLYGON")
+			elseif (action == TM_ADD_VERTEX) then
+			print("TM_ADD_VERTEX")
+			elseif (action == TM_ADD_LINE) then
+			print("TM_ADD_LINE")
+			elseif (action == TM_ADD_TRIANGLE) then
+			print("TM_ADD_TRIANGLE")
+			elseif (action == TM_DEL_LINE) then
+			print("TM_DEL_LINE")
+			end
+		
+		end
+	end
+
+end
+
 function polygon.addVertex(x, y, loc, old_line)
 
 	local copy = polygon.data[loc]
