@@ -5,7 +5,7 @@ polygon.data = {}
 
 -- Generators
 
-function polygon.new(color)
+function polygon.new(color, use_tm)
 
 	local shape = {}
 	local vertices = {}
@@ -19,45 +19,60 @@ function polygon.new(color)
 	table.insert(polygon.data, shape)
 	
 	-- Record new shape into the undo stack
+	if use_tm then
 	tm.store(TM_NEW_POLYGON, #polygon.data, shape.kind, shape.color)
-
-end
-
-function polygon.undoVertex()
-	
-	--[[
-	
-	we could have another function do this and feed these
-	actions to this function
-	
-	--]]
-	
-	-- Retrieve undo sequence from time machine
-	if tm.data[1] ~= nil then
-		local i = 1
-		for i = 1, #tm.data[#tm.data] do
-		
-			local moment = tm.data[#tm.data][i]
-			local action = moment.action
-			
-			if (action == TM_NEW_POLYGON) then
-			print("TM_NEW_POLYGON")
-			elseif (action == TM_ADD_VERTEX) then
-			print("TM_ADD_VERTEX")
-			elseif (action == TM_ADD_LINE) then
-			print("TM_ADD_LINE")
-			elseif (action == TM_ADD_TRIANGLE) then
-			print("TM_ADD_TRIANGLE")
-			elseif (action == TM_DEL_LINE) then
-			print("TM_DEL_LINE")
-			end
-		
-		end
 	end
 
 end
 
-function polygon.addVertex(x, y, loc, old_line)
+function polygon.calcVertex(x, y, loc, use_tm)
+
+	local line_to_purge = -1
+	
+	local i = 1
+	if polygon.data[1] ~= nil then
+	
+		-- Retrieve closest line segment to the new point
+		for i = 1, #polygon.data[1].cache do
+		
+			local cc = polygon.data[1].cache[i]
+			-- Line cache stores the lines index, so we need to get the actual x1, y1, x2, y2 of the line
+			local xa, ya, xb, yb = polygon.data[1].raw[cc[1]].x, polygon.data[1].raw[cc[1]].y, polygon.data[1].raw[cc[2]].x, polygon.data[1].raw[cc[2]].y
+			-- Calculate line distance to mouse position
+			local dp = (math.abs(((xa + xb)/2) - x) + math.abs(((ya + yb)/2) - y))
+			polygon.data[1].cache[i].dp = dp
+		
+		end
+		
+		closest_line = -1
+		closest_dist = -1
+		
+		-- Loop line cache to find the closest segment based on lowest scoring 'dp' value
+		for i = 1, #polygon.data[1].cache do
+		
+			if polygon.data[1].cache[i].dp ~= nil then
+				
+				if closest_dist == -1 or polygon.data[1].cache[i].dp < closest_dist then
+					closest_line = i
+					closest_dist = polygon.data[1].cache[i].dp
+				end
+				
+				-- Remove dp from the cache since it's no longer needed
+				polygon.data[1].cache[i].dp = nil
+				
+			end
+		
+		end
+		
+		line_to_purge = closest_line
+	
+	end
+	
+	this_point = polygon.addVertex(x, y, loc, line_to_purge, use_tm)
+
+end
+
+function polygon.addVertex(x, y, loc, old_line, use_tm)
 
 	local copy = polygon.data[loc]
 	local point = {}
@@ -65,17 +80,19 @@ function polygon.addVertex(x, y, loc, old_line)
 	point.x, point.y = x, y
 	table.insert(copy.raw, point)
 	
+	tm.enabled = use_tm
+	
 	-- The first 3 vertices are stored in specific locations
 	if #copy.raw == 1 then
 		-- Time machine functions record vertex position, allows users to undo
-		tm.store(TM_ADD_VERTEX, loc, #copy.raw, x, y)
+		tm.store(TM_ADD_VERTEX, #copy.raw, x, y, 1)
 		tm.step()
 	elseif #copy.raw == 2 then
 		-- Link line 2 to line 1
 		copy.raw[1].va = 2
 		table.insert(copy.cache, {1, 2})
 		
-		tm.store(TM_ADD_LINE, loc, 1, 2)
+		tm.store(TM_ADD_VERTEX, #copy.raw, x, y, 2)
 		tm.step()
 	elseif #copy.raw == 3 then
 		-- Link line 3 to line 1
@@ -86,32 +103,101 @@ function polygon.addVertex(x, y, loc, old_line)
 		copy.raw[3].va = 2
 		table.insert(copy.cache, {3, 2})
 		
-		tm.store(TM_ADD_TRIANGLE, loc, 1, 3)
-		tm.store(TM_ADD_LINE,     loc, 3, 2)
+		tm.store(TM_ADD_VERTEX, #copy.raw, x, y, 3)
 		tm.step()
 	else
 		-- Create a new triangle using points: va, vb, and the cursor position
 		
-		local old_a, old_b = polygon.data[1].cache[old_line][1], polygon.data[1].cache[old_line][2]
+		local old_a, old_b = polygon.data[loc].cache[old_line][1], polygon.data[loc].cache[old_line][2]
 		
 		-- Link new vertex to va and vb
 		copy.raw[#copy.raw].va = old_a
 		copy.raw[#copy.raw].vb = old_b
 		
 		-- Remove the old line (va <-> vb) as it now resides inside the new shape
-		table.remove(polygon.data[1].cache, old_line)
+		table.remove(copy.cache, old_line)
 		
 		-- Add two new lines to the perimeter cache
 		table.insert(copy.cache, {#copy.raw, old_a})
 		table.insert(copy.cache, {#copy.raw, old_b})
 		
-		tm.store(TM_DEL_LINE,     loc, old_line, old_a, old_b)
-		tm.store(TM_ADD_TRIANGLE, loc, #copy.raw, old_a)
-		tm.store(TM_ADD_LINE,     loc, #copy.raw, old_b)
+		tm.store(TM_ADD_VERTEX, #copy.raw, x, y, 4)
+		tm.store(TM_DEL_LINE,   old_line, old_a, old_b)
 		tm.step()
 	end
 	
+	tm.enabled = true
+	
 	return #copy.raw
+
+end
+
+function polygon.redo()
+
+	if tm.data[1] ~= nil and tm.cursor + 1 < tm.length then -- and below the max
+	
+		tm.cursor = tm.cursor + 1
+		tm.location = tm.location + 1
+		
+		local moment = tm.data[tm.cursor]
+		
+		if moment[1].action == TM_NEW_POLYGON then
+			polygon.new(moment[1].color, false)
+			polygon.calcVertex(moment[2].x, moment[2].y, moment[1].index, false)
+		elseif moment[1].action == TM_ADD_VERTEX then
+			polygon.calcVertex(moment[1].x, moment[1].y, tm.polygon_loc, false)
+		end
+	
+	end
+
+end
+
+function polygon.undo()
+	
+	-- Retrieve undo sequence from time machine
+	if tm.data[1] ~= nil and tm.cursor > 0 then
+		
+		local moment = tm.data[tm.cursor]
+		
+		if moment[1].action == TM_NEW_POLYGON then
+		
+			table.remove(polygon.data)
+		
+		elseif moment[1].action == TM_ADD_VERTEX then
+		
+			local copy = polygon.data[tm.polygon_loc]
+		
+			local seq = moment[1].sequence
+			if seq == 2 then
+			
+				table.remove(copy.cache)
+				copy.raw[1].va = nil
+				table.remove(copy.raw)
+			
+			elseif seq == 3 then
+			
+				table.remove(copy.cache)
+				table.remove(copy.cache)
+				copy.raw[1].vb = nil
+				table.remove(copy.raw)
+			
+			elseif seq == 4 then
+			
+				table.remove(copy.cache)
+				table.remove(copy.cache)
+				table.insert(copy.cache, moment[2].index, {moment[2].va, moment[2].vb})
+				table.remove(copy.raw)
+			
+			end
+		
+		end
+		
+		tm.cursor = tm.cursor - 1
+		tm.location = tm.location - 1
+		
+		--print(tm.cursor, tm.location,tm.length)
+		
+	end
 
 end
 
