@@ -53,10 +53,9 @@ function tm.store(action, a, b, c, d)
 		elseif (action == TM_ADD_VERTEX) then
 		
 			moment.action = TM_ADD_VERTEX
-			moment.index = a
-			moment.x = b
-			moment.y = c
-			moment.sequence = d
+			moment.x = a
+			moment.y = b
+			moment.sequence = c
 		
 		elseif (action == TM_DEL_LINE) then
 		

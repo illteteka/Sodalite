@@ -4,8 +4,8 @@ tm = require "timemachine"
 
 lg = love.graphics
 
-triangle_shape_counter = 1
-this_point = -1
+shape_count = 1
+vertex_selection = {}
 
 -- debug buttons
 one_button = _OFF
@@ -17,6 +17,9 @@ redo_button = _OFF
 function love.load()
 
 	tm.init()
+	
+	spr_vertex = love.graphics.newImage("textures/vertex.png")
+	spr_vertex_mask = love.graphics.newImage("textures/vertex_mask.png")
 
 end
 
@@ -54,7 +57,7 @@ function love.update(dt)
 			polygon.new({1, 0, 0, 1}, true)
 		end
 		
-		polygon.calcVertex(love.mouse.getX(), love.mouse.getY(), triangle_shape_counter, true)
+		polygon.calcVertex(love.mouse.getX(), love.mouse.getY(), shape_count, true)
 	
 	end
 	
@@ -80,6 +83,31 @@ function love.draw()
 	lg.print(love.mouse.getX() .. " " .. love.mouse.getY(), 100, 100)
 	
 	polygon.draw()
+	
+	local i = 1
+	while i <= #polygon.data do
+		
+		local clone = polygon.data[i]
+		
+		lg.setColor({1, 1, 1, 1})
+		
+		-- Draw the shape
+		if clone.kind == "polygon" then
+		
+			local j = 1
+			while j <= #clone.raw do
+				
+				lg.draw(spr_vertex, clone.raw[j].x - 5, clone.raw[j].y - 5)
+				
+				j = j + 1
+			
+			end
+		
+		end
+		-- End of drawing the shape
+		
+		i = i + 1
+	end
 
 end
 

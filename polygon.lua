@@ -85,14 +85,14 @@ function polygon.addVertex(x, y, loc, old_line, use_tm)
 	-- The first 3 vertices are stored in specific locations
 	if #copy.raw == 1 then
 		-- Time machine functions record vertex position, allows users to undo
-		tm.store(TM_ADD_VERTEX, #copy.raw, x, y, 1)
+		tm.store(TM_ADD_VERTEX, x, y, 1)
 		tm.step()
 	elseif #copy.raw == 2 then
 		-- Link line 2 to line 1
 		copy.raw[1].va = 2
 		table.insert(copy.cache, {1, 2})
 		
-		tm.store(TM_ADD_VERTEX, #copy.raw, x, y, 2)
+		tm.store(TM_ADD_VERTEX, x, y, 2)
 		tm.step()
 	elseif #copy.raw == 3 then
 		-- Link line 3 to line 1
@@ -103,7 +103,7 @@ function polygon.addVertex(x, y, loc, old_line, use_tm)
 		copy.raw[3].va = 2
 		table.insert(copy.cache, {3, 2})
 		
-		tm.store(TM_ADD_VERTEX, #copy.raw, x, y, 3)
+		tm.store(TM_ADD_VERTEX, x, y, 3)
 		tm.step()
 	else
 		-- Create a new triangle using points: va, vb, and the cursor position
@@ -121,7 +121,7 @@ function polygon.addVertex(x, y, loc, old_line, use_tm)
 		table.insert(copy.cache, {#copy.raw, old_a})
 		table.insert(copy.cache, {#copy.raw, old_b})
 		
-		tm.store(TM_ADD_VERTEX, #copy.raw, x, y, 4)
+		tm.store(TM_ADD_VERTEX, x, y, 4)
 		tm.store(TM_DEL_LINE,   old_line, old_a, old_b)
 		tm.step()
 	end
