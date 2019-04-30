@@ -27,6 +27,36 @@ end
 
 function polygon.calcVertex(x, y, loc, use_tm)
 
+	local point_selected = -1
+	
+	if use_tm then
+	
+		local i = 1
+		while i <= #polygon.data[1].raw do
+			
+			local vertex_radius = 10
+			local vx, vy = polygon.data[1].raw[i].x, polygon.data[1].raw[i].y
+			
+			if (lume.distance(x, y, vx, vy) < vertex_radius) then
+				point_selected = i
+				i = #polygon.data[1].raw + 1
+				
+				local moved_point = {}
+				moved_point.index = point_selected
+				moved_point.x = x
+				moved_point.y = y
+				table.insert(vertex_selection, moved_point)
+				
+			end
+			
+			i = i + 1
+			
+		end
+	
+	end
+
+	if point_selected == -1 then
+	
 	local line_to_purge = -1
 	
 	local i = 1
@@ -69,6 +99,8 @@ function polygon.calcVertex(x, y, loc, use_tm)
 	end
 	
 	this_point = polygon.addVertex(x, y, loc, line_to_purge, use_tm)
+	
+	end
 
 end
 
@@ -86,14 +118,12 @@ function polygon.addVertex(x, y, loc, old_line, use_tm)
 	if #copy.raw == 1 then
 		-- Time machine functions record vertex position, allows users to undo
 		tm.store(TM_ADD_VERTEX, x, y, 1)
-		tm.step()
 	elseif #copy.raw == 2 then
 		-- Link line 2 to line 1
 		copy.raw[1].va = 2
 		table.insert(copy.cache, {1, 2})
 		
 		tm.store(TM_ADD_VERTEX, x, y, 2)
-		tm.step()
 	elseif #copy.raw == 3 then
 		-- Link line 3 to line 1
 		copy.raw[1].vb = 3
@@ -104,7 +134,6 @@ function polygon.addVertex(x, y, loc, old_line, use_tm)
 		table.insert(copy.cache, {3, 2})
 		
 		tm.store(TM_ADD_VERTEX, x, y, 3)
-		tm.step()
 	else
 		-- Create a new triangle using points: va, vb, and the cursor position
 		
@@ -123,12 +152,17 @@ function polygon.addVertex(x, y, loc, old_line, use_tm)
 		
 		tm.store(TM_ADD_VERTEX, x, y, 4)
 		tm.store(TM_DEL_LINE,   old_line, old_a, old_b)
-		tm.step()
+	end
+	
+	if tm.enabled then
+		local moved_point = {}
+		moved_point.index = #copy.raw
+		moved_point.x = x
+		moved_point.y = y
+		table.insert(vertex_selection, moved_point)
 	end
 	
 	tm.enabled = true
-	
-	return #copy.raw
 
 end
 
@@ -140,12 +174,22 @@ function polygon.redo()
 		tm.location = tm.location + 1
 		
 		local moment = tm.data[tm.cursor]
+		local move_moment = moment[#moment]
 		
 		if moment[1].action == TM_NEW_POLYGON then
 			polygon.new(moment[1].color, false)
 			polygon.calcVertex(moment[2].x, moment[2].y, moment[1].index, false)
+			
+			local pp = polygon.data[tm.polygon_loc].raw[move_moment.index]
+			pp.x, pp.y = move_moment.x, move_moment.y
 		elseif moment[1].action == TM_ADD_VERTEX then
 			polygon.calcVertex(moment[1].x, moment[1].y, tm.polygon_loc, false)
+			
+			local pp = polygon.data[tm.polygon_loc].raw[move_moment.index]
+			pp.x, pp.y = move_moment.x, move_moment.y
+		elseif moment[1].action == TM_MOVE_VERTEX then
+			local pp = polygon.data[tm.polygon_loc].raw[move_moment.index]
+			pp.x, pp.y = move_moment.x, move_moment.y
 		end
 	
 	end
@@ -189,6 +233,12 @@ function polygon.undo()
 				table.remove(copy.raw)
 			
 			end
+		
+		elseif moment[1].action == TM_MOVE_VERTEX then
+		
+			local copy = polygon.data[tm.polygon_loc]
+			local pp = copy.raw[moment[1].index]
+			pp.x, pp.y = moment[1].ox, moment[1].oy
 		
 		end
 		

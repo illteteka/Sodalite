@@ -3,6 +3,7 @@ local tm = {}
 TM_NEW_POLYGON  = 0
 TM_ADD_VERTEX   = 1
 TM_DEL_LINE     = 2
+TM_MOVE_VERTEX  = 3
 
 function tm.init()
 
@@ -23,7 +24,7 @@ we need a TM_PARENT_SWITCHER for when we switch shapes
 
 ]]
 
-function tm.store(action, a, b, c, d)
+function tm.store(action, a, b, c, d, e)
 
 	if tm.enabled then
 		-- Remove items from the undo array tm.data before overwriting the slot
@@ -63,6 +64,15 @@ function tm.store(action, a, b, c, d)
 			moment.index = a
 			moment.va = b
 			moment.vb = c
+		
+		elseif (action == TM_MOVE_VERTEX) then
+		
+			moment.action = TM_MOVE_VERTEX
+			moment.index = a
+			moment.x = b
+			moment.y = c
+			moment.ox = d
+			moment.oy = e
 		
 		end
 		

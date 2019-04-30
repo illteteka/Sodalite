@@ -1,6 +1,7 @@
 polygon = require "polygon"
 input = require "input"
 tm = require "timemachine"
+lume = require "lume"
 
 lg = love.graphics
 
@@ -42,14 +43,6 @@ function love.update(dt)
 	
 	-- end debug block
 	
-	if undo_button == _PRESS then
-		polygon.undo()
-	end
-	
-	if redo_button == _PRESS then
-		polygon.redo()
-	end
-	
 	if mouse_switch == _PRESS then
 	
 		-- Create a new shape if one doesn't exist
@@ -61,17 +54,42 @@ function love.update(dt)
 	
 	end
 	
-	--[[
 	if mouse_switch == _ON then
 	
-		if this_point ~= -1 then
+		local i
+		for i = 1, #vertex_selection do
 		
-			local pp = polygon.data[1].raw[this_point]
+			local pp = polygon.data[1].raw[vertex_selection[i].index]
 			pp.x, pp.y = love.mouse.getX(), love.mouse.getY()
 		
 		end
 	
-	end--]]
+	end
+	
+	if mouse_switch == _RELEASE then
+		local i
+		for i = 1, #vertex_selection do
+		
+			local pp = polygon.data[1].raw[vertex_selection[i].index]
+			tm.store(TM_MOVE_VERTEX, vertex_selection[i].index, pp.x, pp.y, vertex_selection[i].x, vertex_selection[i].y)
+		
+		end
+		tm.step()
+	
+		vertex_selection = {}
+	end
+	
+	if mouse_switch == _OFF then
+	
+		if undo_button == _PRESS then
+			polygon.undo()
+		end
+		
+		if redo_button == _PRESS then
+			polygon.redo()
+		end
+	
+	end
 
 end
 
