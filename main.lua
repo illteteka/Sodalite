@@ -50,12 +50,14 @@ function love.update(dt)
 			polygon.new({1, 0, 0, 1}, true)
 		end
 		
+		-- Test if we are placing a vertex or moving a vertex
 		polygon.calcVertex(love.mouse.getX(), love.mouse.getY(), shape_count, true)
 	
 	end
 	
 	if mouse_switch == _ON then
 	
+		-- If a point is selected, have it follow the mouse
 		local i
 		for i = 1, #vertex_selection do
 		
@@ -67,6 +69,8 @@ function love.update(dt)
 	end
 	
 	if mouse_switch == _RELEASE then
+	
+		-- If a point was selected, add TM_MOVE_VERTEX to time machine
 		local i
 		for i = 1, #vertex_selection do
 		
@@ -102,6 +106,7 @@ function love.draw()
 	
 	polygon.draw()
 	
+	-- Draw spr_vertex on vertex locations
 	local i = 1
 	while i <= #polygon.data do
 		
@@ -109,20 +114,14 @@ function love.draw()
 		
 		lg.setColor({1, 1, 1, 1})
 		
-		-- Draw the shape
-		if clone.kind == "polygon" then
-		
-			local j = 1
-			while j <= #clone.raw do
-				
-				lg.draw(spr_vertex, clone.raw[j].x - 5, clone.raw[j].y - 5)
-				
-				j = j + 1
+		local j = 1
+		while j <= #clone.raw do
 			
-			end
+			lg.draw(spr_vertex, clone.raw[j].x - 5, clone.raw[j].y - 5)
+			
+			j = j + 1
 		
 		end
-		-- End of drawing the shape
 		
 		i = i + 1
 	end

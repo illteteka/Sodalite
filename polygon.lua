@@ -29,6 +29,7 @@ function polygon.calcVertex(x, y, loc, use_tm)
 
 	local point_selected = -1
 	
+	-- Test if user clicked on a vertex
 	if use_tm then
 	
 		local i = 1
@@ -37,10 +38,12 @@ function polygon.calcVertex(x, y, loc, use_tm)
 			local vertex_radius = 10
 			local vx, vy = polygon.data[1].raw[i].x, polygon.data[1].raw[i].y
 			
+			-- If check was successful
 			if (lume.distance(x, y, vx, vy) < vertex_radius) then
 				point_selected = i
 				i = #polygon.data[1].raw + 1
 				
+				-- Add vertex to selection group
 				local moved_point = {}
 				moved_point.index = point_selected
 				moved_point.x = x
@@ -154,6 +157,7 @@ function polygon.addVertex(x, y, loc, old_line, use_tm)
 		tm.store(TM_DEL_LINE,   old_line, old_a, old_b)
 	end
 	
+	-- Add new vertex to selection group
 	if tm.enabled then
 		local moved_point = {}
 		moved_point.index = #copy.raw
@@ -168,7 +172,7 @@ end
 
 function polygon.redo()
 
-	if tm.data[1] ~= nil and tm.cursor + 1 < tm.length then -- and below the max
+	if tm.data[1] ~= nil and tm.cursor + 1 < tm.length then
 	
 		tm.cursor = tm.cursor + 1
 		tm.location = tm.location + 1
