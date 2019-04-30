@@ -12,11 +12,19 @@ vertex_selection = {}
 one_button = _OFF
 two_button = _OFF
 
+select_all = _OFF
+
 undo_button = _OFF
 redo_button = _OFF
 
+selection_mouse_x = 0
+selection_mouse_y = 0
+
 function love.load()
 
+	font = lg.newFont("opensans.ttf", 13)
+	lg.setFont(font)
+	
 	tm.init()
 	
 	spr_vertex = love.graphics.newImage("textures/vertex.png")
@@ -30,6 +38,7 @@ function love.update(dt)
 	input.update(dt)
 	undo_button = input.pullSwitch(love.keyboard.isDown("z"), undo_button)
 	redo_button = input.pullSwitch(love.keyboard.isDown("a"), redo_button)
+	select_all = input.pullSwitch(love.keyboard.isDown("e"), select_all)
 	
 	-- debug buttons
 	one_button = input.pullSwitch(love.keyboard.isDown("1"), one_button)
@@ -41,6 +50,21 @@ function love.update(dt)
 	if one_button == _PRESS then print_r(polygon.data) end
 	if two_button == _PRESS then print_r(tm.data) end
 	
+	if polygon.data[1] ~= nil and select_all == _PRESS then
+	
+		local i
+		for i = 1, #polygon.data[1].raw do
+		
+			local moved_point = {}
+			moved_point.index = i
+			moved_point.x = polygon.data[1].raw[i].x
+			moved_point.y = polygon.data[1].raw[i].y
+			table.insert(vertex_selection, moved_point)
+		
+		end
+	
+	end
+	
 	-- end debug block
 	
 	if mouse_switch == _PRESS then
@@ -50,8 +74,13 @@ function love.update(dt)
 			polygon.new({1, 0, 0, 1}, true)
 		end
 		
+		selection_mouse_x = love.mouse.getX()
+		selection_mouse_y = love.mouse.getY()
+		
 		-- Test if we are placing a vertex or moving a vertex
-		polygon.calcVertex(love.mouse.getX(), love.mouse.getY(), shape_count, true)
+		if vertex_selection[1] == nil then -- If selection is empty
+		polygon.calcVertex(selection_mouse_x, selection_mouse_y, shape_count, true)
+		end
 	
 	end
 	
@@ -61,8 +90,9 @@ function love.update(dt)
 		local i
 		for i = 1, #vertex_selection do
 		
+			-- Move verices by offset of selection_mouse_*
 			local pp = polygon.data[1].raw[vertex_selection[i].index]
-			pp.x, pp.y = love.mouse.getX(), love.mouse.getY()
+			pp.x, pp.y = vertex_selection[i].x + (love.mouse.getX() - selection_mouse_x), vertex_selection[i].y + (love.mouse.getY() - selection_mouse_y)
 		
 		end
 	
@@ -86,10 +116,12 @@ function love.update(dt)
 	if mouse_switch == _OFF then
 	
 		if undo_button == _PRESS then
+			vertex_selection = {}
 			polygon.undo()
 		end
 		
 		if redo_button == _PRESS then
+			vertex_selection = {}
 			polygon.redo()
 		end
 	
@@ -102,9 +134,65 @@ function love.draw()
 	lg.setColor(0.4, 0.4, 0.4, 1)
 	lg.rectangle("fill", 0, 0, 1000, 1000)
 	lg.setColor(1, 1, 1, 1)
-	lg.print(love.mouse.getX() .. " " .. love.mouse.getY(), 100, 100)
+	lg.print("z to undo, a to redo, e to select all", 100, 100)
 	
 	polygon.draw()
+	
+	-- Draw lines while editing a shape
+	local polygons_exist = polygon.data[1] ~= nil
+	local mouse_down     = mouse_switch == _ON
+	local verts_selected = vertex_selection[1] ~= nil and #vertex_selection == 1
+	
+	if polygons_exist and mouse_down and verts_selected then
+		local i = 1
+		local clone = polygon.data[1].raw
+		
+		while i <= #clone do
+		
+			lg.setColor({0,0,0,1})
+		
+			local first_vert_sel = vertex_selection[1].index
+			
+			if clone[i].vb ~= nil then
+				
+				local a_loc, b_loc = clone[i].va, clone[i].vb
+				local aa, bb, cc = clone[i], clone[a_loc], clone[b_loc]
+				
+				if (first_vert_sel == i) then
+					lg.line(aa.x, aa.y, bb.x, bb.y)
+					lg.line(cc.x, cc.y, aa.x, aa.y)
+				elseif (first_vert_sel == a_loc) then
+					lg.line(aa.x, aa.y, bb.x, bb.y)
+					lg.line(bb.x, bb.y, cc.x, cc.y)
+				elseif (first_vert_sel == b_loc) then
+					lg.line(bb.x, bb.y, cc.x, cc.y)
+					lg.line(cc.x, cc.y, aa.x, aa.y)
+				end
+				
+				
+			end
+			
+			i = i + 1
+		
+		end
+	end
+	
+	-- Draw perimeter when select all
+	local all_verts_selected = vertex_selection[1] ~= nil and #vertex_selection == #polygon.data[1].raw
+	
+	if polygons_exist and all_verts_selected then
+	
+		local i
+		for i = 1, #polygon.data[1].cache do
+		
+			lg.setColor({1, 1, 1, 1})
+			local aa, bb = polygon.data[1].cache[i][1], polygon.data[1].cache[i][2]
+			local line_a, line_b = polygon.data[1].raw[aa], polygon.data[1].raw[bb]
+			lg.line(line_a.x, line_a.y, line_b.x, line_b.y)
+		
+		end
+	
+	end
 	
 	-- Draw spr_vertex on vertex locations
 	local i = 1

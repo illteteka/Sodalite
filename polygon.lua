@@ -192,8 +192,15 @@ function polygon.redo()
 			local pp = polygon.data[tm.polygon_loc].raw[move_moment.index]
 			pp.x, pp.y = move_moment.x, move_moment.y
 		elseif moment[1].action == TM_MOVE_VERTEX then
-			local pp = polygon.data[tm.polygon_loc].raw[move_moment.index]
-			pp.x, pp.y = move_moment.x, move_moment.y
+		
+			local i
+			for i = 1, #moment do
+			
+				local pp = polygon.data[tm.polygon_loc].raw[moment[i].index]
+				pp.x, pp.y = moment[i].x, moment[i].y
+			
+			end
+			
 		end
 	
 	end
@@ -240,9 +247,14 @@ function polygon.undo()
 		
 		elseif moment[1].action == TM_MOVE_VERTEX then
 		
-			local copy = polygon.data[tm.polygon_loc]
-			local pp = copy.raw[moment[1].index]
-			pp.x, pp.y = moment[1].ox, moment[1].oy
+			local i
+			for i = 1, #moment do
+			
+				local copy = polygon.data[tm.polygon_loc]
+				local pp = copy.raw[moment[i].index]
+				pp.x, pp.y = moment[i].ox, moment[i].oy
+			
+			end
 		
 		end
 		
