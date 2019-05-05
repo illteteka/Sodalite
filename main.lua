@@ -1,5 +1,6 @@
 polygon = require "polygon"
 input = require "input"
+ui = require "ui"
 tm = require "timemachine"
 lume = require "lume"
 
@@ -25,8 +26,12 @@ function love.load()
 	font = lg.newFont("opensans.ttf", 13)
 	lg.setFont(font)
 	
+	ui.init()
 	tm.init()
 	
+	grad_large = love.graphics.newImage("textures/gradient_large.png")
+	grad_active = love.graphics.newImage("textures/gradient_active.png")
+	grad_inactive = love.graphics.newImage("textures/gradient_inactive.png")
 	spr_vertex = love.graphics.newImage("textures/vertex.png")
 	spr_vertex_mask = love.graphics.newImage("textures/vertex_mask.png")
 
@@ -50,6 +55,13 @@ function love.update(dt)
 	if one_button == _PRESS then print_r(polygon.data) end
 	if two_button == _PRESS then print_r(tm.data) end
 	
+	-- end debug block
+	
+	local ui_active
+	ui_active = ui.update(dt)
+	
+	if ui_active == false then
+	
 	if polygon.data[1] ~= nil and select_all == _PRESS then
 	
 		local i
@@ -64,8 +76,6 @@ function love.update(dt)
 		end
 	
 	end
-	
-	-- end debug block
 	
 	if mouse_switch == _PRESS then
 	
@@ -108,7 +118,10 @@ function love.update(dt)
 			tm.store(TM_MOVE_VERTEX, vertex_selection[i].index, pp.x, pp.y, vertex_selection[i].x, vertex_selection[i].y)
 		
 		end
-		tm.step()
+		
+		if #vertex_selection ~= 0 then
+			tm.step()
+		end
 	
 		vertex_selection = {}
 	end
@@ -126,15 +139,15 @@ function love.update(dt)
 		end
 	
 	end
+	
+	end
 
 end
 
 function love.draw()
 
-	lg.setColor(0.4, 0.4, 0.4, 1)
-	lg.rectangle("fill", 0, 0, 1000, 1000)
-	lg.setColor(1, 1, 1, 1)
-	lg.print("z to undo, a to redo, e to select all", 100, 100)
+	lg.setColor(c_background)
+	lg.rectangle("fill", 0, 0, screen_width, screen_height)
 	
 	polygon.draw()
 	
@@ -213,6 +226,8 @@ function love.draw()
 		
 		i = i + 1
 	end
+	
+	ui.draw()
 
 end
 
