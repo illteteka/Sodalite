@@ -127,6 +127,7 @@ function ui.update(dt)
 	
 	local has_interaction = (mouse_switch == _PRESS or ui.context_menu[1] ~= nil)
 	
+	-- Check collision on title bar
 	if love.mouse.getY() < 24 then
 	
 		-- Clear selection on interaction
@@ -177,6 +178,42 @@ function ui.update(dt)
 	elseif ui.context_menu[1] == nil then
 		-- Remove menu selection when not highlighting the menu
 		ui.title_active = false
+	end
+	-- End check collision on title bar
+	
+	-- Check collision on context menu
+	if ui.context_menu[1] ~= nil then
+		
+		local mx, my = love.mouse.getX(), love.mouse.getY()
+		local mx_on_menu, my_on_menu
+		mx_on_menu = (mx >= ui.context_x) and (mx <= ui.context_x + ui.context_w)
+		my_on_menu = (my >= ui.context_y) and (my <= ui.context_y + ui.context_h)
+		
+		-- If context menu was interacted with
+		if mouse_switch == _PRESS and mx_on_menu and my_on_menu then
+			local i
+			local h = 0
+			for i = 1, #ui.context_menu do
+			
+				-- If entry in the menu
+				if ui.context_menu[i]._break == nil then
+				
+					local low = ui.context_y + h + 8
+					local upp = low + 20
+					
+					if my >= low and my <= upp then
+						print(i)
+					end
+					
+					h = h + 22
+				else -- If entry is a break
+					h = h + 11
+				end
+			end
+		
+			ui_active = true
+		end
+	
 	end
 	
 	return ui_active
