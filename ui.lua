@@ -256,7 +256,7 @@ function ui.draw()
 				local low = ui.context_y + h + 8
 				local upp = low + 20
 				
-				if mx >= ui.context_x and mx <= ui.context_w then
+				if mx >= ui.context_x and mx <= ui.context_x + ui.context_w then
 					lg.setColor(bc)
 					if my >= low and my <= upp then
 						lg.rectangle("fill", ui.context_x + 4, ui.context_y + h + 8, ui.context_w - 8, 20)
