@@ -5,6 +5,8 @@ tm = require "timemachine"
 lume = require "lume"
 
 lg = love.graphics
+screen_width = 1024
+screen_height = 600
 
 shape_count = 1
 vertex_selection = {}
@@ -21,8 +23,19 @@ redo_button = _OFF
 selection_mouse_x = 0
 selection_mouse_y = 0
 
+document_name = "Untitled"
+document_w = 0
+document_h = 0
+
+keyboard_text_input = ""
+
 function love.load()
 
+	love.window.setMode(screen_width, screen_height)
+	love.graphics.setLineWidth(1)
+	love.graphics.setLineStyle("rough")
+	love.keyboard.setKeyRepeat(true)
+	
 	font = lg.newFont("opensans.ttf", 13)
 	lg.setFont(font)
 	
@@ -37,6 +50,10 @@ function love.load()
 
 end
 
+function love.textinput(t)
+    keyboard_text_input = t
+end
+
 function love.update(dt)
 
 	-- Update input
@@ -46,8 +63,8 @@ function love.update(dt)
 	select_all = input.pullSwitch(love.keyboard.isDown("e"), select_all)
 	
 	-- debug buttons
-	one_button = input.pullSwitch(love.keyboard.isDown("1"), one_button)
-	two_button = input.pullSwitch(love.keyboard.isDown("2"), two_button)
+	one_button = input.pullSwitch(love.keyboard.isDown("f3"), one_button)
+	two_button = input.pullSwitch(love.keyboard.isDown("f4"), two_button)
 	-- End of input
 	
 	-- debug block
@@ -60,7 +77,7 @@ function love.update(dt)
 	local ui_active
 	ui_active = ui.update(dt)
 	
-	if ui_active == false then
+	if ui_active == false and document_w ~= 0 then
 	
 	if polygon.data[1] ~= nil and select_all == _PRESS then
 	
