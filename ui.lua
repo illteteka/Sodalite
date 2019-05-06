@@ -35,8 +35,18 @@ ui.popup_y = 0
 ui.popup_w = 0
 ui.popup_h = 0
 ui.popup_x_offset = 0
+
+ui.popup_sel_start = ""
 ui.popup_sel_a = 0
 ui.popup_sel_b = 0
+
+ui.keyboard_test = ""
+ui.keyboard_last = ""
+ui.keyboard_timer = 0
+ui.keyboard_timer_hit = false
+
+ui.input_cursor = 0
+ui.input_cursor_visible = false
 
 function ui.init()
 	ui.addTitle("File",     ".file")
@@ -228,6 +238,84 @@ function ui.loadPopup(ref)
 
 end
 
+function ui.popupLoseFocus(kind)
+	
+	if ui.popup_sel_a ~= 0 then 
+	
+	-- Reset value to previous value if textbox is empty
+	local name = ui.popup[ui.popup_sel_a][ui.popup_sel_b]
+	if name.name == "" then
+		name.name = ui.popup_sel_start
+	end
+	
+	-- Don't let width or height be less than 8 when making a new document
+	if kind == "f.new" then
+		if name.kind == "number" then
+			if tonumber(name.name) < 8 then
+				name.name = "8"
+			end
+		end
+	end
+	
+	end
+
+	ui.popup_sel_a = 0
+	ui.popup_sel_b = 0
+end
+
+function ui.keyboardHit(key)
+	if ui.popup_sel_a ~= 0 then--and kind == "f.new" then 
+	
+		local this_menu = ui.popup[ui.popup_sel_a][ui.popup_sel_b]
+		if string.len(key) == 1 then
+		
+			if ui.popup[1][1].kind == "f.new" then
+			
+				if this_menu.kind == "number" then
+					if tonumber(key) ~= nil and string.len(this_menu.name) < 5 then
+						this_menu.name = this_menu.name .. key
+					end
+				elseif string.len(this_menu.name) < 20 then
+					this_menu.name = this_menu.name .. key
+				end
+				
+			else
+				this_menu.name = this_menu.name .. key
+			end
+			
+		else
+			if (key == "backspace") then
+				this_menu.name = string.sub(this_menu.name, 0, string.len(this_menu.name) - 1)
+			elseif (key == "return") then
+				ui.popupLoseFocus(ui.popup[1][1].kind)
+				ui.keyboard_last = ""
+				ui.keyboard_test = ""
+			end
+		end
+	
+	end
+end
+
+function ui.keyboardRepeat(dt)
+	local hit, pause, pause2, repeater
+	hit = 6
+	pause = 35
+	pause2 = pause + 2
+	repeater = 2
+
+	ui.keyboard_timer = ui.keyboard_timer + (1 * dt * 60)
+	
+	if (not ui.keyboard_timer_hit) and (ui.keyboard_timer > hit) then
+		ui.keyboardHit(ui.keyboard_last)
+		ui.keyboard_timer_hit = true
+	end
+	
+	if ((ui.keyboard_timer > pause) and (ui.keyboard_timer < pause2)) or (ui.keyboard_timer > pause2 + repeater) then
+		ui.keyboardHit(ui.keyboard_last)
+		ui.keyboard_timer = pause2
+	end
+end
+
 function ui.update(dt)
 
 	local mx, my = love.mouse.getX(), love.mouse.getY()
@@ -338,17 +426,15 @@ function ui.update(dt)
 		
 		-- Add keyboard input if interacting with a textbox
 		if ui.popup_sel_a ~= 0 then
-			local pop = ui.popup[ui.popup_sel_a][ui.popup_sel_b]
-			
-			if pop.kind == "number" then
-				if tonumber(keyboard_text_input) ~= nil and string.len(pop.name) < 5 then
-					pop.name = pop.name .. keyboard_text_input
-				end
-			elseif string.len(pop.name) < 20 then
-				pop.name = pop.name .. keyboard_text_input
+			-- Update cursor flashing
+			ui.input_cursor = ui.input_cursor + (60 * dt)
+	
+			if ui.input_cursor > 37 then
+				ui.input_cursor = 0
+				ui.input_cursor_visible = not ui.input_cursor_visible
 			end
-			
-			keyboard_text_input = ""
+		
+			ui.keyboardRepeat(dt)
 		end
 		
 		local mx_on_menu, my_on_menu
@@ -358,6 +444,7 @@ function ui.update(dt)
 		-- If the popup box was clicked on
 		if mouse_switch == _PRESS and mx_on_menu and my_on_menu then
 			local px, py, pw, ph, pxo = ui.popup_x, ui.popup_y, ui.popup_w, ui.popup_h, ui.popup_x_offset
+			local popup_clicked = false
 		
 			local i
 			local h = 12
@@ -402,12 +489,19 @@ function ui.update(dt)
 						-- If bounding box was clicked on
 						if mx_box and my_box then
 							
+							popup_clicked = true
+							
 							if kind == "textbox" or kind == "number" then
+								ui.popupLoseFocus(ui.popup[1][1].kind)
+								ui.popup_sel_start = ui.popup[i][j].name
 								ui.popup_sel_a, ui.popup_sel_b = i, j
 							elseif kind == "ok" and ui.popup[1][1].kind == "f.new" then -- OK button for f.new (new document)
+								ui.popupLoseFocus(ui.popup[1][1].kind)
 								document_name = ui.popup[2][2].name
 								document_w = ui.popup[3][2].name
 								document_h = ui.popup[4][2].name
+								
+								print(document_w, document_h)
 								
 								tm.init()
 								polygon.data = {}
@@ -425,14 +519,19 @@ function ui.update(dt)
 				h = h + 28
 			end
 			
+			if not popup_clicked then
+				ui.popupLoseFocus(ui.popup[1][1].kind)
+			end
+			
 			if exit_pop then
+				ui.popupLoseFocus(ui.popup[1][1].kind)
 				ui.popup = {}
-				ui.popup_sel_a = 0
-				ui.popup_sel_b = 0
 				ui_active = true
 				ui.context_menu = {}
 				ui.title_active = false
 			end
+		elseif mouse_switch == _PRESS then
+			ui.popupLoseFocus(ui.popup[1][1].kind)
 		end
 		
 	end
@@ -515,20 +614,29 @@ function ui.draw()
 				
 				local name = ui.popup[i][j].name
 				local kind = ui.popup[i][j].kind
+				
+				local col = c_highlight_inactive
+				local this_selected = (i == ui.popup_sel_a and j == ui.popup_sel_b)
+				if this_selected then
+					col = c_highlight_active
+					lg.setLineWidth(2)
+				end
 			
 				if kind == "text" then
 					lg.print(name, px + (pw / 2) - font:getWidth(name) - 12 + pxo, py + 25 + h)
 				elseif kind == "textbox" then
 					lg.setColor(c_off_white)
 					lg.rectangle("fill", px + (pw / 2) - 5 + pxo, py + 25 + h - 1, 251, 20)
-					lg.setColor(c_black)
+					lg.setColor(col)
 					lg.rectangle("line", px + (pw / 2) - 5 + pxo, py + 25 + h - 1, 251, 20)
+					lg.setColor(c_black)
 					lg.print(name, px + (pw / 2) + pxo, py + 25 + h)
 				elseif kind == "number" then
 					lg.setColor(c_off_white)
 					lg.rectangle("fill", px + (pw / 2) - 5 + pxo, py + 25 + h - 1, 46, 20)
-					lg.setColor(c_black)
+					lg.setColor(col)
 					lg.rectangle("line", px + (pw / 2) - 5 + pxo, py + 25 + h - 1, 46, 20)
+					lg.setColor(c_black)
 					lg.print(name, px + (pw / 2) + pxo, py + 25 + h)
 				elseif kind == "ok" then
 					local bx, by
@@ -542,6 +650,13 @@ function ui.draw()
 					by = py + 25 + h + 6
 					ui.drawOutline(bx - 8, by - 3, 55, 25, true)
 					lg.print(name, bx, by)
+				end
+				
+				lg.setLineWidth(1)
+				
+				if ui.input_cursor_visible and this_selected then
+					local lx, ly = px + (pw / 2) + pxo + font:getWidth(name) + 3, py + 25 + h + 2
+					lg.line(lx, ly, lx, ly + 14)
 				end
 			
 			end

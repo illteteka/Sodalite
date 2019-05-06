@@ -27,13 +27,11 @@ document_name = "Untitled"
 document_w = 0
 document_h = 0
 
-keyboard_text_input = ""
-
 function love.load()
 
 	love.window.setMode(screen_width, screen_height)
-	love.graphics.setLineWidth(1)
-	love.graphics.setLineStyle("rough")
+	lg.setLineWidth(1)
+	lg.setLineStyle("rough")
 	love.keyboard.setKeyRepeat(true)
 	
 	font = lg.newFont("opensans.ttf", 13)
@@ -50,8 +48,14 @@ function love.load()
 
 end
 
-function love.textinput(t)
-    keyboard_text_input = t
+function love.textinput(x)
+	ui.keyboardHit(x or "")
+end
+
+function love.keypressed(x)
+	if (x == "backspace") or (x == "return") then
+		ui.keyboardHit(x)
+	end
 end
 
 function love.update(dt)
