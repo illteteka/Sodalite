@@ -15,10 +15,11 @@ vertex_selection = {}
 one_button = _OFF
 two_button = _OFF
 
-select_all = _OFF
-
-undo_button = _OFF
-redo_button = _OFF
+a_key = _OFF
+lctrl_key = _OFF
+rctrl_key = _OFF
+z_key = _OFF
+y_key = _OFF
 
 selection_mouse_x = 0
 selection_mouse_y = 0
@@ -62,9 +63,11 @@ function love.update(dt)
 
 	-- Update input
 	input.update(dt)
-	undo_button = input.pullSwitch(love.keyboard.isDown("z"), undo_button)
-	redo_button = input.pullSwitch(love.keyboard.isDown("a"), redo_button)
-	select_all = input.pullSwitch(love.keyboard.isDown("e"), select_all)
+	z_key = input.pullSwitch(love.keyboard.isDown("z"), z_key)
+	y_key = input.pullSwitch(love.keyboard.isDown("y"), y_key)
+	lctrl_key = input.pullSwitch(love.keyboard.isDown("lctrl"), lctrl_key)
+	rctrl_key = input.pullSwitch(love.keyboard.isDown("rctrl"), rctrl_key)
+	a_key = input.pullSwitch(love.keyboard.isDown("a"), a_key)
 	
 	-- debug buttons
 	one_button = input.pullSwitch(love.keyboard.isDown("f3"), one_button)
@@ -83,7 +86,7 @@ function love.update(dt)
 	
 	if ui_active == false and document_w ~= 0 then
 	
-	if polygon.data[1] ~= nil and select_all == _PRESS then
+	if polygon.data[1] ~= nil and input.ctrlCombo(a_key) then
 	
 		local i
 		for i = 1, #polygon.data[1].raw do
@@ -149,12 +152,12 @@ function love.update(dt)
 	
 	if mouse_switch == _OFF then
 	
-		if undo_button == _PRESS then
+		if input.ctrlCombo(z_key) then
 			vertex_selection = {}
 			polygon.undo()
 		end
 		
-		if redo_button == _PRESS then
+		if input.ctrlCombo(y_key) then
 			vertex_selection = {}
 			polygon.redo()
 		end

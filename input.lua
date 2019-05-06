@@ -19,6 +19,14 @@ function input.printSwitch(x)
 	end
 end
 
+function input.combo(a, b)
+	return (a == _ON and b == _PRESS) or (a == _PRESS and b == _ON) or (a == _PRESS and b == _PRESS)
+end
+
+function input.ctrlCombo(a)
+	return input.combo(lctrl_key, a) or input.combo(rctrl_key, a)
+end
+
 function input.pullSwitch(a, b)
 
 	local output = b
