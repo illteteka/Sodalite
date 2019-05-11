@@ -1,5 +1,6 @@
 polygon = require "polygon"
 input = require "input"
+palette = require "palette"
 ui = require "ui"
 tm = require "timemachine"
 lume = require "lume"
@@ -30,7 +31,13 @@ document_h = 0
 
 function love.load()
 
-	love.window.setMode(screen_width, screen_height)
+	-- Check if being run in dev environment, set vsync on
+	local bad_is_dev = false
+	local a = io.open(".git/config")
+	bad_is_dev = a ~= nil
+	if bad_is_dev then io.close(a) end
+	
+	love.window.setMode(screen_width, screen_height, {resizable=true, vsync=bad_is_dev, minwidth=640, minheight=480})
 	lg.setLineWidth(1)
 	lg.setLineStyle("rough")
 	love.keyboard.setKeyRepeat(true)
@@ -38,6 +45,7 @@ function love.load()
 	font = lg.newFont("opensans.ttf", 13)
 	lg.setFont(font)
 	
+	palette.init()
 	ui.init()
 	tm.init()
 	
@@ -47,6 +55,10 @@ function love.load()
 	spr_vertex = love.graphics.newImage("textures/vertex.png")
 	spr_vertex_mask = love.graphics.newImage("textures/vertex_mask.png")
 
+end
+
+function love.resize(w, h)
+	screen_width, screen_height = w, h
 end
 
 function love.textinput(x)

@@ -1,20 +1,5 @@
 local ui = {}
 
-c_white = {1, 1, 1, 1}
-c_black = {0, 0, 0, 1}
-c_gray = {93/255, 102/255, 113/255, 1}
-c_off_white = {237/255, 241/255, 246/255, 1}
-
-c_background = {40/255, 40/255, 40/255, 1}
-c_box = {179/255, 192/255, 209/255, 1}
-c_outline_dark = {33/255, 27/255, 18/255, 1}
-c_outline_light = {222/255, 228/255, 237/255, 1}
-c_line_dark = {139/255, 148/255, 161/255, 1}
-c_line_light = {198/255, 209/255, 223/255, 1}
-c_header_active = {58/255, 58/255, 58/255, 1}
-c_highlight_active = {151/255, 97/255, 227/255, 1}
-c_highlight_inactive = {155/255, 173/255, 195/255, 1}
-
 ui.title = {}
 
 ui.context_menu = {}
@@ -588,6 +573,34 @@ function ui.draw()
 	-- Draw outline around menu item
 	if ui.title_active then
 		ui.drawOutline(ui.title_x, ui.title_y, ui.title_w, ui.title_h, ui.context_menu[1] == nil)
+	end
+	
+	-- Draw palette
+	local psize = 16
+	local palx, paly = screen_width - (8 * psize) - 8, 36
+	
+	lg.setColor(c_box)
+	lg.rectangle("fill", palx - 8, 25, 144, 300)
+	ui.drawOutline(palx - 7, 25, 142, 299, false)
+	
+	local i
+	for i = 1, 12 do
+	
+		local j
+		for j = 1, 8 do
+		
+			local index = (j - 1) + ((i - 1) * 8)
+			if index < #palette.colors then
+			lg.setColor(palette.colors[index + 1])
+			lg.rectangle("fill", palx + (j - 1) * psize, paly + (i - 1) * psize, psize - 1, psize - 1)
+			else
+			--lg.setColor(c_off_white)
+			end
+			
+			
+		
+		end
+	
 	end
 	
 	-- Draw popup box
