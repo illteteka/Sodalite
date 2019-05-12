@@ -16,6 +16,8 @@ c_header_active = {58/255, 58/255, 58/255, 1}
 c_highlight_active = {151/255, 97/255, 227/255, 1}
 c_highlight_inactive = {155/255, 173/255, 195/255, 1}
 
+palette.slot = -1
+
 function palette.init()
 
 	palette.colors = {}
@@ -87,7 +89,7 @@ function palette.loadPalette(location)
 
 		end
 
-		palette.max_page = math.ceil(#palette.colors / 12)
+		palette.slot = math.random(#palette.colors) - 1
 
 	end
 
@@ -107,6 +109,28 @@ function palette.HSL(h, s, l, a)
 	elseif h < 5 then r,g,b = x,0,c
 	else              r,g,b = c,0,x
 	end return (r+m)*255,(g+m)*255,(b+m)*255,a
+end
+
+function palette.RGB(r, g, b, a)
+	r,g,b = r/255, g/255, b/255
+	local _max = math.max(r,g,b)
+	local _min = math.min(r,g,b)
+	local def = (_max + _min) / 2
+	local h,s,l = def,def,def
+	if (_max == _min) then h,s = 0,0
+	else
+	local d = _max - _min
+	if (l > 0.5) then s = d / (2 - _max - _min) else s = d / (_max + _min) end
+	if r == _max then
+		if (g < b) then h = (g - b) / d + 6 else h = (g - b) / d end
+	elseif g == _max then
+		h = (b - r) / d + 2
+	elseif b == _max then
+		h = (r - g) / d + 4
+	end
+	h = h/6
+	end
+	return math.ceil(h*255),s*255,l*255,a
 end
 
 return palette

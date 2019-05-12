@@ -21,10 +21,6 @@ ui.popup_w = 0
 ui.popup_h = 0
 ui.popup_x_offset = 0
 
-ui.popup_sel_start = ""
-ui.popup_sel_a = 0
-ui.popup_sel_b = 0
-
 ui.keyboard_test = ""
 ui.keyboard_last = ""
 ui.keyboard_timer = 0
@@ -33,12 +29,87 @@ ui.keyboard_timer_hit = false
 ui.input_cursor = 0
 ui.input_cursor_visible = false
 
+ui.sel_start = ""
+ui.sel_type = ""
+
+ui.allow_keyboard_input = false
+
+ui.popup_sel_a = 0
+ui.popup_sel_b = 0
+
+ui.palette_sel = 0
+RR,GG,BB,HH,SS,LL = 1,2,3,4,5,6
+ui.palette = {}
+ui.palette[RR] = "0"
+ui.palette[GG] = "0"
+ui.palette[BB] = "0"
+ui.palette[HH] = "0"
+ui.palette[SS] = "0"
+ui.palette[LL] = "0"
+
 function ui.init()
 	ui.addTitle("File",     ".file")
 	ui.addTitle("Edit",     ".edit")
 	ui.addTitle("Search",   ".search")
 	ui.addTitle("View",     ".view")
 	ui.addTitle("Encoding", ".encoding")
+end
+
+function ui.loadCM(x, y, ref)
+
+	ui.context_menu = {}
+	
+	if ref == ".file" then
+	
+		ui.addCM("New",         true, "f.new")
+		ui.addCM("Open...",    false, "f.open")
+		ui.addCMBreak()
+		ui.addCM("Close",      false, "f.close")
+		ui.addCM("Save",       false, "f.save")
+		ui.addCM("Save As...", false, "f.as")
+		ui.addCMBreak()
+		ui.addCM("Exit",       false, "f.exit")
+		ui.generateCM(x, y)
+	
+	elseif ref == ".edit" then
+		ui.addCM("Bum", true, "e.new")
+		ui.generateCM(x, y)
+	elseif ref == ".search" then
+		ui.addCM("On", true, "s.new")
+		ui.generateCM(x, y)
+	elseif ref == ".view" then
+		ui.addCM("A", true, "v.new")
+		ui.generateCM(x, y)
+	elseif ref == ".encoding" then
+		ui.addCM("Crumb!!!", true, "en.new")
+		ui.generateCM(x, y)
+	end
+
+end
+
+function ui.loadPopup(ref)
+
+	if ui.popup[1] ~= nil and ui.popup[1][1].kind == ref then
+		-- Don't recreate popup
+	else
+		
+		ui.popup = {}
+		
+		if ref == "f.new" then
+			ui.addPopup("New document", "f.new", "col")
+			ui.addPopup("Name:", "text", "col")
+			ui.addPopup("Untitled", "textbox", "row")
+			ui.addPopup("Width:", "text", "col")
+			ui.addPopup("512", "number", "row")
+			ui.addPopup("Height:", "text", "col")
+			ui.addPopup("512", "number", "row")
+			ui.addPopup("OK", "ok", "col")
+			ui.addPopup("Cancel", "cancel", "row")
+			ui.generatePopup()
+		end
+	
+	end
+
 end
 
 function ui.addTitle(name, ref)
@@ -166,71 +237,19 @@ function ui.generatePopup()
 
 end
 
-function ui.loadCM(x, y, ref)
-
-	ui.context_menu = {}
-	
-	if ref == ".file" then
-	
-		ui.addCM("New",         true, "f.new")
-		ui.addCM("Open...",    false, "f.open")
-		ui.addCMBreak()
-		ui.addCM("Close",      false, "f.close")
-		ui.addCM("Save",       false, "f.save")
-		ui.addCM("Save As...", false, "f.as")
-		ui.addCMBreak()
-		ui.addCM("Exit",       false, "f.exit")
-		ui.generateCM(x, y)
-	
-	elseif ref == ".edit" then
-		ui.addCM("Bum", true, "e.new")
-		ui.generateCM(x, y)
-	elseif ref == ".search" then
-		ui.addCM("On", true, "s.new")
-		ui.generateCM(x, y)
-	elseif ref == ".view" then
-		ui.addCM("A", true, "v.new")
-		ui.generateCM(x, y)
-	elseif ref == ".encoding" then
-		ui.addCM("Crumb!!!", true, "en.new")
-		ui.generateCM(x, y)
-	end
-
-end
-
-function ui.loadPopup(ref)
-
-	if ui.popup[1] ~= nil and ui.popup[1][1].kind == ref then
-		-- Don't recreate popup
-	else
-		
-		ui.popup = {}
-		
-		if ref == "f.new" then
-			ui.addPopup("New document", "f.new", "col")
-			ui.addPopup("Name:", "text", "col")
-			ui.addPopup("Untitled", "textbox", "row")
-			ui.addPopup("Width:", "text", "col")
-			ui.addPopup("512", "number", "row")
-			ui.addPopup("Height:", "text", "col")
-			ui.addPopup("512", "number", "row")
-			ui.addPopup("OK", "ok", "col")
-			ui.addPopup("Cancel", "cancel", "row")
-			ui.generatePopup()
-		end
-	
-	end
-
-end
-
 function ui.popupLoseFocus(kind)
 	
 	if ui.popup_sel_a ~= 0 then 
 	
 	-- Reset value to previous value if textbox is empty
-	local name = ui.popup[ui.popup_sel_a][ui.popup_sel_b]
+	local name
+	
+	if ui.sel_type == "popup" then
+		name = ui.popup[ui.popup_sel_a][ui.popup_sel_b]
+	end
+	
 	if name.name == "" then
-		name.name = ui.popup_sel_start
+		name.name = ui.sel_start
 	end
 	
 	-- Don't let width or height be less than 8 when making a new document
@@ -238,18 +257,22 @@ function ui.popupLoseFocus(kind)
 		if name.kind == "number" then
 			if tonumber(name.name) < 8 then
 				name.name = "8"
+			else
+				name.name = tostring(tonumber(name.name))
 			end
 		end
 	end
 	
 	end
-
+	
 	ui.popup_sel_a = 0
 	ui.popup_sel_b = 0
+	ui.palette_sel = 0
+	
 end
 
 function ui.keyboardHit(key)
-	if ui.popup_sel_a ~= 0 then--and kind == "f.new" then 
+	if ui.sel_type == "popup" then
 	
 		local this_menu = ui.popup[ui.popup_sel_a][ui.popup_sel_b]
 		if string.len(key) == 1 then
@@ -264,8 +287,6 @@ function ui.keyboardHit(key)
 					this_menu.name = this_menu.name .. key
 				end
 				
-			else
-				this_menu.name = this_menu.name .. key
 			end
 			
 		else
@@ -404,23 +425,25 @@ function ui.update(dt)
 	
 	end
 	
+	ui.allow_keyboard_input = (ui.popup_sel_a ~= 0)
+	
+	-- Add keyboard input if interacting with a textbox
+	if ui.allow_keyboard_input then
+		-- Update cursor flashing
+		ui.input_cursor = ui.input_cursor + (60 * dt)
+
+		if ui.input_cursor > 37 then
+			ui.input_cursor = 0
+			ui.input_cursor_visible = not ui.input_cursor_visible
+		end
+	
+		ui.keyboardRepeat(dt)
+	end
+	
 	-- Check collision on popup box
 	if ui.popup[1] ~= nil then
 		
 		local exit_pop = false
-		
-		-- Add keyboard input if interacting with a textbox
-		if ui.popup_sel_a ~= 0 then
-			-- Update cursor flashing
-			ui.input_cursor = ui.input_cursor + (60 * dt)
-	
-			if ui.input_cursor > 37 then
-				ui.input_cursor = 0
-				ui.input_cursor_visible = not ui.input_cursor_visible
-			end
-		
-			ui.keyboardRepeat(dt)
-		end
 		
 		local mx_on_menu, my_on_menu
 		mx_on_menu = (mx >= ui.popup_x) and (mx <= ui.popup_x + ui.popup_w)
@@ -478,7 +501,8 @@ function ui.update(dt)
 							
 							if kind == "textbox" or kind == "number" then
 								ui.popupLoseFocus(ui.popup[1][1].kind)
-								ui.popup_sel_start = ui.popup[i][j].name
+								ui.sel_start = ui.popup[i][j].name
+								ui.sel_type = "popup"
 								ui.popup_sel_a, ui.popup_sel_b = i, j
 							elseif kind == "ok" and ui.popup[1][1].kind == "f.new" then -- OK button for f.new (new document)
 								ui.popupLoseFocus(ui.popup[1][1].kind)
@@ -577,14 +601,21 @@ function ui.draw()
 	
 	-- Draw palette
 	local psize = 16
-	local palx, paly = screen_width - (8 * psize) - 8, 36
+	local palx, paly = screen_width - (8 * psize) - 8, 130
 	
 	lg.setColor(c_box)
 	lg.rectangle("fill", palx - 8, 25, 144, 300)
 	ui.drawOutline(palx - 7, 25, 142, 299, false)
 	
+	ui.drawOutline(palx - 4, paly - 7, 135, (8 * 14) - 3, false)
+	
+	lg.setColor(c_black)
+	lg.print("RGB", palx + 6, 36 + 3)
+	lg.print("HSL", palx + 6 + 40, 36 + 3)
+	
 	local i
-	for i = 1, 12 do
+	local sel_i, sel_j = -1, -1
+	for i = 1, 6 do
 	
 		local j
 		for j = 1, 8 do
@@ -592,15 +623,25 @@ function ui.draw()
 			local index = (j - 1) + ((i - 1) * 8)
 			if index < #palette.colors then
 			lg.setColor(palette.colors[index + 1])
-			lg.rectangle("fill", palx + (j - 1) * psize, paly + (i - 1) * psize, psize - 1, psize - 1)
 			else
-			--lg.setColor(c_off_white)
+			lg.setColor(c_black)
 			end
 			
+			lg.rectangle("fill", palx + (j - 1) * psize, paly + (i - 1) * psize, psize - 1, psize - 1)
 			
+			if index == palette.slot then
+				sel_i, sel_j = i, j
+			end
 		
 		end
 	
+	end
+	
+	if sel_i ~= -1 then
+		lg.setColor(c_outline_light)
+		lg.rectangle("line", palx + (sel_j - 1) * psize, paly + (sel_i - 1) * psize, psize - 1, psize - 1)
+		lg.setColor(c_outline_dark)
+		lg.rectangle("line", palx - 1 + (sel_j - 1) * psize, paly - 1 + (sel_i - 1) * psize, psize + 1, psize + 1)
 	end
 	
 	-- Draw popup box

@@ -31,6 +31,7 @@ document_h = 0
 
 function love.load()
 
+	math.randomseed(os.time())
 	-- Check if being run in dev environment, set vsync on
 	local bad_is_dev = false
 	local a = io.open(".git/config")
