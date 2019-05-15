@@ -46,8 +46,8 @@ function love.load()
 	font = lg.newFont("opensans.ttf", 13)
 	lg.setFont(font)
 	
-	palette.init()
 	ui.init()
+	palette.init()
 	tm.init()
 	
 	grad_large = love.graphics.newImage("textures/gradient_large.png")
@@ -55,6 +55,10 @@ function love.load()
 	grad_inactive = love.graphics.newImage("textures/gradient_inactive.png")
 	spr_vertex = love.graphics.newImage("textures/vertex.png")
 	spr_vertex_mask = love.graphics.newImage("textures/vertex_mask.png")
+	spr_slider_1 = love.graphics.newImage("textures/slider_1.png")
+	spr_slider_2 = love.graphics.newImage("textures/slider_2.png")
+	spr_slider_3 = love.graphics.newImage("textures/slider_3.png")
+	spr_slider_button = love.graphics.newImage("textures/slider_button.png")
 
 end
 

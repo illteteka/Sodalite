@@ -38,16 +38,18 @@ ui.popup_sel_a = 0
 ui.popup_sel_b = 0
 
 ui.palette_sel = 0
-RR,GG,BB,HH,SS,LL = 1,2,3,4,5,6
 ui.palette = {}
-ui.palette[RR] = "0"
-ui.palette[GG] = "0"
-ui.palette[BB] = "0"
-ui.palette[HH] = "0"
-ui.palette[SS] = "0"
-ui.palette[LL] = "0"
 
 function ui.init()
+	-- Add palette sliders
+	ui.addPS("R", "0", false)
+	ui.addPS("G", "0", false)
+	ui.addPS("B", "0", false)
+	ui.addPS("H", "0", false)
+	ui.addPS("S", "0", false)
+	ui.addPS("L", "0", false)
+
+	-- Add title bar items
 	ui.addTitle("File",     ".file")
 	ui.addTitle("Edit",     ".edit")
 	ui.addTitle("Search",   ".search")
@@ -122,6 +124,7 @@ function ui.addTitle(name, ref)
 
 end
 
+-- Context menu
 function ui.addCM(name, active, ref)
 
 	local item = {}
@@ -130,6 +133,18 @@ function ui.addCM(name, active, ref)
 	item.active = active
 	
 	table.insert(ui.context_menu, item)
+
+end
+
+-- Palette slider
+function ui.addPS(name, value, active)
+
+	local item = {}
+	item.name = name
+	item.value = value
+	item.active = active
+	
+	table.insert(ui.palette, item)
 
 end
 
@@ -242,11 +257,7 @@ function ui.popupLoseFocus(kind)
 	if ui.popup_sel_a ~= 0 then 
 	
 	-- Reset value to previous value if textbox is empty
-	local name
-	
-	if ui.sel_type == "popup" then
-		name = ui.popup[ui.popup_sel_a][ui.popup_sel_b]
-	end
+	local name = ui.popup[ui.popup_sel_a][ui.popup_sel_b]
 	
 	if name.name == "" then
 		name.name = ui.sel_start
@@ -268,6 +279,7 @@ function ui.popupLoseFocus(kind)
 	ui.popup_sel_a = 0
 	ui.popup_sel_b = 0
 	ui.palette_sel = 0
+	ui.sel_type = ""
 	
 end
 
@@ -425,7 +437,7 @@ function ui.update(dt)
 	
 	end
 	
-	ui.allow_keyboard_input = (ui.popup_sel_a ~= 0)
+	ui.allow_keyboard_input = (ui.sel_type ~= "")
 	
 	-- Add keyboard input if interacting with a textbox
 	if ui.allow_keyboard_input then
@@ -570,6 +582,39 @@ function ui.drawOutline(x, y, w, h, invert)
 	lg.rectangle("fill", x + 1, y + h - 1, w - 1, 1)
 end
 
+function ui.drawOutlinePal(x, y, w, h, invert)
+
+	lg.setColor(c_outline_dark)
+	
+	local gap = 35
+	if invert then
+		gap = 74
+		lg.rectangle("fill", x, y, gap - 34, 1)
+		lg.rectangle("fill", x + gap - 34, y - 29, 1, 30)
+		lg.rectangle("fill", x + gap - 34, y - 29, 33, 1)
+	else
+		lg.rectangle("fill", x, y - 29, 1, 29)
+		lg.rectangle("fill", x, y - 29, gap - 1, 1)
+	end
+	
+	lg.rectangle("fill", x + gap, y, w - 1 - gap, 1)
+	lg.rectangle("fill", x, y, 1, h)
+	lg.setColor(c_outline_light)
+	lg.rectangle("fill", x + w - 1, y, 1, h)
+	lg.rectangle("fill", x + 1, y + h - 1, w - 1, 1)
+	lg.rectangle("fill", x + gap - 1, y - 29, 1, 30)
+end
+
+function ui.drawSlider(x, y, w, pos)
+	-- w - 11
+	lg.setColor(c_white)
+	lg.draw(spr_slider_1, x, y + 9)
+	lg.draw(spr_slider_2, x + 1, y + 9, 0, (w - 3)/1, 1)
+	lg.draw(spr_slider_3, x + w - 2, y + 9)
+	lg.draw(spr_slider_button, x + pos, y)
+	
+end
+
 function ui.draw()
 
 	lg.setColor(c_box)
@@ -601,24 +646,51 @@ function ui.draw()
 	
 	-- Draw palette
 	local psize = 16
-	local palx, paly = screen_width - (8 * psize) - 8, 130
+	local palw = (13 * psize)
+	local palx, paly = screen_width - palw + 8, 165
 	
 	lg.setColor(c_box)
-	lg.rectangle("fill", palx - 8, 25, 144, 300)
-	ui.drawOutline(palx - 7, 25, 142, 299, false)
+	lg.rectangle("fill", palx - 8, 25, palw, 300)
+	ui.drawOutline(palx - 7, 25, palw - 2, 299, false)
 	
-	ui.drawOutline(palx - 4, paly - 7, 135, (8 * 14) - 3, false)
+	-- Color picker
+	ui.drawOutlinePal(palx - 4, 65, palw - 9, 99, false)
 	
 	lg.setColor(c_black)
-	lg.print("RGB", palx + 6, 36 + 3)
-	lg.print("HSL", palx + 6 + 40, 36 + 3)
+	lg.print("RGB", palx + 1, 42)
+	lg.print("HSL", palx + 1 + 40, 42)
 	
+	ui.drawOutline(palx + 1 - 5,  42, 25 + 10, 18,true)
+	ui.drawOutline(palx + 41 - 5, 42, 24 + 10, 18,true)
+	
+	local ix, iy = screen_width - 50, 52
+	local i
+	h = 0
+	for i = 1, 3 do
+	
+		lg.setColor(c_off_white)
+		lg.rectangle("fill", ix - 5, iy + 25 + h - 1, 46, 20)
+		lg.setColor(c_highlight_inactive)
+		lg.rectangle("line", ix - 5, iy + 25 + h - 1, 46, 20)
+		lg.setColor(c_black)
+		lg.print(ui.palette[i].name, ix - font:getWidth(ui.palette[i].name) - 12, iy + 25 + h)
+		lg.print(ui.palette[i].value, ix, iy + 25 + h)
+		
+		local slide_pos = (tonumber(ui.palette[i].value) / 255) * 111
+		ui.drawSlider(ix - 147, iy + 25 + h - 1, 122, slide_pos)
+		
+		h = h + 28
+	
+	end
+	
+	-- Palette
+	ui.drawOutline(palx - 4, paly - 7 + 16, palw - 9, (16 * 7) - 3, false)
 	local i
 	local sel_i, sel_j = -1, -1
 	for i = 1, 6 do
 	
 		local j
-		for j = 1, 8 do
+		for j = 1, 12 do
 		
 			local index = (j - 1) + ((i - 1) * 8)
 			if index < #palette.colors then
@@ -627,7 +699,7 @@ function ui.draw()
 			lg.setColor(c_black)
 			end
 			
-			lg.rectangle("fill", palx + (j - 1) * psize, paly + (i - 1) * psize, psize - 1, psize - 1)
+			lg.rectangle("fill", palx + (j - 1) * psize, paly + i * psize, psize - 1, psize - 1)
 			
 			if index == palette.slot then
 				sel_i, sel_j = i, j
@@ -637,11 +709,12 @@ function ui.draw()
 	
 	end
 	
+	-- Selected color
 	if sel_i ~= -1 then
 		lg.setColor(c_outline_light)
-		lg.rectangle("line", palx + (sel_j - 1) * psize, paly + (sel_i - 1) * psize, psize - 1, psize - 1)
+		lg.rectangle("line", palx + (sel_j - 1) * psize, paly + sel_i * psize, psize - 1, psize - 1)
 		lg.setColor(c_outline_dark)
-		lg.rectangle("line", palx - 1 + (sel_j - 1) * psize, paly - 1 + (sel_i - 1) * psize, psize + 1, psize + 1)
+		lg.rectangle("line", palx - 1 + (sel_j - 1) * psize, paly - 1 + sel_i * psize, psize + 1, psize + 1)
 	end
 	
 	-- Draw popup box

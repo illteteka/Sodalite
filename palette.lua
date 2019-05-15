@@ -17,6 +17,7 @@ c_highlight_active = {151/255, 97/255, 227/255, 1}
 c_highlight_inactive = {155/255, 173/255, 195/255, 1}
 
 palette.slot = -1
+palette.active = {1,1,1,1}
 
 function palette.init()
 
@@ -90,9 +91,23 @@ function palette.loadPalette(location)
 		end
 
 		palette.slot = math.random(#palette.colors) - 1
+		palette.active = palette.colors[palette.slot + 1]
+		palette.updateTextRGB()
 
 	end
 
+end
+
+function palette.updateTextRGB()
+
+	local _floor = math.floor
+	ui.palette[1].value = _floor(palette.active[1] * 255)
+	ui.palette[2].value = _floor(palette.active[2] * 255)
+	ui.palette[3].value = _floor(palette.active[3] * 255)
+	local aa = palette.active[4]
+	ui.palette[4].value, ui.palette[5].value, ui.palette[6].value = palette.RGB(ui.palette[1].value, ui.palette[2].value, ui.palette[3].value, aa)
+	ui.palette[4].value, ui.palette[5].value, ui.palette[6].value = _floor(ui.palette[4].value), _floor(ui.palette[5].value), _floor(ui.palette[6].value)
+	
 end
 
 -- Converts HSL to RGB. (input and output range: 0 - 255)
