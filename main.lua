@@ -21,6 +21,8 @@ lctrl_key = _OFF
 rctrl_key = _OFF
 z_key = _OFF
 y_key = _OFF
+c_key = _OFF
+v_key = _OFF
 
 selection_mouse_x = 0
 selection_mouse_y = 0
@@ -82,6 +84,8 @@ function love.update(dt)
 	input.update(dt)
 	z_key = input.pullSwitch(love.keyboard.isDown("z"), z_key)
 	y_key = input.pullSwitch(love.keyboard.isDown("y"), y_key)
+	c_key = input.pullSwitch(love.keyboard.isDown("c"), c_key)
+	v_key = input.pullSwitch(love.keyboard.isDown("v"), v_key)
 	lctrl_key = input.pullSwitch(love.keyboard.isDown("lctrl"), lctrl_key)
 	rctrl_key = input.pullSwitch(love.keyboard.isDown("rctrl"), rctrl_key)
 	a_key = input.pullSwitch(love.keyboard.isDown("a"), a_key)
@@ -122,7 +126,8 @@ function love.update(dt)
 	
 		-- Create a new shape if one doesn't exist
 		if polygon.data[1] == nil then
-			polygon.new(palette.active, true)
+			local new_col = {palette.active[1], palette.active[2], palette.active[3], palette.active[4]}
+			polygon.new(new_col, true)
 		end
 		
 		selection_mouse_x = love.mouse.getX()
@@ -171,11 +176,13 @@ function love.update(dt)
 	
 		if input.ctrlCombo(z_key) then
 			vertex_selection = {}
+			palette.activeIsEditable = false
 			polygon.undo()
 		end
 		
 		if input.ctrlCombo(y_key) then
 			vertex_selection = {}
+			palette.activeIsEditable = false
 			polygon.redo()
 		end
 	

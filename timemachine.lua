@@ -4,6 +4,7 @@ TM_NEW_POLYGON  = 0
 TM_ADD_VERTEX   = 1
 TM_DEL_LINE     = 2
 TM_MOVE_VERTEX  = 3
+TM_CHANGE_COLOR = 4
 
 function tm.init()
 
@@ -73,6 +74,14 @@ function tm.store(action, a, b, c, d, e)
 			moment.y = c
 			moment.ox = d
 			moment.oy = e
+		
+		elseif (action == TM_CHANGE_COLOR) then
+		
+			moment.action = TM_CHANGE_COLOR
+			local ca = {a[1], a[2], a[3], a[4]}
+			moment.original = ca
+			local cb = {b[1], b[2], b[3], b[4]}
+			moment.new = cb
 		
 		end
 		

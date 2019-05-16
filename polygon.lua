@@ -201,6 +201,10 @@ function polygon.redo()
 			
 			end
 			
+		elseif moment[1].action == TM_CHANGE_COLOR then
+		
+			polygon.data[tm.polygon_loc].color = moment[1].new
+		
 		end
 	
 	end
@@ -255,6 +259,10 @@ function polygon.undo()
 				pp.x, pp.y = moment[i].ox, moment[i].oy
 			
 			end
+		
+		elseif moment[1].action == TM_CHANGE_COLOR then
+		
+			polygon.data[tm.polygon_loc].color = moment[1].original
 		
 		end
 		

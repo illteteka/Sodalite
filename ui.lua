@@ -452,6 +452,22 @@ function ui.update(dt)
 		ui.keyboardRepeat(dt)
 	end
 	
+	-- Copy and paste for palette
+	if input.ctrlCombo(c_key) then
+		local new_col = {palette.active[1], palette.active[2], palette.active[3], palette.active[4]}
+		palette.copy = new_col
+	end
+	
+	if input.ctrlCombo(v_key) and palette.canPaste and palette.copy ~= nil then	
+		palette.colors[palette.slot + 1] = palette.copy
+		palette.active = palette.colors[palette.slot + 1]
+		palette.updateFromBoxes()
+		
+		local copy_again = palette.colors[palette.slot + 1]
+		local new_col = {copy_again[1], copy_again[2], copy_again[3], copy_again[4]}
+		palette.copy = new_col
+	end
+	
 	-- Check collision of palette
 	local psize = 16
 	local palw = (13 * psize)
@@ -466,8 +482,10 @@ function ui.update(dt)
 			
 			if mx >= palx - 4 + 8 and mx <= palx - 4 + 25 + 10 + 8 then
 				ui.palette_mode = "RGB"
+				palette.canPaste = false
 			elseif mx >= palx + 36 + 8 and mx <= palx + 36 + 24 + 10 + 8 then
 				ui.palette_mode = "HSL"
+				palette.canPaste = false
 			end
 			
 		elseif my > 181 and my < 181 + (psize * palette.h)then -- Color picker
@@ -479,11 +497,30 @@ function ui.update(dt)
 				sel_y = math.floor(raw_y / 16)
 				local final_col = (sel_y * palette.w) + sel_x
 				palette.slot = final_col
-				palette.active = palette.colors[final_col + 1]
-				palette.updateTextRGB()
+				
+				if palette.active == palette.colors[final_col + 1] then
+					palette.activeIsEditable = true
+					
+					if polygon.data[1] ~= nil then
+						tm.store(TM_CHANGE_COLOR, polygon.data[tm.polygon_loc].color, palette.active)
+						tm.step()
+						
+						palette.startingColor = polygon.data[tm.polygon_loc].color
+						
+						local copy_col = {palette.active[1], palette.active[2], palette.active[3], palette.active[4]}
+						polygon.data[tm.polygon_loc].color = copy_col
+					end
+				else
+					palette.active = palette.colors[final_col + 1]
+					palette.updateFromBoxes()
+					palette.activeIsEditable = false
+				end
+				
+				palette.canPaste = true
 			end
 		end
 		
+		-- Scroll bar
 		local ix, iy = screen_width - 50, 52
 		if mx >= ix - 147 and mx <= ix - 147 + 122 then
 			local i
@@ -493,6 +530,12 @@ function ui.update(dt)
 					local hsl = 0
 					if ui.palette_mode == "HSL" then hsl = 3 end
 					ui.palette_slider = i + hsl
+					palette.canPaste = false
+					
+					if palette.activeIsEditable and polygon.data[1] ~= nil then
+						palette.startingColor = polygon.data[tm.polygon_loc].color
+					end
+					
 				end
 			end
 		end
@@ -504,11 +547,24 @@ function ui.update(dt)
 		local ix = screen_width - 50
 		ui.palette[ui.palette_slider].value = math.floor(lume.clamp(mx - ix + 147, 0, 122)/122 * 255)
 		if ui.palette_slider < 4 then
-			palette.updateColorRGB()
+			palette.updateFromRGB()
 		else
-			palette.updateColorHSL()
+			palette.updateFromHSL()
 		end
+		
+		if palette.activeIsEditable and polygon.data[1] ~= nil then
+			polygon.data[tm.polygon_loc].color = palette.active
+		end
+		
 	elseif mouse_switch == _RELEASE and ui.palette_slider ~= 0 then
+		if palette.activeIsEditable and polygon.data[1] ~= nil then
+			tm.store(TM_CHANGE_COLOR, palette.startingColor, palette.active)
+			tm.step()
+					
+			local copy_col = {palette.active[1], palette.active[2], palette.active[3], palette.active[4]}
+			polygon.data[tm.polygon_loc].color = copy_col
+		end
+	
 		ui.palette_slider = 0
 	end
 	

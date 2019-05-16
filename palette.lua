@@ -21,6 +21,11 @@ palette.h = 6
 
 palette.slot = -1
 palette.active = {1,1,1,1}
+palette.activeIsEditable = false
+palette.startingColor = {1,1,1,1}
+
+palette.copy = nil
+palette.canPaste = false
 
 function palette.init()
 
@@ -102,13 +107,13 @@ function palette.loadPalette(location)
 		end
 
 		palette.active = palette.colors[palette.slot + 1]
-		palette.updateTextRGB()
+		palette.updateFromBoxes()
 
 	end
 
 end
 
-function palette.updateColorRGB()
+function palette.updateFromRGB()
 	local _floor = math.floor
 	palette.active[1], palette.active[2], palette.active[3] = ui.palette[1].value / 255, ui.palette[2].value / 255, ui.palette[3].value / 255
 	local aa = palette.active[4]
@@ -116,14 +121,13 @@ function palette.updateColorRGB()
 	ui.palette[4].value, ui.palette[5].value, ui.palette[6].value = _floor(ui.palette[4].value), _floor(ui.palette[5].value), _floor(ui.palette[6].value)
 end
 
-function palette.updateColorHSL()
+function palette.updateFromHSL()
 	local _floor = math.floor
 	palette.active[1], palette.active[2], palette.active[3], palette.active[4] = palette.HSL(ui.palette[4].value, ui.palette[5].value, ui.palette[6].value, palette.active[4])
 	ui.palette[1].value, ui.palette[2].value, ui.palette[3].value = _floor(palette.active[1] * 255), _floor(palette.active[2] * 255), _floor(palette.active[3] * 255)
-	print_r(ui.palette)
 end
 
-function palette.updateTextRGB()
+function palette.updateFromBoxes()
 
 	local _floor = math.floor
 	ui.palette[1].value = _floor(palette.active[1] * 255)
