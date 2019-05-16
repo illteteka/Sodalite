@@ -16,6 +16,9 @@ c_header_active = {58/255, 58/255, 58/255, 1}
 c_highlight_active = {151/255, 97/255, 227/255, 1}
 c_highlight_inactive = {155/255, 173/255, 195/255, 1}
 
+palette.w = 12
+palette.h = 6
+
 palette.slot = -1
 palette.active = {1,1,1,1}
 
@@ -89,13 +92,35 @@ function palette.loadPalette(location)
 			end
 
 		end
-
+		
 		palette.slot = math.random(#palette.colors) - 1
+		
+		-- Fill remaining palette with black
+		local i
+		for i = #palette.colors, palette.w * palette.h do
+			table.insert(palette.colors, {0, 0, 0, 1})
+		end
+
 		palette.active = palette.colors[palette.slot + 1]
 		palette.updateTextRGB()
 
 	end
 
+end
+
+function palette.updateColorRGB()
+	local _floor = math.floor
+	palette.active[1], palette.active[2], palette.active[3] = ui.palette[1].value / 255, ui.palette[2].value / 255, ui.palette[3].value / 255
+	local aa = palette.active[4]
+	ui.palette[4].value, ui.palette[5].value, ui.palette[6].value = palette.RGB(ui.palette[1].value, ui.palette[2].value, ui.palette[3].value, aa)
+	ui.palette[4].value, ui.palette[5].value, ui.palette[6].value = _floor(ui.palette[4].value), _floor(ui.palette[5].value), _floor(ui.palette[6].value)
+end
+
+function palette.updateColorHSL()
+	local _floor = math.floor
+	palette.active[1], palette.active[2], palette.active[3], palette.active[4] = palette.HSL(ui.palette[4].value, ui.palette[5].value, ui.palette[6].value, palette.active[4])
+	ui.palette[1].value, ui.palette[2].value, ui.palette[3].value = _floor(palette.active[1] * 255), _floor(palette.active[2] * 255), _floor(palette.active[3] * 255)
+	print_r(ui.palette)
 end
 
 function palette.updateTextRGB()
@@ -110,9 +135,9 @@ function palette.updateTextRGB()
 	
 end
 
--- Converts HSL to RGB. (input and output range: 0 - 255)
+-- Converts HSL to RGB
 function palette.HSL(h, s, l, a)
-	if s<=0 then return l,l,l,a end
+	if s<=0 then return l/255,l/255,l/255,a end
 	h, s, l = h/256*6, s/255, l/255
 	local c = (1-math.abs(2*l-1))*s
 	local x = (1-math.abs(h%2-1))*c
@@ -123,7 +148,7 @@ function palette.HSL(h, s, l, a)
 	elseif h < 4 then r,g,b = 0,x,c
 	elseif h < 5 then r,g,b = x,0,c
 	else              r,g,b = c,0,x
-	end return (r+m)*255,(g+m)*255,(b+m)*255,a
+	end return (r+m),(g+m),(b+m),a
 end
 
 function palette.RGB(r, g, b, a)

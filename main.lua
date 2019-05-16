@@ -6,8 +6,8 @@ tm = require "timemachine"
 lume = require "lume"
 
 lg = love.graphics
-screen_width = 1024
-screen_height = 600
+screen_width = 1280
+screen_height = 700
 
 shape_count = 1
 vertex_selection = {}
@@ -122,7 +122,7 @@ function love.update(dt)
 	
 		-- Create a new shape if one doesn't exist
 		if polygon.data[1] == nil then
-			polygon.new({1, 0, 0, 1}, true)
+			polygon.new(palette.active, true)
 		end
 		
 		selection_mouse_x = love.mouse.getX()

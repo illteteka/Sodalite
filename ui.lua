@@ -37,17 +37,19 @@ ui.allow_keyboard_input = false
 ui.popup_sel_a = 0
 ui.popup_sel_b = 0
 
-ui.palette_sel = 0
+ui.palette_mode = "RGB"
+ui.palette_text = 0
+ui.palette_slider = 0
 ui.palette = {}
 
 function ui.init()
 	-- Add palette sliders
-	ui.addPS("R", "0", false)
-	ui.addPS("G", "0", false)
-	ui.addPS("B", "0", false)
-	ui.addPS("H", "0", false)
-	ui.addPS("S", "0", false)
-	ui.addPS("L", "0", false)
+	ui.addPS("R")
+	ui.addPS("G")
+	ui.addPS("B")
+	ui.addPS("H")
+	ui.addPS("S")
+	ui.addPS("L")
 
 	-- Add title bar items
 	ui.addTitle("File",     ".file")
@@ -137,12 +139,11 @@ function ui.addCM(name, active, ref)
 end
 
 -- Palette slider
-function ui.addPS(name, value, active)
+function ui.addPS(name)
 
 	local item = {}
 	item.name = name
-	item.value = value
-	item.active = active
+	item.value = "0"
 	
 	table.insert(ui.palette, item)
 
@@ -278,7 +279,6 @@ function ui.popupLoseFocus(kind)
 	
 	ui.popup_sel_a = 0
 	ui.popup_sel_b = 0
-	ui.palette_sel = 0
 	ui.sel_type = ""
 	
 end
@@ -452,6 +452,66 @@ function ui.update(dt)
 		ui.keyboardRepeat(dt)
 	end
 	
+	-- Check collision of palette
+	local psize = 16
+	local palw = (13 * psize)
+	local palx, paly = screen_width - palw, 26
+	local palh = 300
+	local mx_on_menu, my_on_menu
+	mx_on_menu = (mx >= palx) and (mx <= palx + palw)
+	my_on_menu = (my >= paly) and (my <= paly + palh)
+	if mouse_switch == _PRESS and mx_on_menu and my_on_menu then
+		
+		if my >= 42 and my <= 42 + 18 then -- RGB/HSL buttons
+			
+			if mx >= palx - 4 + 8 and mx <= palx - 4 + 25 + 10 + 8 then
+				ui.palette_mode = "RGB"
+			elseif mx >= palx + 36 + 8 and mx <= palx + 36 + 24 + 10 + 8 then
+				ui.palette_mode = "HSL"
+			end
+			
+		elseif my > 181 and my < 181 + (psize * palette.h)then -- Color picker
+			local raw_x = mx - palx - 8
+			local raw_y = my - 181
+			local sel_x, sel_y
+			sel_x = math.floor(raw_x / 16)
+			if sel_x > -1 and sel_x < 12 then
+				sel_y = math.floor(raw_y / 16)
+				local final_col = (sel_y * palette.w) + sel_x
+				palette.slot = final_col
+				palette.active = palette.colors[final_col + 1]
+				palette.updateTextRGB()
+			end
+		end
+		
+		local ix, iy = screen_width - 50, 52
+		if mx >= ix - 147 and mx <= ix - 147 + 122 then
+			local i
+			for i = 1, 3 do
+				local ypos = iy + 25 + (28 * (i - 1)) - 1
+				if my >= ypos and my <= ypos + 21 then
+					local hsl = 0
+					if ui.palette_mode == "HSL" then hsl = 3 end
+					ui.palette_slider = i + hsl
+				end
+			end
+		end
+		
+		ui_active = true
+	end
+	
+	if mouse_switch == _ON and ui.palette_slider ~= 0 then
+		local ix = screen_width - 50
+		ui.palette[ui.palette_slider].value = math.floor(lume.clamp(mx - ix + 147, 0, 122)/122 * 255)
+		if ui.palette_slider < 4 then
+			palette.updateColorRGB()
+		else
+			palette.updateColorHSL()
+		end
+	elseif mouse_switch == _RELEASE and ui.palette_slider ~= 0 then
+		ui.palette_slider = 0
+	end
+	
 	-- Check collision on popup box
 	if ui.popup[1] ~= nil then
 		
@@ -617,6 +677,7 @@ end
 
 function ui.draw()
 
+	local mx, my = love.mouse.getX(), love.mouse.getY()
 	lg.setColor(c_box)
 	lg.rectangle("fill", 0, 0, screen_width, 25)
 	lg.setColor(c_white)
@@ -654,19 +715,29 @@ function ui.draw()
 	ui.drawOutline(palx - 7, 25, palw - 2, 299, false)
 	
 	-- Color picker
-	ui.drawOutlinePal(palx - 4, 65, palw - 9, 99, false)
+	ui.drawOutlinePal(palx - 4, 65, palw - 9, 99, ui.palette_mode == "HSL")
 	
 	lg.setColor(c_black)
 	lg.print("RGB", palx + 1, 42)
 	lg.print("HSL", palx + 1 + 40, 42)
 	
-	ui.drawOutline(palx + 1 - 5,  42, 25 + 10, 18,true)
-	ui.drawOutline(palx + 41 - 5, 42, 24 + 10, 18,true)
+	if my >= 42 and my <= 42 + 18 then
+		if ui.palette_mode == "RGB" and mx >= palx + 36 and mx <= palx + 36 + 24 + 10 then
+			ui.drawOutline(palx + 41 - 5, 42, 24 + 10, 18,true)
+		elseif ui.palette_mode == "HSL" and mx >= palx - 4 and mx <= palx - 4 + 25 + 10 then
+			ui.drawOutline(palx + 1 - 5,  42, 25 + 10, 18,true)
+		end
+	end
 	
 	local ix, iy = screen_width - 50, 52
 	local i
 	h = 0
-	for i = 1, 3 do
+	local ioff = 0
+	
+	-- Shift index over to HSL values
+	if ui.palette_mode == "HSL" then ioff = 3 end
+	
+	for i = 1 + ioff, 3 + ioff do
 	
 		lg.setColor(c_off_white)
 		lg.rectangle("fill", ix - 5, iy + 25 + h - 1, 46, 20)
@@ -687,12 +758,12 @@ function ui.draw()
 	ui.drawOutline(palx - 4, paly - 7 + 16, palw - 9, (16 * 7) - 3, false)
 	local i
 	local sel_i, sel_j = -1, -1
-	for i = 1, 6 do
+	for i = 1, palette.h do
 	
 		local j
-		for j = 1, 12 do
+		for j = 1, palette.w do
 		
-			local index = (j - 1) + ((i - 1) * 8)
+			local index = (j - 1) + ((i - 1) * palette.w)
 			if index < #palette.colors then
 			lg.setColor(palette.colors[index + 1])
 			else
@@ -716,6 +787,11 @@ function ui.draw()
 		lg.setColor(c_outline_dark)
 		lg.rectangle("line", palx - 1 + (sel_j - 1) * psize, paly - 1 + sel_i * psize, psize + 1, psize + 1)
 	end
+	
+	-- Current color
+	lg.setColor(palette.active)
+	lg.rectangle("fill", palx - 4, paly + (16 * 8) - 5, palw - 9, 30)
+	ui.drawOutline(palx - 4, paly + (16 * 8) - 5, palw - 9, 30)
 	
 	-- Draw popup box
 	if ui.popup[1] ~= nil then
@@ -821,8 +897,6 @@ function ui.draw()
 			-- If entry in the menu
 			if ui.context_menu[i]._break == nil then
 				
-				local mx = love.mouse.getX()
-				local my = love.mouse.getY()
 				local low = ui.context_y + h + 8
 				local upp = low + 20
 				
