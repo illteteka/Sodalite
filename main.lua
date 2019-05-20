@@ -23,6 +23,13 @@ z_key = _OFF
 y_key = _OFF
 c_key = _OFF
 v_key = _OFF
+w_key = _OFF
+s_key = _OFF
+d_key = _OFF
+
+camera_moved = false
+camera_x = 0
+camera_y = 0
 
 selection_mouse_x = 0
 selection_mouse_y = 0
@@ -75,7 +82,12 @@ function love.load()
 end
 
 function love.resize(w, h)
+	local old_x, old_y = (screen_width - 208) / 2, (screen_height + 25) / 2
 	screen_width, screen_height = w, h
+	local new_x, new_y = (screen_width - 208) / 2, (screen_height + 25) / 2
+	
+	camera_x = math.floor(camera_x + new_x - old_x)
+	camera_y = math.floor(camera_y + new_y - old_y)
 end
 
 function love.textinput(x)
@@ -92,13 +104,18 @@ function love.update(dt)
 
 	-- Update input
 	input.update(dt)
-	z_key = input.pullSwitch(love.keyboard.isDown("z"), z_key)
-	y_key = input.pullSwitch(love.keyboard.isDown("y"), y_key)
+	a_key = input.pullSwitch(love.keyboard.isDown("a"), a_key)
 	c_key = input.pullSwitch(love.keyboard.isDown("c"), c_key)
+	d_key = input.pullSwitch(love.keyboard.isDown("d"), d_key)
+	s_key = input.pullSwitch(love.keyboard.isDown("s"), s_key)
 	v_key = input.pullSwitch(love.keyboard.isDown("v"), v_key)
+	w_key = input.pullSwitch(love.keyboard.isDown("w"), w_key)
+	y_key = input.pullSwitch(love.keyboard.isDown("y"), y_key)
+	z_key = input.pullSwitch(love.keyboard.isDown("z"), z_key)
+	
 	lctrl_key = input.pullSwitch(love.keyboard.isDown("lctrl"), lctrl_key)
 	rctrl_key = input.pullSwitch(love.keyboard.isDown("rctrl"), rctrl_key)
-	a_key = input.pullSwitch(love.keyboard.isDown("a"), a_key)
+	
 	
 	-- debug buttons
 	one_button = input.pullSwitch(love.keyboard.isDown("f3"), one_button)
@@ -111,6 +128,34 @@ function love.update(dt)
 	if two_button == _PRESS then print_r(tm.data) end
 	
 	-- end debug block
+	
+	-- Camera movement
+	local camera_spd = 4
+	if lctrl_key == _OFF and rctrl_key == _OFF then
+	
+		if w_key == _ON then
+			camera_y = camera_y + (camera_spd * 60 * dt)
+			camera_moved = true
+		elseif s_key == _ON then
+			camera_y = camera_y - (camera_spd * 60 * dt)
+			camera_moved = true
+		end
+		
+		if a_key == _ON then
+			camera_x = camera_x + (camera_spd * 60 * dt)
+			camera_moved = true
+		elseif d_key == _ON then
+			camera_x = camera_x - (camera_spd * 60 * dt)
+			camera_moved = true
+		end
+	
+	end
+	
+	if camera_moved and w_key == _OFF and s_key == _OFF and a_key == _OFF and d_key == _OFF then
+		camera_x = math.floor(camera_x)
+		camera_y = math.floor(camera_y)
+		camera_moved = false
+	end
 	
 	local ui_active
 	ui_active = ui.update(dt)
@@ -140,8 +185,8 @@ function love.update(dt)
 			polygon.new(new_col, true)
 		end
 		
-		selection_mouse_x = love.mouse.getX()
-		selection_mouse_y = love.mouse.getY()
+		selection_mouse_x = love.mouse.getX() - math.floor(camera_x)
+		selection_mouse_y = love.mouse.getY() - math.floor(camera_y)
 		
 		-- Test if we are placing a vertex or moving a vertex
 		if vertex_selection[1] == nil then -- If selection is empty
@@ -158,7 +203,7 @@ function love.update(dt)
 		
 			-- Move verices by offset of selection_mouse_*
 			local pp = polygon.data[1].raw[vertex_selection[i].index]
-			pp.x, pp.y = vertex_selection[i].x + (love.mouse.getX() - selection_mouse_x), vertex_selection[i].y + (love.mouse.getY() - selection_mouse_y)
+			pp.x, pp.y = vertex_selection[i].x + (love.mouse.getX() - selection_mouse_x - math.floor(camera_x)), vertex_selection[i].y + (love.mouse.getY() - selection_mouse_y - math.floor(camera_y))
 		
 		end
 	
@@ -206,6 +251,15 @@ function love.draw()
 
 	lg.setColor(c_background)
 	lg.rectangle("fill", 0, 0, screen_width, screen_height)
+	
+	lg.push()
+	lg.translate(camera_x, camera_y)
+	
+	if document_w ~= 0 then
+	lg.setColor(c_off_white)
+	lg.rectangle("line", 0, 0, document_w, document_h)
+	lg.setColor(c_white)
+	end
 	
 	polygon.draw()
 	
@@ -284,6 +338,8 @@ function love.draw()
 		
 		i = i + 1
 	end
+	
+	lg.pop()
 	
 	ui.draw()
 

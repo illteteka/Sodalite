@@ -248,8 +248,8 @@ function ui.generatePopup()
 	
 	ui.popup_x_offset = -(((ui.popup_w/2) + (w/2)) / 4)
 	
-	ui.popup_x = (screen_width / 2) - (ui.popup_w / 2)
-	ui.popup_y = (screen_height / 2) - (ui.popup_h / 2)
+	ui.popup_x = math.floor((screen_width / 2) - (ui.popup_w / 2))
+	ui.popup_y = math.floor((screen_height / 2) - (ui.popup_h / 2))
 
 end
 
@@ -638,7 +638,8 @@ function ui.update(dt)
 								document_w = ui.popup[3][2].name
 								document_h = ui.popup[4][2].name
 								
-								print(document_w, document_h)
+								camera_x = math.floor((screen_width  - 208 - document_w) / 2) -- right bar (- 208)
+								camera_y = math.floor((screen_height + 25  - document_h) / 2) -- top bar (+ 25)
 								
 								tm.init()
 								polygon.data = {}
