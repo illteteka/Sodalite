@@ -55,12 +55,19 @@ function love.load()
 	grad_large = love.graphics.newImage("textures/gradient_large.png")
 	grad_active = love.graphics.newImage("textures/gradient_active.png")
 	grad_inactive = love.graphics.newImage("textures/gradient_inactive.png")
+	
 	spr_vertex = love.graphics.newImage("textures/vertex.png")
 	spr_vertex_mask = love.graphics.newImage("textures/vertex_mask.png")
+	
 	spr_slider_1 = love.graphics.newImage("textures/slider_1.png")
 	spr_slider_2 = love.graphics.newImage("textures/slider_2.png")
 	spr_slider_3 = love.graphics.newImage("textures/slider_3.png")
 	spr_slider_button = love.graphics.newImage("textures/slider_button.png")
+	
+	icon_add = love.graphics.newImage("textures/icon_add.png")
+	icon_trash = love.graphics.newImage("textures/icon_trash.png")
+	icon_eye = love.graphics.newImage("textures/icon_eye.png")
+	icon_blink = love.graphics.newImage("textures/icon_blink.png")
 
 end
 

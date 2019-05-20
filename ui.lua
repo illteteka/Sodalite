@@ -849,6 +849,47 @@ function ui.draw()
 	lg.rectangle("fill", palx - 4, paly + (16 * 8) - 5, palw - 9, 30)
 	ui.drawOutline(palx - 4, paly + (16 * 8) - 5, palw - 9, 30)
 	
+	-- Draw layer menu
+	
+	local layx, layy = screen_width - 208, 325
+	local layw = 208 - 2 - 16
+	lg.setColor(c_box)
+	lg.rectangle("fill", layx, layy, 208, screen_height - layy)
+	
+	ui.drawOutline(layx + 1, layy + 10, layw + 16, 30)
+	
+	lg.setColor(c_white)
+	lg.draw(icon_add,   layx + 4, layy + 13)
+	ui.drawOutline(layx + 4, layy + 13, 24, 24, true)
+	
+	lg.setColor(c_white)
+	lg.draw(icon_trash, layx + 4 + 24 + 8, layy + 13)
+	ui.drawOutline(layx + 4 + 24 + 8, layy + 13, 24, 24, true)
+	
+	local i
+	for i = 1, 11 do
+		local yy = 40 + ((i - 1) * 25)
+		lg.setColor(c_black)
+		lg.print("Layer " .. (12-i), layx + 77, layy + yy + 3)
+		lg.rectangle("fill", layx + 1, layy + yy + 24, layw, 1)
+		lg.rectangle("fill", layx + 32, layy + yy, 1, 24)
+		
+		lg.setColor(c_white)
+		
+		if i % 2 == 1 then
+		lg.draw(icon_eye, layx + 5, layy + yy)
+		else
+		lg.draw(icon_blink, layx + 5, layy + yy)
+		end
+		
+		lg.setColor(c_off_white)
+		lg.rectangle("fill", layx + 37, layy + yy + 3, 31, 17)
+		lg.setColor(c_highlight_inactive)
+		lg.rectangle("line", layx + 37, layy + yy + 3, 31, 17)
+	end
+	
+	ui.drawOutline(layx + 1, layy + 10 + 29, layw, screen_height - layy - 20 - 29)
+	
 	-- Draw popup box
 	if ui.popup[1] ~= nil then
 	
