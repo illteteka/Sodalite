@@ -850,14 +850,17 @@ function ui.draw()
 	ui.drawOutline(palx - 4, paly + (16 * 8) - 5, palw - 9, 30)
 	
 	-- Draw layer menu
-	
 	local layx, layy = screen_width - 208, 325
 	local layw = 208 - 2 - 16
+	local layh = screen_height - 376
+	
+	-- Fill area
 	lg.setColor(c_box)
 	lg.rectangle("fill", layx, layy, 208, screen_height - layy)
 	
 	ui.drawOutline(layx + 1, layy + 10, layw + 16, 30)
 	
+	-- Draw add + trash icons
 	lg.setColor(c_white)
 	lg.draw(icon_add,   layx + 4, layy + 13)
 	ui.drawOutline(layx + 4, layy + 13, 24, 24, true)
@@ -866,11 +869,22 @@ function ui.draw()
 	lg.draw(icon_trash, layx + 4 + 24 + 8, layy + 13)
 	ui.drawOutline(layx + 4 + 24 + 8, layy + 13, 24, 24, true)
 	
+	-- Draw layers in window
+	local layer_amt = 40
+	
+	local layer_element_size = (25 * layer_amt) - layh - 1
+	local scroll_percentage = lume.clamp(my - layy - 40, 0, layh)/layh
+	local scroll_offset = (scroll_percentage * layer_element_size)
+	
+	-- use scissor to cull other layers
+	lg.setScissor(layx + 1, layy + 40, layw, layh)
+	lg.translate(0, -scroll_offset)
+	
 	local i
-	for i = 1, 11 do
+	for i = 1, layer_amt do
 		local yy = 40 + ((i - 1) * 25)
 		lg.setColor(c_black)
-		lg.print("Layer " .. (12-i), layx + 77, layy + yy + 3)
+		lg.print("Layer " .. (layer_amt + 1 + - i), layx + 77, layy + yy + 3)
 		lg.rectangle("fill", layx + 1, layy + yy + 24, layw, 1)
 		lg.rectangle("fill", layx + 32, layy + yy, 1, 24)
 		
@@ -887,6 +901,17 @@ function ui.draw()
 		lg.setColor(c_highlight_inactive)
 		lg.rectangle("line", layx + 37, layy + yy + 3, 31, 17)
 	end
+	
+	lg.translate(0, scroll_offset)
+	lg.setScissor(0, 0, screen_width, screen_height)
+	
+	-- Draw layer slider
+	ui.drawOutline(screen_width - 16, layy + 41, 15, 14, true)
+	ui.drawOutline(screen_width - 16, screen_height - 24, 15, 14, true)
+	lg.setColor(c_white)
+	lg.draw(grad_slider, screen_width - 16, layy + 41 + 14, 0, 1, layh - 28)
+	lg.draw(spr_arrow_up,   screen_width - 12, layy + 41 + 4)
+	lg.draw(spr_arrow_down, screen_width - 12, screen_height - 24 + 4)
 	
 	ui.drawOutline(layx + 1, layy + 10 + 29, layw, screen_height - layy - 20 - 29)
 	
