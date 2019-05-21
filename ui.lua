@@ -343,7 +343,7 @@ function ui.update(dt)
 	local has_interaction = (mouse_switch == _PRESS or ui.context_menu[1] ~= nil)
 	
 	-- Check collision on title bar
-	if love.mouse.getY() < 24 then
+	if my < 24 then
 	
 		-- Clear selection on interaction
 		if has_interaction and #vertex_selection ~= 0 then
@@ -576,8 +576,13 @@ function ui.update(dt)
 	local layh = screen_height - 376
 	if (mx >= screen_width - 208) and (my >= layy) then
 		
+		if (mouse_switch == _PRESS) then
+			ui_active = true
+		end
+		
 		if (mouse_switch == _ON) and (mx >= screen_width - 16) and (my >= layy + 41 + 14) and (my <= 14 + screen_height - 34) then
 			ui.lyr_scroll_percent = lume.clamp(my - 4 - layy - 40 - 16, 0, layh - 32)/(layh - 32)
+			ui_active = true
 		end
 		
 	end
