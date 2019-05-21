@@ -16,6 +16,8 @@ vertex_selection = {}
 one_button = _OFF
 two_button = _OFF
 
+ctrl_name = "ctrl"
+
 a_key = _OFF
 lctrl_key = _OFF
 rctrl_key = _OFF
@@ -26,6 +28,7 @@ v_key = _OFF
 w_key = _OFF
 s_key = _OFF
 d_key = _OFF
+space_key = _OFF
 
 camera_moved = false
 camera_x = 0
@@ -38,7 +41,16 @@ document_name = "Untitled"
 document_w = 0
 document_h = 0
 
+function resetCamera()
+	camera_x = math.floor((screen_width  - 208 - document_w) / 2) -- right bar (- 208)
+	camera_y = math.floor((screen_height + 25  - document_h) / 2) -- top bar (+ 25)
+end
+
 function love.load()
+
+	if love.system.getOS() == "OS X" then
+		ctrl_name = "gui"
+	end
 
 	math.randomseed(os.time())
 	-- Check if being run in dev environment, set vsync on
@@ -113,9 +125,9 @@ function love.update(dt)
 	y_key = input.pullSwitch(love.keyboard.isDown("y"), y_key)
 	z_key = input.pullSwitch(love.keyboard.isDown("z"), z_key)
 	
-	lctrl_key = input.pullSwitch(love.keyboard.isDown("lctrl"), lctrl_key)
-	rctrl_key = input.pullSwitch(love.keyboard.isDown("rctrl"), rctrl_key)
-	
+	lctrl_key = input.pullSwitch(love.keyboard.isDown("l" .. ctrl_name), lctrl_key)
+	rctrl_key = input.pullSwitch(love.keyboard.isDown("r" .. ctrl_name), rctrl_key)
+	space_key = input.pullSwitch(love.keyboard.isDown("space"), space_key)
 	
 	-- debug buttons
 	one_button = input.pullSwitch(love.keyboard.isDown("f3"), one_button)
@@ -155,6 +167,10 @@ function love.update(dt)
 		camera_x = math.floor(camera_x)
 		camera_y = math.floor(camera_y)
 		camera_moved = false
+	end
+	
+	if input.ctrlCombo(space_key) then
+		resetCamera()
 	end
 	
 	local ui_active

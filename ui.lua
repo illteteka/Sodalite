@@ -42,6 +42,8 @@ ui.palette_text = 0
 ui.palette_slider = 0
 ui.palette = {}
 
+ui.lyr_scroll_percent = 0
+
 function ui.init()
 	-- Add palette sliders
 	ui.addPS("R")
@@ -94,7 +96,7 @@ end
 function ui.loadPopup(ref)
 
 	if ui.popup[1] ~= nil and ui.popup[1][1].kind == ref then
-		-- Don't recreate popup
+		-- Don't make duplicate popup
 	else
 		
 		ui.popup = {}
@@ -568,6 +570,18 @@ function ui.update(dt)
 		ui.palette_slider = 0
 	end
 	
+	-- Check collision on layer menu
+	local layx, layy = screen_width - 208, 325
+	local layw = 208 - 2 - 16
+	local layh = screen_height - 376
+	if (mx >= screen_width - 208) and (my >= layy) then
+		
+		if (mouse_switch == _ON) and (mx >= screen_width - 16) and (my >= layy + 41 + 14) and (my <= 14 + screen_height - 34) then
+			ui.lyr_scroll_percent = lume.clamp(my - 4 - layy - 40 - 16, 0, layh - 32)/(layh - 32)
+		end
+		
+	end
+	
 	-- Check collision on popup box
 	if ui.popup[1] ~= nil then
 		
@@ -638,8 +652,7 @@ function ui.update(dt)
 								document_w = ui.popup[3][2].name
 								document_h = ui.popup[4][2].name
 								
-								camera_x = math.floor((screen_width  - 208 - document_w) / 2) -- right bar (- 208)
-								camera_y = math.floor((screen_height + 25  - document_h) / 2) -- top bar (+ 25)
+								resetCamera()
 								
 								tm.init()
 								polygon.data = {}
@@ -873,9 +886,8 @@ function ui.draw()
 	-- Draw layers in window
 	local layer_amt = 40
 	
-	local layer_element_size = (25 * layer_amt) - layh - 1
-	local scroll_percentage = lume.clamp(my - layy - 40, 0, layh)/layh
-	local scroll_offset = (scroll_percentage * layer_element_size)
+	local layer_element_size = math.max((25 * layer_amt) - layh - 1, 0)
+	local scroll_offset = math.floor(ui.lyr_scroll_percent * layer_element_size)
 	
 	-- use scissor to cull other layers
 	lg.setScissor(layx + 1, layy + 40, layw, layh)
@@ -909,10 +921,17 @@ function ui.draw()
 	-- Draw layer slider
 	ui.drawOutline(screen_width - 16, layy + 41, 15, 14, true)
 	ui.drawOutline(screen_width - 16, screen_height - 24, 15, 14, true)
+	
 	lg.setColor(c_white)
 	lg.draw(grad_slider, screen_width - 16, layy + 41 + 14, 0, 1, layh - 28)
 	lg.draw(spr_arrow_up,   screen_width - 12, layy + 41 + 4)
 	lg.draw(spr_arrow_down, screen_width - 12, screen_height - 24 + 4)
+	
+	-- Scroll button
+	lg.setColor(c_box)
+	local scroll_len = screen_height - 38 - (layy + 41 + 14)
+	lg.rectangle("fill", screen_width - 16, layy + 41 + 14 + math.floor(scroll_len * ui.lyr_scroll_percent), 15, 14)
+	ui.drawOutline(screen_width - 16, layy + 41 + 14 + math.floor(scroll_len * ui.lyr_scroll_percent), 15, 14, true)
 	
 	ui.drawOutline(layx + 1, layy + 10 + 29, layw, screen_height - layy - 20 - 29)
 	
