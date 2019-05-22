@@ -30,6 +30,9 @@ s_key = _OFF
 d_key = _OFF
 space_key = _OFF
 
+k_key = _OFF
+l_key = _OFF
+
 camera_moved = false
 camera_x = 0
 camera_y = 0
@@ -132,7 +135,32 @@ function love.update(dt)
 	-- debug buttons
 	one_button = input.pullSwitch(love.keyboard.isDown("f3"), one_button)
 	two_button = input.pullSwitch(love.keyboard.isDown("f4"), two_button)
+	
+	k_key = input.pullSwitch(love.keyboard.isDown("k"), k_key)
+	l_key = input.pullSwitch(love.keyboard.isDown("l"), l_key)
 	-- End of input
+	
+	if l_key == _PRESS then
+		local old_layer = tm.polygon_loc
+		tm.polygon_loc = tm.polygon_loc + 1
+		shape_count = math.max(shape_count, tm.polygon_loc)
+		
+		tm.store(TM_SWITCH_LAYER, old_layer, tm.polygon_loc)
+		tm.step()
+		--print("current layer " .. tm.polygon_loc)
+		--print("shape count " .. shape_count)
+	end
+	
+	if k_key == _PRESS then
+		local old_layer = tm.polygon_loc
+		tm.polygon_loc = tm.polygon_loc - 1
+		if tm.polygon_loc == 0 then
+			tm.polygon_loc = #polygon.data
+		end
+		tm.store(TM_SWITCH_LAYER, old_layer, tm.polygon_loc)
+		tm.step()
+		--print("current layer " .. tm.polygon_loc)
+	end
 	
 	-- debug block
 	
@@ -178,15 +206,15 @@ function love.update(dt)
 	
 	if ui_active == false and document_w ~= 0 then
 	
-	if polygon.data[1] ~= nil and input.ctrlCombo(a_key) then
+	if polygon.data[tm.polygon_loc] ~= nil and input.ctrlCombo(a_key) then
 	
 		local i
-		for i = 1, #polygon.data[1].raw do
+		for i = 1, #polygon.data[tm.polygon_loc].raw do
 		
 			local moved_point = {}
 			moved_point.index = i
-			moved_point.x = polygon.data[1].raw[i].x
-			moved_point.y = polygon.data[1].raw[i].y
+			moved_point.x = polygon.data[tm.polygon_loc].raw[i].x
+			moved_point.y = polygon.data[tm.polygon_loc].raw[i].y
 			table.insert(vertex_selection, moved_point)
 		
 		end
@@ -196,9 +224,9 @@ function love.update(dt)
 	if mouse_switch == _PRESS then
 	
 		-- Create a new shape if one doesn't exist
-		if polygon.data[1] == nil then
+		if polygon.data[tm.polygon_loc] == nil then
 			local new_col = {palette.active[1], palette.active[2], palette.active[3], palette.active[4]}
-			polygon.new(new_col, true)
+			polygon.new(tm.polygon_loc, new_col, true)
 		end
 		
 		selection_mouse_x = love.mouse.getX() - math.floor(camera_x)
@@ -206,7 +234,7 @@ function love.update(dt)
 		
 		-- Test if we are placing a vertex or moving a vertex
 		if vertex_selection[1] == nil then -- If selection is empty
-		polygon.calcVertex(selection_mouse_x, selection_mouse_y, shape_count, true)
+		polygon.calcVertex(selection_mouse_x, selection_mouse_y, tm.polygon_loc, true)
 		end
 	
 	end
@@ -218,7 +246,7 @@ function love.update(dt)
 		for i = 1, #vertex_selection do
 		
 			-- Move verices by offset of selection_mouse_*
-			local pp = polygon.data[1].raw[vertex_selection[i].index]
+			local pp = polygon.data[tm.polygon_loc].raw[vertex_selection[i].index]
 			pp.x, pp.y = vertex_selection[i].x + (love.mouse.getX() - selection_mouse_x - math.floor(camera_x)), vertex_selection[i].y + (love.mouse.getY() - selection_mouse_y - math.floor(camera_y))
 		
 		end
@@ -231,7 +259,7 @@ function love.update(dt)
 		local i
 		for i = 1, #vertex_selection do
 		
-			local pp = polygon.data[1].raw[vertex_selection[i].index]
+			local pp = polygon.data[tm.polygon_loc].raw[vertex_selection[i].index]
 			tm.store(TM_MOVE_VERTEX, vertex_selection[i].index, pp.x, pp.y, vertex_selection[i].x, vertex_selection[i].y)
 		
 		end
@@ -280,13 +308,13 @@ function love.draw()
 	polygon.draw()
 	
 	-- Draw lines while editing a shape
-	local polygons_exist = polygon.data[1] ~= nil
+	local polygons_exist = polygon.data[tm.polygon_loc] ~= nil
 	local mouse_down     = mouse_switch == _ON
 	local verts_selected = vertex_selection[1] ~= nil and #vertex_selection == 1
 	
 	if polygons_exist and mouse_down and verts_selected then
 		local i = 1
-		local clone = polygon.data[1].raw
+		local clone = polygon.data[tm.polygon_loc].raw
 		
 		while i <= #clone do
 		
@@ -319,16 +347,16 @@ function love.draw()
 	end
 	
 	-- Draw perimeter when select all
-	local all_verts_selected = vertex_selection[1] ~= nil and #vertex_selection == #polygon.data[1].raw
+	local all_verts_selected = vertex_selection[1] ~= nil and #vertex_selection == #polygon.data[tm.polygon_loc].raw
 	
 	if polygons_exist and all_verts_selected then
 	
 		local i
-		for i = 1, #polygon.data[1].cache do
+		for i = 1, #polygon.data[tm.polygon_loc].cache do
 		
 			lg.setColor({1, 1, 1, 1})
-			local aa, bb = polygon.data[1].cache[i][1], polygon.data[1].cache[i][2]
-			local line_a, line_b = polygon.data[1].raw[aa], polygon.data[1].raw[bb]
+			local aa, bb = polygon.data[tm.polygon_loc].cache[i][1], polygon.data[tm.polygon_loc].cache[i][2]
+			local line_a, line_b = polygon.data[tm.polygon_loc].raw[aa], polygon.data[tm.polygon_loc].raw[bb]
 			lg.line(line_a.x, line_a.y, line_b.x, line_b.y)
 		
 		end
@@ -336,10 +364,9 @@ function love.draw()
 	end
 	
 	-- Draw spr_vertex on vertex locations
-	local i = 1
-	while i <= #polygon.data do
+	if polygon.data[tm.polygon_loc] ~= nil then
 		
-		local clone = polygon.data[i]
+		local clone = polygon.data[tm.polygon_loc]
 		
 		lg.setColor({1, 1, 1, 1})
 		
@@ -352,7 +379,6 @@ function love.draw()
 		
 		end
 		
-		i = i + 1
 	end
 	
 	lg.pop()

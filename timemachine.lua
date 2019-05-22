@@ -5,6 +5,7 @@ TM_ADD_VERTEX   = 1
 TM_DEL_LINE     = 2
 TM_MOVE_VERTEX  = 3
 TM_CHANGE_COLOR = 4
+TM_SWITCH_LAYER = 5
 
 function tm.init()
 
@@ -18,12 +19,6 @@ function tm.init()
 	tm.polygon_loc = 1
 
 end
-
---[[
-
-we need a TM_PARENT_SWITCHER for when we switch shapes
-
-]]
 
 function tm.store(action, a, b, c, d, e)
 
@@ -46,11 +41,8 @@ function tm.store(action, a, b, c, d, e)
 		if (action == TM_NEW_POLYGON) then
 		
 			moment.action = TM_NEW_POLYGON
-			moment.index = a
-			moment.kind = b
-			moment.color = c
-			
-			tm.polygon_loc = a
+			moment.kind = a
+			moment.color = b
 		
 		elseif (action == TM_ADD_VERTEX) then
 		
@@ -82,6 +74,12 @@ function tm.store(action, a, b, c, d, e)
 			moment.original = ca
 			local cb = {b[1], b[2], b[3], b[4]}
 			moment.new = cb
+		
+		elseif (action == TM_SWITCH_LAYER) then
+		
+			moment.action = TM_SWITCH_LAYER
+			moment.original = a
+			moment.new = b
 		
 		end
 		

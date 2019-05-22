@@ -5,7 +5,7 @@ polygon.data = {}
 
 -- Generators
 
-function polygon.new(color, use_tm)
+function polygon.new(loc, color, use_tm)
 
 	local shape = {}
 	local vertices = {}
@@ -16,11 +16,11 @@ function polygon.new(color, use_tm)
 	shape.raw = vertices
 	shape.cache = line_cache -- Each shape holds a cache of its perimeter in the form of a list of lines
 	
-	table.insert(polygon.data, shape)
+	polygon.data[loc] = shape
 	
 	-- Record new shape into the undo stack
 	if use_tm then
-	tm.store(TM_NEW_POLYGON, #polygon.data, shape.kind, shape.color)
+	tm.store(TM_NEW_POLYGON, shape.kind, shape.color)
 	end
 
 end
@@ -33,15 +33,15 @@ function polygon.calcVertex(x, y, loc, use_tm)
 	if use_tm then
 	
 		local i = 1
-		while i <= #polygon.data[1].raw do
+		while i <= #polygon.data[tm.polygon_loc].raw do
 			
 			local vertex_radius = 10
-			local vx, vy = polygon.data[1].raw[i].x, polygon.data[1].raw[i].y
+			local vx, vy = polygon.data[tm.polygon_loc].raw[i].x, polygon.data[tm.polygon_loc].raw[i].y
 			
 			-- If check was successful
 			if (lume.distance(x, y, vx, vy) < vertex_radius) then
 				point_selected = i
-				i = #polygon.data[1].raw + 1
+				i = #polygon.data[tm.polygon_loc].raw + 1
 				
 				-- Add vertex to selection group
 				local moved_point = {}
@@ -63,17 +63,17 @@ function polygon.calcVertex(x, y, loc, use_tm)
 	local line_to_purge = -1
 	
 	local i = 1
-	if polygon.data[1] ~= nil then
+	if polygon.data[tm.polygon_loc] ~= nil then
 	
 		-- Retrieve closest line segment to the new point
-		for i = 1, #polygon.data[1].cache do
+		for i = 1, #polygon.data[tm.polygon_loc].cache do
 		
-			local cc = polygon.data[1].cache[i]
+			local cc = polygon.data[tm.polygon_loc].cache[i]
 			-- Line cache stores the lines index, so we need to get the actual x1, y1, x2, y2 of the line
-			local xa, ya, xb, yb = polygon.data[1].raw[cc[1]].x, polygon.data[1].raw[cc[1]].y, polygon.data[1].raw[cc[2]].x, polygon.data[1].raw[cc[2]].y
+			local xa, ya, xb, yb = polygon.data[tm.polygon_loc].raw[cc[1]].x, polygon.data[tm.polygon_loc].raw[cc[1]].y, polygon.data[tm.polygon_loc].raw[cc[2]].x, polygon.data[tm.polygon_loc].raw[cc[2]].y
 			-- Calculate line distance to mouse position
 			local dp = (math.abs(((xa + xb)/2) - x) + math.abs(((ya + yb)/2) - y))
-			polygon.data[1].cache[i].dp = dp
+			polygon.data[tm.polygon_loc].cache[i].dp = dp
 		
 		end
 		
@@ -81,17 +81,17 @@ function polygon.calcVertex(x, y, loc, use_tm)
 		closest_dist = -1
 		
 		-- Loop line cache to find the closest segment based on lowest scoring 'dp' value
-		for i = 1, #polygon.data[1].cache do
+		for i = 1, #polygon.data[tm.polygon_loc].cache do
 		
-			if polygon.data[1].cache[i].dp ~= nil then
+			if polygon.data[tm.polygon_loc].cache[i].dp ~= nil then
 				
-				if closest_dist == -1 or polygon.data[1].cache[i].dp < closest_dist then
+				if closest_dist == -1 or polygon.data[tm.polygon_loc].cache[i].dp < closest_dist then
 					closest_line = i
-					closest_dist = polygon.data[1].cache[i].dp
+					closest_dist = polygon.data[tm.polygon_loc].cache[i].dp
 				end
 				
 				-- Remove dp from the cache since it's no longer needed
-				polygon.data[1].cache[i].dp = nil
+				polygon.data[tm.polygon_loc].cache[i].dp = nil
 				
 			end
 		
@@ -181,8 +181,8 @@ function polygon.redo()
 		local move_moment = moment[#moment]
 		
 		if moment[1].action == TM_NEW_POLYGON then
-			polygon.new(moment[1].color, false)
-			polygon.calcVertex(moment[2].x, moment[2].y, moment[1].index, false)
+			polygon.new(tm.polygon_loc, moment[1].color, false)
+			polygon.calcVertex(moment[2].x, moment[2].y, tm.polygon_loc, false)
 			
 			local pp = polygon.data[tm.polygon_loc].raw[move_moment.index]
 			pp.x, pp.y = move_moment.x, move_moment.y
@@ -205,6 +205,10 @@ function polygon.redo()
 		
 			polygon.data[tm.polygon_loc].color = moment[1].new
 		
+		elseif moment[1].action == TM_SWITCH_LAYER then
+		
+			tm.polygon_loc = moment[1].new
+		
 		end
 	
 	end
@@ -220,7 +224,8 @@ function polygon.undo()
 		
 		if moment[1].action == TM_NEW_POLYGON then
 		
-			table.remove(polygon.data)
+			--table.remove(polygon.data, tm.polygon_loc)
+			polygon.data[tm.polygon_loc] = nil
 		
 		elseif moment[1].action == TM_ADD_VERTEX then
 		
@@ -264,6 +269,10 @@ function polygon.undo()
 		
 			polygon.data[tm.polygon_loc].color = moment[1].original
 		
+		elseif moment[1].action == TM_SWITCH_LAYER then
+		
+			tm.polygon_loc = moment[1].original
+		
 		end
 		
 		tm.cursor = tm.cursor - 1
@@ -279,31 +288,33 @@ function polygon.draw()
 
 	local i = 1
 	
-	while i <= #polygon.data do
+	while i <= shape_count do
 		
-		local clone = polygon.data[i]
-		
-		lg.setColor(clone.color)
-		
-		-- Draw the shape
-		if clone.kind == "polygon" then
-		
-			local j = 1
-			while j <= #clone.raw do
+		if polygon.data[i] ~= nil then
+			local clone = polygon.data[i]
 			
-				-- Draw triangle if the vertex[i] contains references to two other vertices (va and vb)
-				if clone.raw[j].vb ~= nil then
-					
-					local a_loc, b_loc = clone.raw[j].va, clone.raw[j].vb
-					local aa, bb, cc = clone.raw[j], clone.raw[a_loc], clone.raw[b_loc]
-					lg.polygon("fill", aa.x, aa.y, bb.x, bb.y, cc.x, cc.y)
-					
-				end
+			lg.setColor(clone.color)
+			
+			-- Draw the shape
+			if clone.kind == "polygon" then
+			
+				local j = 1
+				while j <= #clone.raw do
 				
-				j = j + 1
+					-- Draw triangle if the vertex[i] contains references to two other vertices (va and vb)
+					if clone.raw[j].vb ~= nil then
+						
+						local a_loc, b_loc = clone.raw[j].va, clone.raw[j].vb
+						local aa, bb, cc = clone.raw[j], clone.raw[a_loc], clone.raw[b_loc]
+						lg.polygon("fill", aa.x, aa.y, bb.x, bb.y, cc.x, cc.y)
+						
+					end
+					
+					j = j + 1
+				
+				end
 			
 			end
-		
 		end
 		-- End of drawing the shape
 		

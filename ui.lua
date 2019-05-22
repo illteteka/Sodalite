@@ -503,7 +503,7 @@ function ui.update(dt)
 				if palette.active == palette.colors[final_col + 1] then
 					palette.activeIsEditable = true
 					
-					if polygon.data[1] ~= nil then
+					if polygon.data[tm.polygon_loc] ~= nil then
 						tm.store(TM_CHANGE_COLOR, polygon.data[tm.polygon_loc].color, palette.active)
 						tm.step()
 						
@@ -534,7 +534,7 @@ function ui.update(dt)
 					ui.palette_slider = i + hsl
 					palette.canPaste = false
 					
-					if palette.activeIsEditable and polygon.data[1] ~= nil then
+					if palette.activeIsEditable and polygon.data[tm.polygon_loc] ~= nil then
 						palette.startingColor = polygon.data[tm.polygon_loc].color
 					end
 					
@@ -554,12 +554,12 @@ function ui.update(dt)
 			palette.updateFromHSL()
 		end
 		
-		if palette.activeIsEditable and polygon.data[1] ~= nil then
+		if palette.activeIsEditable and polygon.data[tm.polygon_loc] ~= nil then
 			polygon.data[tm.polygon_loc].color = palette.active
 		end
 		
 	elseif mouse_switch == _RELEASE and ui.palette_slider ~= 0 then
-		if palette.activeIsEditable and polygon.data[1] ~= nil then
+		if palette.activeIsEditable and polygon.data[tm.polygon_loc] ~= nil then
 			tm.store(TM_CHANGE_COLOR, palette.startingColor, palette.active)
 			tm.step()
 					
