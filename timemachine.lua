@@ -5,7 +5,8 @@ TM_ADD_VERTEX   = 1
 TM_DEL_LINE     = 2
 TM_MOVE_VERTEX  = 3
 TM_CHANGE_COLOR = 4
-TM_SWITCH_LAYER = 5
+TM_PICK_LAYER   = 5
+TM_MOVE_LAYER   = 6
 
 function tm.init()
 
@@ -75,12 +76,18 @@ function tm.store(action, a, b, c, d, e)
 			local cb = {b[1], b[2], b[3], b[4]}
 			moment.new = cb
 		
-		elseif (action == TM_SWITCH_LAYER) then
+		elseif (action == TM_PICK_LAYER) then
 		
-			moment.action = TM_SWITCH_LAYER
+			moment.action = TM_PICK_LAYER
 			moment.original = a
 			moment.new = b
 			moment.created_layer = c
+		
+		elseif (action == TM_MOVE_LAYER) then
+		
+			moment.action = TM_MOVE_LAYER
+			moment.original = a
+			moment.new = b
 		
 		end
 		

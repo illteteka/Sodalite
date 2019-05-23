@@ -205,13 +205,17 @@ function polygon.redo()
 		
 			polygon.data[tm.polygon_loc].color = moment[1].new
 		
-		elseif moment[1].action == TM_SWITCH_LAYER then
+		elseif moment[1].action == TM_PICK_LAYER then
 		
 			tm.polygon_loc = moment[1].new
 			
 			if moment[1].created_layer == true then
 				ui.addLayer()
 			end
+		
+		elseif moment[1].action == TM_MOVE_LAYER then
+		
+			ui.moveLayer(moment[1].original, moment[1].new)
 		
 		end
 	
@@ -272,13 +276,17 @@ function polygon.undo()
 		
 			polygon.data[tm.polygon_loc].color = moment[1].original
 		
-		elseif moment[1].action == TM_SWITCH_LAYER then
+		elseif moment[1].action == TM_PICK_LAYER then
 		
 			tm.polygon_loc = moment[1].original
 			
 			if moment[1].created_layer == true then
 				table.remove(ui.layer)
 			end
+		
+		elseif moment[1].action == TM_MOVE_LAYER then
+		
+			ui.moveLayer(moment[1].new, moment[1].original)
 		
 		end
 		
@@ -295,10 +303,10 @@ function polygon.draw()
 
 	local i = 1
 	
-	while i <= shape_count do
+	while i <= #ui.layer do
 		
-		if polygon.data[i] ~= nil then
-			local clone = polygon.data[i]
+		if polygon.data[ui.layer[i].count] ~= nil and ui.layer[i].visible then
+			local clone = polygon.data[ui.layer[i].count]
 			
 			lg.setColor(clone.color)
 			
