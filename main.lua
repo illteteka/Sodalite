@@ -30,9 +30,6 @@ s_key = _OFF
 d_key = _OFF
 space_key = _OFF
 
-k_key = _OFF
-l_key = _OFF
-
 camera_moved = false
 camera_x = 0
 camera_y = 0
@@ -135,32 +132,7 @@ function love.update(dt)
 	-- debug buttons
 	one_button = input.pullSwitch(love.keyboard.isDown("f3"), one_button)
 	two_button = input.pullSwitch(love.keyboard.isDown("f4"), two_button)
-	
-	k_key = input.pullSwitch(love.keyboard.isDown("k"), k_key)
-	l_key = input.pullSwitch(love.keyboard.isDown("l"), l_key)
 	-- End of input
-	
-	if l_key == _PRESS then
-		local old_layer = tm.polygon_loc
-		tm.polygon_loc = tm.polygon_loc + 1
-		shape_count = math.max(shape_count, tm.polygon_loc)
-		
-		tm.store(TM_SWITCH_LAYER, old_layer, tm.polygon_loc)
-		tm.step()
-		--print("current layer " .. tm.polygon_loc)
-		--print("shape count " .. shape_count)
-	end
-	
-	if k_key == _PRESS then
-		local old_layer = tm.polygon_loc
-		tm.polygon_loc = tm.polygon_loc - 1
-		if tm.polygon_loc == 0 then
-			tm.polygon_loc = #polygon.data
-		end
-		tm.store(TM_SWITCH_LAYER, old_layer, tm.polygon_loc)
-		tm.step()
-		--print("current layer " .. tm.polygon_loc)
-	end
 	
 	-- debug block
 	
@@ -208,6 +180,7 @@ function love.update(dt)
 	
 	if polygon.data[tm.polygon_loc] ~= nil and input.ctrlCombo(a_key) then
 	
+		--[[
 		local i
 		for i = 1, #polygon.data[tm.polygon_loc].raw do
 		
@@ -217,7 +190,7 @@ function love.update(dt)
 			moved_point.y = polygon.data[tm.polygon_loc].raw[i].y
 			table.insert(vertex_selection, moved_point)
 		
-		end
+		end--]]
 	
 	end
 	
@@ -373,7 +346,12 @@ function love.draw()
 		local j = 1
 		while j <= #clone.raw do
 			
-			lg.draw(spr_vertex, clone.raw[j].x - 5, clone.raw[j].y - 5)
+			local vertex_radius = 100
+			local tx, ty = clone.raw[j].x - 5, clone.raw[j].y - 5
+			
+			if #clone.raw < 3 or (lume.distance(love.mouse.getX() - math.floor(camera_x), love.mouse.getY() - math.floor(camera_y), tx, ty) < vertex_radius) then
+				lg.draw(spr_vertex, tx, ty)
+			end
 			
 			j = j + 1
 		

@@ -80,6 +80,7 @@ function tm.store(action, a, b, c, d, e)
 			moment.action = TM_SWITCH_LAYER
 			moment.original = a
 			moment.new = b
+			moment.created_layer = c
 		
 		end
 		

@@ -42,7 +42,9 @@ ui.palette_text = 0
 ui.palette_slider = 0
 ui.palette = {}
 
+ui.layer = {}
 ui.lyr_scroll_percent = 0
+ui.lyr_scroll = false
 
 function ui.init()
 	-- Add palette sliders
@@ -192,6 +194,23 @@ function ui.addCMBreak()
 	local item = {}
 	item._break = true
 	table.insert(ui.context_menu, item)
+
+end
+
+function ui.addLayer()
+
+	local layer = {}
+	layer.visible = true
+	
+	if ui.layer[1] == nil then
+		layer.count = 1
+	else
+		layer.count = #ui.layer + 1
+	end
+	
+	layer.name = "Layer " .. layer.count
+	
+	table.insert(ui.layer, layer)
 
 end
 
@@ -574,17 +593,64 @@ function ui.update(dt)
 	local layx, layy = screen_width - 208, 325
 	local layw = 208 - 2 - 16
 	local layh = screen_height - 376
-	if (mx >= screen_width - 208) and (my >= layy) then
-		
-		if (mouse_switch == _PRESS) then
-			ui_active = true
+	if (mouse_switch == _PRESS) and (mx >= screen_width - 208) and (my >= layy) then
+	
+		-- Scroll bar
+		if (mx >= screen_width - 16) and (my >= layy + 41 + 14) and (my <= 14 + screen_height - 34) then
+			ui.lyr_scroll = true
 		end
 		
-		if (mouse_switch == _ON) and (mx >= screen_width - 16) and (my >= layy + 41 + 14) and (my <= 14 + screen_height - 34) then
-			ui.lyr_scroll_percent = lume.clamp(my - 4 - layy - 40 - 16, 0, layh - 32)/(layh - 32)
-			ui_active = true
+		if (document_w ~= 0) then
+		
+			-- Add layer button
+			if (mx >= layx + 4) and (mx <= layx + 4 + 24) and (my >= layy + 13) and (my <= layy + 13 + 24) then
+				
+				local old_layer = tm.polygon_loc
+				tm.polygon_loc = #ui.layer + 1
+				shape_count = math.max(shape_count, tm.polygon_loc)
+				
+				tm.store(TM_SWITCH_LAYER, old_layer, tm.polygon_loc, true)
+				tm.step()
+				
+				ui.addLayer()
+				ui.lyr_scroll_percent = 0
+			end
+			
+			-- Check if layer was clicked on
+			if (mx >= layx + 32) and (mx <= layx + layw) and (my >= layy + 40) and (my <= layy + 40 + layh) then
+			
+				local moffset = my - 365
+			
+				local layer_amt = #ui.layer
+				local layer_element_size = math.max((25 * layer_amt) - layh - 1, 0)
+				local scroll_offset = math.floor(ui.lyr_scroll_percent * layer_element_size)
+				
+				local layer_hit = layer_amt - math.floor((moffset + scroll_offset) / 25)
+				
+				-- Layer was clicked on, switch layers
+				if ui.layer[layer_hit] ~= nil then
+					local old_layer = tm.polygon_loc
+					tm.polygon_loc = layer_hit
+					
+					tm.store(TM_SWITCH_LAYER, old_layer, tm.polygon_loc, false)
+					tm.step()
+				end
+				
+			end
+			
 		end
 		
+		ui_active = true
+			
+	end
+	
+	if (ui.lyr_scroll) then
+		ui.lyr_scroll_percent = lume.clamp(my - 4 - layy - 40 - 16, 0, layh - 32)/(layh - 32)
+		ui_active = true
+	end
+	
+	if (ui.lyr_scroll) and ((mouse_switch == _OFF) or (mouse_switch == _RELEASE)) then
+		ui.lyr_scroll = false
 	end
 	
 	-- Check collision on popup box
@@ -661,6 +727,8 @@ function ui.update(dt)
 								
 								tm.init()
 								polygon.data = {}
+								ui.layer = {}
+								ui.addLayer()
 								
 								exit_pop = true
 							elseif kind == "cancel" then
@@ -889,35 +957,56 @@ function ui.draw()
 	ui.drawOutline(layx + 4 + 24 + 8, layy + 13, 24, 24, true)
 	
 	-- Draw layers in window
-	local layer_amt = 40
+	local layer_amt = #ui.layer
 	
 	local layer_element_size = math.max((25 * layer_amt) - layh - 1, 0)
+	
+	if (layer_element_size == 0 and not ui.lyr_scroll) then
+		ui.lyr_scroll_percent = 0
+	end
+	
 	local scroll_offset = math.floor(ui.lyr_scroll_percent * layer_element_size)
 	
 	-- use scissor to cull other layers
 	lg.setScissor(layx + 1, layy + 40, layw, layh)
 	lg.translate(0, -scroll_offset)
 	
-	local i
-	for i = 1, layer_amt do
-		local yy = 40 + ((i - 1) * 25)
-		lg.setColor(c_black)
-		lg.print("Layer " .. (layer_amt + 1 + - i), layx + 77, layy + yy + 3)
-		lg.rectangle("fill", layx + 1, layy + yy + 24, layw, 1)
-		lg.rectangle("fill", layx + 32, layy + yy, 1, 24)
-		
-		lg.setColor(c_white)
-		
-		if i % 2 == 1 then
-		lg.draw(icon_eye, layx + 5, layy + yy)
-		else
-		lg.draw(icon_blink, layx + 5, layy + yy)
+	if ui.layer[1] ~= nil then
+		local i
+		for i = layer_amt, 1, -1 do
+			local yy = 40 + ((layer_amt - i) * 25)
+			
+			local box_color = c_highlight_inactive
+			
+			if ui.layer[i].count == tm.polygon_loc then
+				lg.setColor(c_highlight_active)
+				lg.rectangle("fill", layx + 32, layy + yy, layw, 25)
+				box_color = c_layer_box
+			end
+			
+			lg.setColor(c_black)
+			lg.print(ui.layer[i].name, layx + 77, layy + yy + 3)
+			lg.rectangle("fill", layx + 1, layy + yy + 24, layw, 1)
+			lg.rectangle("fill", layx + 32, layy + yy, 1, 24)
+			
+			lg.setColor(c_white)
+			
+			if ui.layer[i].visible then
+			lg.draw(icon_eye, layx + 5, layy + yy)
+			else
+			lg.draw(icon_blink, layx + 5, layy + yy)
+			end
+			
+			local body_color = palette.active
+			if polygon.data[ui.layer[i].count] ~= nil then
+				body_color = polygon.data[ui.layer[i].count].color
+			end
+			
+			lg.setColor(body_color)
+			lg.rectangle("fill", layx + 37, layy + yy + 3, 31, 17)
+			lg.setColor(box_color)
+			lg.rectangle("line", layx + 37, layy + yy + 3, 31, 17)
 		end
-		
-		lg.setColor(c_off_white)
-		lg.rectangle("fill", layx + 37, layy + yy + 3, 31, 17)
-		lg.setColor(c_highlight_inactive)
-		lg.rectangle("line", layx + 37, layy + yy + 3, 31, 17)
 	end
 	
 	lg.translate(0, scroll_offset)

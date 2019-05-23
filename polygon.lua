@@ -208,6 +208,10 @@ function polygon.redo()
 		elseif moment[1].action == TM_SWITCH_LAYER then
 		
 			tm.polygon_loc = moment[1].new
+			
+			if moment[1].created_layer == true then
+				ui.addLayer()
+			end
 		
 		end
 	
@@ -224,7 +228,6 @@ function polygon.undo()
 		
 		if moment[1].action == TM_NEW_POLYGON then
 		
-			--table.remove(polygon.data, tm.polygon_loc)
 			polygon.data[tm.polygon_loc] = nil
 		
 		elseif moment[1].action == TM_ADD_VERTEX then
@@ -272,6 +275,10 @@ function polygon.undo()
 		elseif moment[1].action == TM_SWITCH_LAYER then
 		
 			tm.polygon_loc = moment[1].original
+			
+			if moment[1].created_layer == true then
+				table.remove(ui.layer)
+			end
 		
 		end
 		
