@@ -172,6 +172,9 @@ end
 
 function polygon.redo()
 
+	-- Skip editor specific functions (layer switching)
+	local repeat_redo = false
+
 	if tm.data[1] ~= nil and tm.cursor + 1 < tm.length then
 	
 		tm.cursor = tm.cursor + 1
@@ -211,6 +214,8 @@ function polygon.redo()
 			
 			if moment[1].created_layer == true then
 				ui.addLayer()
+			else
+				repeat_redo = true
 			end
 		
 		elseif moment[1].action == TM_MOVE_LAYER then
@@ -220,10 +225,15 @@ function polygon.redo()
 		end
 	
 	end
+	
+	return repeat_redo
 
 end
 
 function polygon.undo()
+	
+	-- Skip editor specific functions (layer switching)
+	local repeat_undo = false
 	
 	-- Retrieve undo sequence from time machine
 	if tm.data[1] ~= nil and tm.cursor > 0 then
@@ -282,6 +292,8 @@ function polygon.undo()
 			
 			if moment[1].created_layer == true then
 				table.remove(ui.layer)
+			else
+				repeat_undo = true
 			end
 		
 		elseif moment[1].action == TM_MOVE_LAYER then
@@ -294,6 +306,8 @@ function polygon.undo()
 		tm.location = tm.location - 1
 		
 	end
+	
+	return repeat_undo
 
 end
 

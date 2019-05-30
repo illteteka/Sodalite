@@ -249,13 +249,21 @@ function love.update(dt)
 		if input.ctrlCombo(z_key) then
 			vertex_selection = {}
 			palette.activeIsEditable = false
-			polygon.undo()
+			local repeat_undo = polygon.undo()
+			
+			while (repeat_undo) do
+				repeat_undo = polygon.undo()
+			end
 		end
 		
 		if input.ctrlCombo(y_key) then
 			vertex_selection = {}
 			palette.activeIsEditable = false
-			polygon.redo()
+			local repeat_redo = polygon.redo()
+			
+			while (repeat_redo) do
+				repeat_redo = polygon.redo()
+			end
 		end
 	
 	end
