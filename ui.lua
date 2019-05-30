@@ -1259,12 +1259,12 @@ function ui.draw()
 			
 			-- Scroll layer window when placing a layer outside of bounds
 			if (my >= 365 - 6) and (my <= 365) then
-				--ui.lyr_dir = "up"
+				ui.lyr_dir = "up"
 				ui.lyr_spd = 3
 			end
 			
 			if (my >= screen_height - 10) then
-				--ui.lyr_dir = "down"
+				ui.lyr_dir = "down"
 				ui.lyr_spd = 3
 			end
 			
