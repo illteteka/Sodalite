@@ -680,8 +680,25 @@ function ui.update(dt)
 					local old_layer = tm.polygon_loc
 					tm.polygon_loc = ui.layer[layer_hit].count
 					
-					tm.store(TM_PICK_LAYER, old_layer, tm.polygon_loc, false)
-					tm.step()
+					local _tm_copy, skip_tm
+					
+					if (tm.data[tm.location - 1] ~= nil) then
+						_tm_copy = tm.data[tm.location - 1][1]
+						skip_tm = false
+					else
+						skip_tm = true
+					end
+					
+					-- To reduce undo/redo ram usage, change previous swap to new layer instead of making another swap
+					if (not skip_tm) and (_tm_copy.action == TM_PICK_LAYER) and (_tm_copy.created_layer == false) then
+						_tm_copy.new = tm.polygon_loc
+					else
+						if old_layer ~= tm.polygon_loc then -- If we swap to the current active layer, don't register the swap
+							tm.store(TM_PICK_LAYER, old_layer, tm.polygon_loc, false)
+							tm.step()
+						end
+					end	
+					
 				end
 				
 			end
@@ -752,18 +769,22 @@ function ui.update(dt)
 						swap_pos = layer_num
 					end
 					
-					ui.moveLayer(ui.lyr_clicked, swap_pos)
-					tm.store(TM_MOVE_LAYER, ui.lyr_clicked, swap_pos)
-					tm.step()
+					if (ui.lyr_clicked ~= swap_pos) then
+						ui.moveLayer(ui.lyr_clicked, swap_pos)
+						tm.store(TM_MOVE_LAYER, ui.lyr_clicked, swap_pos)
+						tm.step()
+					end
 					
 				end
 				
 			elseif (layer_num >= 0) and (y_test >= -6) then -- Trying to move 6 pixels above top layer
 			
 				-- Swap to top position
-				ui.moveLayer(ui.lyr_clicked, layer_num - 1)
-				tm.store(TM_MOVE_LAYER, ui.lyr_clicked, layer_num - 1)
-				tm.step()
+				if (ui.lyr_clicked ~= layer_num - 1) then
+					ui.moveLayer(ui.lyr_clicked, layer_num - 1)
+					tm.store(TM_MOVE_LAYER, ui.lyr_clicked, layer_num - 1)
+					tm.step()
+				end
 			
 			end
 		

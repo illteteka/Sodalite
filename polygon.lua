@@ -293,8 +293,6 @@ function polygon.undo()
 		tm.cursor = tm.cursor - 1
 		tm.location = tm.location - 1
 		
-		--print(tm.cursor, tm.location,tm.length)
-		
 	end
 
 end
