@@ -46,6 +46,7 @@ ui.layer = {}
 ui.lyr_scroll_percent = 0
 ui.lyr_scroll = false
 ui.lyr_dir = ""
+ui.lyr_spd = 1
 ui.lyr_timer = 0
 ui.lyr_clicked = 0
 ui.lyr_click_y = 0
@@ -615,12 +616,14 @@ function ui.update(dt)
 		-- Top scroll button
 		if (mx >= screen_width - 16) and (mx <= screen_width - 1) and (my >= layy + 41) and (my <= layy + 41 + 14) then
 			ui.lyr_dir = "up"
+			ui.lyr_spd = 1
 			ui.scrollButton()
 		end
 		
 		-- Bottom scroll button
 		if (mx >= screen_width - 16) and (mx <= screen_width - 1) and (my >= screen_height - 24) and (my <= screen_height - 10) then
 			ui.lyr_dir = "down"
+			ui.lyr_spd = 1
 			ui.scrollButton()
 		end
 		
@@ -638,6 +641,24 @@ function ui.update(dt)
 				
 				ui.addLayer()
 				ui.lyr_scroll_percent = 0
+			end
+			
+			-- Delete layer button
+			if (mx >= layx + 4 + 24 + 8) and (mx <= layx + 4 + 24 + 24 + 8) and (my >= layy + 13) and (my <= layy + 13 + 24) then
+				
+				if (#ui.layer > 1) then
+					--print(tm.polygon_loc)
+					--ui.deleteLayer(ui.lyr_ref)
+					--tm.store(TM_DELETE_LAYER, ui.lyr_ref)
+					--local old_layer = tm.polygon_loc
+					--tm.polygon_loc = ui.layer[1].count
+					--tm.store(TM_PICK_LAYER, old_layer, tm.polygon_loc, true)
+					--tm.step()
+					--[[ui.deleteLayer(ui.layer[tm.polygon_loc].count)
+					tm.store(TM_DELETE_LAYER, ui.layer[tm.polygon_loc].count)
+					tm.step()--]]
+				end
+				
 			end
 			
 			-- Check if layer was clicked on
@@ -698,8 +719,10 @@ function ui.update(dt)
 		ui.lyr_scroll = false
 	end
 	
+	-- Rearrage layers
 	if (ui.lyr_clicked ~= 0) and ((mouse_switch == _OFF) or (mouse_switch == _RELEASE)) then
 	
+		
 		local layer_amt = #ui.layer
 		local layer_element_size = math.max((25 * layer_amt) - layh - 1, 0)
 			
@@ -714,20 +737,36 @@ function ui.update(dt)
 		local layer_top = math.floor((moffset + scroll_offset) / 25) * 25
 		local layer_num = layer_amt - math.floor((moffset + scroll_offset) / 25)
 	
-		if layer_num >= 0 and layer_num <= layer_amt then
-			
-			if (math.abs(y_test - layer_top) < 4) or (math.abs(y_test - layer_top + 24) < 4) then
+		-- Make it so we can't swap with layers that are not visible on screen (above the layer window)
+		if (my >= 365-6) then
+	
+			-- If layer move is within bounds
+			if (layer_num >= 0 and layer_num <= layer_amt) then
 				
-				local swap_pos = layer_num + 1
-				if layer_num >= ui.lyr_clicked then
-					swap_pos = layer_num
+				-- And within 8 pixels of the layer being moved to
+				if (math.abs(y_test - layer_top) < 8) or (math.abs(y_test - layer_top + 24) < 8) then
+					
+					-- Swap layers
+					local swap_pos = layer_num + 1
+					if layer_num >= ui.lyr_clicked then
+						swap_pos = layer_num
+					end
+					
+					ui.moveLayer(ui.lyr_clicked, swap_pos)
+					tm.store(TM_MOVE_LAYER, ui.lyr_clicked, swap_pos)
+					tm.step()
+					
 				end
 				
-				ui.moveLayer(ui.lyr_clicked, swap_pos)
-				tm.store(TM_MOVE_LAYER, ui.lyr_clicked, swap_pos)
+			elseif (layer_num >= 0) and (y_test >= -6) then -- Trying to move 6 pixels above top layer
+			
+				-- Swap to top position
+				ui.moveLayer(ui.lyr_clicked, layer_num - 1)
+				tm.store(TM_MOVE_LAYER, ui.lyr_clicked, layer_num - 1)
 				tm.step()
-				
+			
 			end
+		
 		end
 	
 		ui.lyr_clicked = 0
@@ -740,7 +779,7 @@ function ui.update(dt)
 		
 		if ui.lyr_timer > 26 then
 			ui.scrollButton()
-			ui.lyr_timer = ui.lyr_timer - 5
+			ui.lyr_timer = ui.lyr_timer - (5 * ui.lyr_spd)
 		end
 		
 	else
@@ -1137,6 +1176,8 @@ function ui.draw()
 	lg.translate(0, scroll_offset)
 	lg.setScissor(0, 0, screen_width, screen_height)
 	
+	local draw_l = false
+	local lx, ly, lw, lh
 	
 	if ui.lyr_clicked ~= 0 and (math.abs(my - ui.lyr_click_y) > 4) then
 	
@@ -1184,23 +1225,49 @@ function ui.draw()
 		local moffset = my - 365
 		local y_test = (moffset + scroll_offset)
 		local layer_top = math.floor((moffset + scroll_offset) / 25) * 25
-		local layer_num = layer_amt - math.floor((moffset + scroll_offset) / 25)
-	
-		if layer_num >= 0 and layer_num <= layer_amt then
+		local layer_num = layer_amt - math.floor((moffset + scroll_offset) / 25)	
 		
-			if math.abs(y_test - layer_top) < 4 then
-				lg.setColor(c_off_white)
-				lg.rectangle("fill", layx + 32, 365 + layer_top - 3 - scroll_offset, layw - 32, 5)
-				lg.setColor(c_outline_dark)
-				lg.rectangle("fill", layx + 32, 365 + layer_top - 1 - scroll_offset, layw - 32, 1)
+		if (my >= 365 - 6) and (my <= screen_height - 6) then -- Keep within bounds of layer selector
+		
+			if layer_num >= 0 and layer_num <= layer_amt then
+			
+				if math.abs(y_test - layer_top) < 8 then
+					lx = layx + 32
+					ly = 365 + layer_top - 3 - scroll_offset
+					lw = layw - 32
+					lh = 5
+					draw_l = true
+				end
+				
+				if math.abs(y_test - layer_top + 24) < 8 then
+					lx = layx + 32
+					ly = 365 + layer_top + 21 - scroll_offset
+					lw = layw - 32
+					lh = 5
+					draw_l = true
+				end
+				
+			elseif (layer_num >= 0) and (my >= 365 - 6) then
+			
+				lx = layx + 32
+				ly = 365 - 3 - scroll_offset
+				lw = layw - 32
+				lh = 5
+				draw_l = true
+			
 			end
 			
-			if math.abs(y_test - layer_top + 24) < 4 then
-				lg.setColor(c_off_white)
-				lg.rectangle("fill", layx + 32, 365 + layer_top + 21 - scroll_offset, layw - 32, 5)
-				lg.setColor(c_outline_dark)
-				lg.rectangle("fill", layx + 32, 365 + layer_top + 23 - scroll_offset, layw - 32, 1)
+			-- Scroll layer window when placing a layer outside of bounds
+			if (my >= 365 - 6) and (my <= 365) then
+				--ui.lyr_dir = "up"
+				ui.lyr_spd = 3
 			end
+			
+			if (my >= screen_height - 10) then
+				--ui.lyr_dir = "down"
+				ui.lyr_spd = 3
+			end
+			
 		end
 	
 	end
@@ -1221,6 +1288,18 @@ function ui.draw()
 	ui.drawOutline(screen_width - 16, layy + 41 + 14 + math.floor(scroll_len * ui.lyr_scroll_percent), 15, 14, true)
 	
 	ui.drawOutline(layx + 1, layy + 10 + 29, layw, screen_height - layy - 20 - 29)
+	
+	if draw_l then
+		
+		-- Keep ly within bounds of layer menu
+		ly = lume.clamp(ly, 365-6+3, screen_height-6-7)
+		
+		lg.setColor(c_off_white)
+		lg.rectangle("fill", lx, ly, lw, lh)
+		lg.setColor(c_outline_dark)
+		lg.rectangle("fill", lx, ly + 2, lw, lh - 4)
+			
+	end
 	
 	-- Draw popup box
 	if ui.popup[1] ~= nil then
@@ -1287,8 +1366,8 @@ function ui.draw()
 				lg.setLineWidth(1)
 				
 				if ui.input_cursor_visible and this_selected then
-					local lx, ly = px + (pw / 2) + pxo + font:getWidth(name) + 3, py + 25 + h + 2
-					lg.line(lx, ly, lx, ly + 14)
+					local lxx, lyy = px + (pw / 2) + pxo + font:getWidth(name) + 3, py + 25 + h + 2
+					lg.line(lxx, lyy, lxx, lyy + 14)
 				end
 			
 			end
