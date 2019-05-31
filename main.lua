@@ -5,6 +5,7 @@ ui = require "ui"
 tm = require "timemachine"
 lume = require "lume"
 import = require "import"
+export = require "export"
 
 lg = love.graphics
 screen_width = 1280
@@ -91,7 +92,7 @@ function love.load()
 	icon_trash = love.graphics.newImage("textures/icon_trash.png")
 	icon_eye = love.graphics.newImage("textures/icon_eye.png")
 	icon_blink = love.graphics.newImage("textures/icon_blink.png")
-
+	
 end
 
 function love.resize(w, h)
@@ -272,6 +273,10 @@ function love.update(dt)
 			while (repeat_redo) do
 				repeat_redo = polygon.redo()
 			end
+		end
+		
+		if document_w ~= 0 and input.ctrlCombo(s_key) then
+			export.saveLOL()
 		end
 	
 	end

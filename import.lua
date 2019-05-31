@@ -10,7 +10,7 @@ file_pos = 0
 function import.open(file)
 	
 	local fname = file:getFilename()
-	local file_ext = fname:sub(fname:len() - 2)
+	local file_ext = fname:sub(fname:len() - FILE_EXTENSION:len() + 1)
 	
 	if (file_ext == FILE_EXTENSION) then
 		local file_contents = file:read("string")
