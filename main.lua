@@ -4,6 +4,7 @@ palette = require "palette"
 ui = require "ui"
 tm = require "timemachine"
 lume = require "lume"
+import = require "import"
 
 lg = love.graphics
 screen_width = 1280
@@ -103,6 +104,9 @@ function love.resize(w, h)
 end
 
 function love.textinput(x)
+	if x == "," or x == ":" or x == ";" or x == "/" or x == "\\" or x == "*" or x == "?" or x == "\"" or x == "<" or x == ">" or x == "|" then
+		x = ""
+	end
 	ui.keyboardHit(x or "")
 end
 
@@ -110,6 +114,10 @@ function love.keypressed(x)
 	if (x == "backspace") or (x == "return") then
 		ui.keyboardHit(x)
 	end
+end
+
+function love.filedropped(file)
+	import.open(file)
 end
 
 function love.update(dt)

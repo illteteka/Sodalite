@@ -219,6 +219,23 @@ function ui.addLayer()
 
 end
 
+function ui.importLayer(v, n)
+
+	local layer = {}
+	layer.visible = v
+	
+	if ui.layer[1] == nil then
+		layer.count = 1
+	else
+		layer.count = #ui.layer + 1
+	end
+	
+	layer.name = n
+	
+	table.insert(ui.layer, layer)
+
+end
+
 function ui.generateCM(x, y)
 
 	local i
