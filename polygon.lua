@@ -36,6 +36,14 @@ function polygon.calcVertex(x, y, loc, use_tm)
 		while i <= #polygon.data[tm.polygon_loc].raw do
 			
 			local vertex_radius = 10
+			
+			-- Scale selection radius if the camera is scaled
+			if camera_zoom > 1 then
+				vertex_radius = math.max(vertex_radius / camera_zoom, 1)
+			elseif camera_zoom < 1 then
+				vertex_radius = (vertex_radius / camera_zoom)
+			end
+			
 			local vx, vy = polygon.data[tm.polygon_loc].raw[i].x, polygon.data[tm.polygon_loc].raw[i].y
 			
 			-- If check was successful
@@ -331,9 +339,10 @@ function polygon.draw()
 					-- Draw triangle if the vertex[i] contains references to two other vertices (va and vb)
 					if clone.raw[j].vb ~= nil then
 						
+						local sc = camera_zoom
 						local a_loc, b_loc = clone.raw[j].va, clone.raw[j].vb
 						local aa, bb, cc = clone.raw[j], clone.raw[a_loc], clone.raw[b_loc]
-						lg.polygon("fill", aa.x, aa.y, bb.x, bb.y, cc.x, cc.y)
+						lg.polygon("fill", aa.x * sc, aa.y * sc, bb.x * sc, bb.y * sc, cc.x * sc, cc.y * sc)
 						
 					end
 					

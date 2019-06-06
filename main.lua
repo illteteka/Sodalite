@@ -32,9 +32,13 @@ s_key = _OFF
 d_key = _OFF
 space_key = _OFF
 
+up_key = _OFF
+down_key = _OFF
+
 camera_moved = false
 camera_x = 0
 camera_y = 0
+camera_zoom = 1
 
 selection_mouse_x = 0
 selection_mouse_y = 0
@@ -42,6 +46,15 @@ selection_mouse_y = 0
 document_name = "Untitled"
 document_w = 0
 document_h = 0
+
+function updateCamera(w, h)
+	local old_x, old_y = (screen_width - 208) / 2, (screen_height + 25) / 2
+	screen_width, screen_height = w, h
+	local new_x, new_y = (screen_width - 208) / 2, (screen_height + 25) / 2
+	
+	camera_x = math.floor(camera_x + new_x - old_x)
+	camera_y = math.floor(camera_y + new_y - old_y)
+end
 
 function resetCamera()
 	camera_x = math.floor((screen_width  - 208 - document_w) / 2) -- right bar (- 208)
@@ -96,12 +109,7 @@ function love.load()
 end
 
 function love.resize(w, h)
-	local old_x, old_y = (screen_width - 208) / 2, (screen_height + 25) / 2
-	screen_width, screen_height = w, h
-	local new_x, new_y = (screen_width - 208) / 2, (screen_height + 25) / 2
-	
-	camera_x = math.floor(camera_x + new_x - old_x)
-	camera_y = math.floor(camera_y + new_y - old_y)
+	updateCamera(w, h)
 end
 
 function love.textinput(x)
@@ -123,6 +131,8 @@ end
 
 function love.update(dt)
 
+	local mx, my = math.floor(love.mouse.getX() / camera_zoom), math.floor(love.mouse.getY() / camera_zoom)
+
 	-- Update input
 	input.update(dt)
 	a_key = input.pullSwitch(love.keyboard.isDown("a"), a_key)
@@ -133,6 +143,9 @@ function love.update(dt)
 	w_key = input.pullSwitch(love.keyboard.isDown("w"), w_key)
 	y_key = input.pullSwitch(love.keyboard.isDown("y"), y_key)
 	z_key = input.pullSwitch(love.keyboard.isDown("z"), z_key)
+	
+	up_key = input.pullSwitch(love.keyboard.isDown("up"), up_key)
+	down_key = input.pullSwitch(love.keyboard.isDown("down"), down_key)
 	
 	lctrl_key = input.pullSwitch(love.keyboard.isDown("l" .. ctrl_name), lctrl_key)
 	rctrl_key = input.pullSwitch(love.keyboard.isDown("r" .. ctrl_name), rctrl_key)
@@ -152,24 +165,41 @@ function love.update(dt)
 	
 	-- Camera movement
 	local camera_spd = 4
+	
+	-- Scale camera movement over 100% scale
+	local cas = 1
+	if (camera_zoom > 1) then
+		cas = camera_zoom
+	end
+	
 	if lctrl_key == _OFF and rctrl_key == _OFF then
 	
 		if w_key == _ON then
-			camera_y = camera_y + (camera_spd * 60 * dt)
+			camera_y = camera_y + (camera_spd * 60 * cas * dt)
 			camera_moved = true
 		elseif s_key == _ON then
-			camera_y = camera_y - (camera_spd * 60 * dt)
+			camera_y = camera_y - (camera_spd * 60 * cas * dt)
 			camera_moved = true
 		end
 		
 		if a_key == _ON then
-			camera_x = camera_x + (camera_spd * 60 * dt)
+			camera_x = camera_x + (camera_spd * 60 * cas * dt)
 			camera_moved = true
 		elseif d_key == _ON then
-			camera_x = camera_x - (camera_spd * 60 * dt)
+			camera_x = camera_x - (camera_spd * 60 * cas * dt)
 			camera_moved = true
 		end
 	
+	end
+	
+	if up_key == _ON then
+		camera_zoom = camera_zoom + (0.01 * 60 * dt)
+		updateCamera(screen_width, screen_height)
+	end
+	
+	if down_key == _ON then
+		camera_zoom = camera_zoom - (0.01 * 60 * dt)
+		updateCamera(screen_width, screen_height)
 	end
 	
 	if camera_moved and w_key == _OFF and s_key == _OFF and a_key == _OFF and d_key == _OFF then
@@ -211,8 +241,8 @@ function love.update(dt)
 			polygon.new(tm.polygon_loc, new_col, true)
 		end
 		
-		selection_mouse_x = love.mouse.getX() - math.floor(camera_x)
-		selection_mouse_y = love.mouse.getY() - math.floor(camera_y)
+		selection_mouse_x = mx - math.floor(camera_x)
+		selection_mouse_y = my - math.floor(camera_y)
 		
 		-- Test if we are placing a vertex or moving a vertex
 		if vertex_selection[1] == nil then -- If selection is empty
@@ -229,7 +259,7 @@ function love.update(dt)
 		
 			-- Move verices by offset of selection_mouse_*
 			local pp = polygon.data[tm.polygon_loc].raw[vertex_selection[i].index]
-			pp.x, pp.y = vertex_selection[i].x + (love.mouse.getX() - selection_mouse_x - math.floor(camera_x)), vertex_selection[i].y + (love.mouse.getY() - selection_mouse_y - math.floor(camera_y))
+			pp.x, pp.y = vertex_selection[i].x + (mx - selection_mouse_x - math.floor(camera_x)), vertex_selection[i].y + (my - selection_mouse_y - math.floor(camera_y))
 		
 		end
 	
@@ -287,15 +317,17 @@ end
 
 function love.draw()
 
+	local mx, my = math.floor(love.mouse.getX() / camera_zoom), math.floor(love.mouse.getY() / camera_zoom)
+	
 	lg.setColor(c_background)
 	lg.rectangle("fill", 0, 0, screen_width, screen_height)
 	
 	lg.push()
-	lg.translate(camera_x, camera_y)
+	lg.translate(math.floor(camera_x * camera_zoom), math.floor(camera_y * camera_zoom))
 	
 	if document_w ~= 0 then
 	lg.setColor(c_off_white)
-	lg.rectangle("line", 0, 0, document_w, document_h)
+	lg.rectangle("line", 0, 0, document_w * camera_zoom, document_h * camera_zoom)
 	lg.setColor(c_white)
 	end
 	
@@ -320,16 +352,17 @@ function love.draw()
 				
 				local a_loc, b_loc = clone[i].va, clone[i].vb
 				local aa, bb, cc = clone[i], clone[a_loc], clone[b_loc]
+				local sc = camera_zoom
 				
 				if (first_vert_sel == i) then
-					lg.line(aa.x, aa.y, bb.x, bb.y)
-					lg.line(cc.x, cc.y, aa.x, aa.y)
+					lg.line(aa.x * sc, aa.y * sc, bb.x * sc, bb.y * sc)
+					lg.line(cc.x * sc, cc.y * sc, aa.x * sc, aa.y * sc)
 				elseif (first_vert_sel == a_loc) then
-					lg.line(aa.x, aa.y, bb.x, bb.y)
-					lg.line(bb.x, bb.y, cc.x, cc.y)
+					lg.line(aa.x * sc, aa.y * sc, bb.x * sc, bb.y * sc)
+					lg.line(bb.x * sc, bb.y * sc, cc.x * sc, cc.y * sc)
 				elseif (first_vert_sel == b_loc) then
-					lg.line(bb.x, bb.y, cc.x, cc.y)
-					lg.line(cc.x, cc.y, aa.x, aa.y)
+					lg.line(bb.x * sc, bb.y * sc, cc.x * sc, cc.y * sc)
+					lg.line(cc.x * sc, cc.y * sc, aa.x * sc, aa.y * sc)
 				end
 				
 				
@@ -351,7 +384,8 @@ function love.draw()
 			lg.setColor({1, 1, 1, 1})
 			local aa, bb = polygon.data[tm.polygon_loc].cache[i][1], polygon.data[tm.polygon_loc].cache[i][2]
 			local line_a, line_b = polygon.data[tm.polygon_loc].raw[aa], polygon.data[tm.polygon_loc].raw[bb]
-			lg.line(line_a.x, line_a.y, line_b.x, line_b.y)
+			local sc = camera_zoom
+			lg.line(line_a.x * sc, line_a.y * sc, line_b.x * sc, line_b.y * sc)
 		
 		end
 	
@@ -367,11 +401,12 @@ function love.draw()
 		local j = 1
 		while j <= #clone.raw do
 			
-			local vertex_radius = 100
-			local tx, ty = clone.raw[j].x - 5, clone.raw[j].y - 5
+			local vertex_radius = 100 / camera_zoom
+			local tx, ty = clone.raw[j].x, clone.raw[j].y
+			local sc = camera_zoom
 			
-			if #clone.raw < 3 or (lume.distance(love.mouse.getX() - math.floor(camera_x), love.mouse.getY() - math.floor(camera_y), tx, ty) < vertex_radius) then
-				lg.draw(spr_vertex, tx, ty)
+			if #clone.raw < 3 or (lume.distance(mx - math.floor(camera_x), my - math.floor(camera_y), tx, ty) < vertex_radius) then
+				lg.draw(spr_vertex, math.floor(tx * sc) - 5, math.floor(ty * sc) - 5)
 			end
 			
 			j = j + 1

@@ -755,7 +755,6 @@ function ui.update(dt)
 	
 	-- Rearrage layers
 	if (ui.lyr_clicked ~= 0) and ((mouse_switch == _OFF) or (mouse_switch == _RELEASE)) then
-	
 		
 		local layer_amt = #ui.layer
 		local layer_element_size = math.max((25 * layer_amt) - layh - 1, 0)
@@ -895,6 +894,7 @@ function ui.update(dt)
 								document_w = ui.popup[3][2].name
 								document_h = ui.popup[4][2].name
 								
+								camera_zoom = 1
 								resetCamera()
 								
 								tm.init()

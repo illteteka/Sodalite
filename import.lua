@@ -30,6 +30,7 @@ function import.open(file)
 		
 		import.read(file_contents)
 		
+		camera_zoom = 1
 		resetCamera()
 	end
 
