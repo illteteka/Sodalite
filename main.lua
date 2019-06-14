@@ -47,18 +47,36 @@ document_name = "Untitled"
 document_w = 0
 document_h = 0
 
-function updateCamera(w, h)
-	local old_x, old_y = (screen_width - 208) / 2, (screen_height + 25) / 2
+function updateCamera(w, h, zo, zn)
+
+	-- Stop scale factor from being less than 0
+	if zn < 0 then
+		zn = zo
+	end
+
+	-- Calculate expected center at old resolution
+	local old_x = (((screen_width  - document_w * zo) / 2) / zo) - (104 / zo)
+	local old_y = (((screen_height - document_h * zo) / 2) / zo) + (25 / 2 / zo)
+
+	-- Get offset from center
+	local xm, ym = camera_x - old_x, camera_y - old_y
+
+	-- Update screen size and zoom
 	screen_width, screen_height = w, h
-	local new_x, new_y = (screen_width - 208) / 2, (screen_height + 25) / 2
+	camera_zoom = zn
 	
-	camera_x = math.floor(camera_x + new_x - old_x)
-	camera_y = math.floor(camera_y + new_y - old_y)
+	-- Update camera and add offset
+	camera_x = (((screen_width  - document_w * zn) / 2) / zn) - (104 / zn) + xm
+	camera_y = (((screen_height - document_h * zn) / 2) / zn) + (25 / 2 / zn) + ym
+	
+	-- math.floor camera once you're done scaling/resizing
+	camera_moved = true
+	
 end
 
 function resetCamera()
-	camera_x = math.floor((screen_width  - 208 - document_w) / 2) -- right bar (- 208)
-	camera_y = math.floor((screen_height + 25  - document_h) / 2) -- top bar (+ 25)
+	camera_x = math.floor(((screen_width  - document_w * camera_zoom) / 2) / camera_zoom) - math.floor(104 / camera_zoom) -- right bar (- 208)
+	camera_y = math.floor(((screen_height - document_h * camera_zoom) / 2) / camera_zoom) + math.floor(25 / 2 / camera_zoom) -- top bar (+ 25)
 end
 
 function love.load()
@@ -109,7 +127,7 @@ function love.load()
 end
 
 function love.resize(w, h)
-	updateCamera(w, h)
+	updateCamera(w, h, camera_zoom, camera_zoom)
 end
 
 function love.textinput(x)
@@ -164,7 +182,7 @@ function love.update(dt)
 	-- end debug block
 	
 	-- Camera movement
-	local camera_spd = 4
+	local camera_spd = 4 / camera_zoom
 	
 	-- Scale camera movement over 100% scale
 	local cas = 1
@@ -193,16 +211,14 @@ function love.update(dt)
 	end
 	
 	if up_key == _ON then
-		camera_zoom = camera_zoom + (0.01 * 60 * dt)
-		updateCamera(screen_width, screen_height)
+		updateCamera(screen_width, screen_height, camera_zoom, camera_zoom + (0.01 * 60 * dt))
 	end
 	
 	if down_key == _ON then
-		camera_zoom = camera_zoom - (0.01 * 60 * dt)
-		updateCamera(screen_width, screen_height)
+		updateCamera(screen_width, screen_height, camera_zoom, camera_zoom - (0.01 * 60 * dt))
 	end
 	
-	if camera_moved and w_key == _OFF and s_key == _OFF and a_key == _OFF and d_key == _OFF then
+	if camera_moved and up_key == _OFF and down_key == _OFF and w_key == _OFF and s_key == _OFF and a_key == _OFF and d_key == _OFF then
 		camera_x = math.floor(camera_x)
 		camera_y = math.floor(camera_y)
 		camera_moved = false
