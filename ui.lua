@@ -36,6 +36,7 @@ ui.allow_keyboard_input = false
 
 ui.popup_sel_a = 0
 ui.popup_sel_b = 0
+ui.popup_enter = false
 
 ui.palette_mode = "RGB"
 ui.palette_text = 0
@@ -351,6 +352,7 @@ function ui.keyboardHit(key)
 				ui.popupLoseFocus(ui.popup[1][1].kind)
 				ui.keyboard_last = ""
 				ui.keyboard_test = ""
+				ui.popup_enter = true
 			end
 		end
 	
@@ -829,6 +831,54 @@ function ui.update(dt)
 		
 		local exit_pop = false
 		
+		-- Scroll inputs with tab
+		if tab_key == _PRESS then
+			
+			if ui.popup[1][1].kind == "f.new" then
+			
+				local oa = ui.popup_sel_a
+				ui.popupLoseFocus(ui.popup[1][1].kind)
+				
+				ui.popup_sel_a, ui.popup_sel_b = oa + 1, 2
+				
+				if ui.popup_sel_a > #ui.popup - 1 then
+					ui.popup_sel_a = 2
+				end
+				
+				ui.sel_start = ui.popup[ui.popup_sel_a][ui.popup_sel_b].name
+				ui.sel_type = "popup"
+			
+			end
+			
+		end
+		
+		-- Accept input with enter
+		if enter_key == _PRESS then
+		
+			if ui.popup[1][1].kind == "f.new" and ui.popup_enter == false then
+				-- OK button
+				ui.popupLoseFocus(ui.popup[1][1].kind)
+				document_name = ui.popup[2][2].name
+				document_w = ui.popup[3][2].name
+				document_h = ui.popup[4][2].name
+				
+				camera_zoom = 1
+				resetCamera()
+				
+				tm.init()
+				polygon.data = {}
+				ui.layer = {}
+				ui.addLayer()
+				
+				-- Exit popup
+				ui.popup = {}
+				ui_active = true
+				ui.context_menu = {}
+				ui.title_active = false
+			end
+		
+		end
+		
 		local mx_on_menu, my_on_menu
 		mx_on_menu = (mx >= ui.popup_x) and (mx <= ui.popup_x + ui.popup_w)
 		my_on_menu = (my >= ui.popup_y) and (my <= ui.popup_y + ui.popup_h)
@@ -940,6 +990,8 @@ function ui.update(dt)
 		ui.context_menu = {}
 		ui.title_active = false
 	end
+	
+	ui.popup_enter = false
 	
 	return ui_active
 

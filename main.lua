@@ -31,6 +31,8 @@ w_key = _OFF
 s_key = _OFF
 d_key = _OFF
 space_key = _OFF
+tab_key = _OFF
+enter_key = _OFF
 
 up_key = _OFF
 down_key = _OFF
@@ -168,6 +170,8 @@ function love.update(dt)
 	lctrl_key = input.pullSwitch(love.keyboard.isDown("l" .. ctrl_name), lctrl_key)
 	rctrl_key = input.pullSwitch(love.keyboard.isDown("r" .. ctrl_name), rctrl_key)
 	space_key = input.pullSwitch(love.keyboard.isDown("space"), space_key)
+	tab_key = input.pullSwitch(love.keyboard.isDown("tab"), tab_key)
+	enter_key = input.pullSwitch(love.keyboard.isDown("return"), enter_key)
 	
 	-- debug buttons
 	one_button = input.pullSwitch(love.keyboard.isDown("f3"), one_button)
