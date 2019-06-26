@@ -21,7 +21,7 @@ function export.saveLOL()
 					file:write("0,")
 				end
 				
-				file:write(ui.layer[i].name .. "," .. clone.kind .. "," .. clone.color[1] .. "," .. clone.color[2] .. "," .. clone.color[3] .. "," .. clone.color[4] .. ":")
+				file:write(ui.layer[i].name .. "," .. clone.kind .. "," .. math.floor(clone.color[1]*255) .. "," .. math.floor(clone.color[2]*255) .. "," .. math.floor(clone.color[3]*255) .. "," .. math.floor(clone.color[4]*255) .. ":")
 				
 				local j = 1
 				while j <= #clone.raw do

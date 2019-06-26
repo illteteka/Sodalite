@@ -104,22 +104,22 @@ function import.read(file)
 				-- R
 				cursor = sub_cursor + 1
 				sub_cursor = string.find(i, ",", cursor)
-				rr = tonumber(i:sub(cursor, sub_cursor - 1))
+				rr = tonumber(i:sub(cursor, sub_cursor - 1)) / 255
 				
 				-- G
 				cursor = sub_cursor + 1
 				sub_cursor = string.find(i, ",", cursor)
-				gg = tonumber(i:sub(cursor, sub_cursor - 1))
+				gg = tonumber(i:sub(cursor, sub_cursor - 1)) / 255
 				
 				-- B
 				cursor = sub_cursor + 1
 				sub_cursor = string.find(i, ",", cursor)
-				bb = tonumber(i:sub(cursor, sub_cursor - 1))
+				bb = tonumber(i:sub(cursor, sub_cursor - 1)) / 255
 				
 				-- A
 				cursor = sub_cursor + 1
 				sub_cursor = string.find(i, ":", cursor)
-				aa = tonumber(i:sub(cursor, sub_cursor - 1))
+				aa = tonumber(i:sub(cursor, sub_cursor - 1)) / 255
 				
 				polygon.data[poly_count].color = {rr,gg,bb,aa}
 				
