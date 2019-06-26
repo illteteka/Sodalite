@@ -17,6 +17,7 @@ vertex_selection = {}
 -- debug buttons
 one_button = _OFF
 two_button = _OFF
+debug_mode = "zoom"
 
 ctrl_name = "ctrl"
 
@@ -30,6 +31,11 @@ v_key = _OFF
 w_key = _OFF
 s_key = _OFF
 d_key = _OFF
+p_key = _OFF
+o_key = _OFF
+i_key = _OFF
+u_key = _OFF
+t_key = _OFF
 space_key = _OFF
 tab_key = _OFF
 enter_key = _OFF
@@ -106,25 +112,25 @@ function love.load()
 	palette.init()
 	tm.init()
 	
-	grad_large = love.graphics.newImage("textures/gradient_large.png")
-	grad_active = love.graphics.newImage("textures/gradient_active.png")
-	grad_inactive = love.graphics.newImage("textures/gradient_inactive.png")
-	grad_slider = love.graphics.newImage("textures/gradient_slider.png")
+	grad_large = lg.newImage("textures/gradient_large.png")
+	grad_active = lg.newImage("textures/gradient_active.png")
+	grad_inactive = lg.newImage("textures/gradient_inactive.png")
+	grad_slider = lg.newImage("textures/gradient_slider.png")
 	
-	spr_vertex = love.graphics.newImage("textures/vertex.png")
-	spr_vertex_mask = love.graphics.newImage("textures/vertex_mask.png")
+	spr_vertex = lg.newImage("textures/vertex.png")
+	spr_vertex_mask = lg.newImage("textures/vertex_mask.png")
 	
-	spr_slider_1 = love.graphics.newImage("textures/slider_1.png")
-	spr_slider_2 = love.graphics.newImage("textures/slider_2.png")
-	spr_slider_3 = love.graphics.newImage("textures/slider_3.png")
-	spr_slider_button = love.graphics.newImage("textures/slider_button.png")
-	spr_arrow_up = love.graphics.newImage("textures/arrow_up.png")
-	spr_arrow_down = love.graphics.newImage("textures/arrow_down.png")
+	spr_slider_1 = lg.newImage("textures/slider_1.png")
+	spr_slider_2 = lg.newImage("textures/slider_2.png")
+	spr_slider_3 = lg.newImage("textures/slider_3.png")
+	spr_slider_button = lg.newImage("textures/slider_button.png")
+	spr_arrow_up = lg.newImage("textures/arrow_up.png")
+	spr_arrow_down = lg.newImage("textures/arrow_down.png")
 	
-	icon_add = love.graphics.newImage("textures/icon_add.png")
-	icon_trash = love.graphics.newImage("textures/icon_trash.png")
-	icon_eye = love.graphics.newImage("textures/icon_eye.png")
-	icon_blink = love.graphics.newImage("textures/icon_blink.png")
+	icon_add = lg.newImage("textures/icon_add.png")
+	icon_trash = lg.newImage("textures/icon_trash.png")
+	icon_eye = lg.newImage("textures/icon_eye.png")
+	icon_blink = lg.newImage("textures/icon_blink.png")
 	
 end
 
@@ -158,7 +164,12 @@ function love.update(dt)
 	a_key = input.pullSwitch(love.keyboard.isDown("a"), a_key)
 	c_key = input.pullSwitch(love.keyboard.isDown("c"), c_key)
 	d_key = input.pullSwitch(love.keyboard.isDown("d"), d_key)
+	i_key = input.pullSwitch(love.keyboard.isDown("i"), i_key) --*
+	o_key = input.pullSwitch(love.keyboard.isDown("o"), o_key) --*
+	p_key = input.pullSwitch(love.keyboard.isDown("p"), p_key) --*
 	s_key = input.pullSwitch(love.keyboard.isDown("s"), s_key)
+	t_key = input.pullSwitch(love.keyboard.isDown("t"), t_key) --*
+	u_key = input.pullSwitch(love.keyboard.isDown("u"), u_key) --*
 	v_key = input.pullSwitch(love.keyboard.isDown("v"), v_key)
 	w_key = input.pullSwitch(love.keyboard.isDown("w"), w_key)
 	y_key = input.pullSwitch(love.keyboard.isDown("y"), y_key)
@@ -212,14 +223,6 @@ function love.update(dt)
 			camera_moved = true
 		end
 	
-	end
-	
-	if up_key == _ON then
-		updateCamera(screen_width, screen_height, camera_zoom, camera_zoom + (0.01 * 60 * dt))
-	end
-	
-	if down_key == _ON then
-		updateCamera(screen_width, screen_height, camera_zoom, camera_zoom - (0.01 * 60 * dt))
 	end
 	
 	if camera_moved and up_key == _OFF and down_key == _OFF and w_key == _OFF and s_key == _OFF and a_key == _OFF and d_key == _OFF then
@@ -331,6 +334,27 @@ function love.update(dt)
 	
 	end
 	
+	-- Debug keys
+	
+	if t_key == _PRESS then debug_mode = "triangle" end
+	if y_key == _PRESS and input.ctrlCombo(y_key) == false then debug_mode = "circle" end
+	if u_key == _PRESS then debug_mode = "line" end
+	if i_key == _PRESS then debug_mode = "mirror" end
+	if o_key == _PRESS then debug_mode = "grid" end
+	if p_key == _PRESS then debug_mode = "zoom" end
+	
+	if debug_mode == "zoom" then
+		if up_key == _ON then
+			updateCamera(screen_width, screen_height, camera_zoom, camera_zoom + (0.01 * 60 * dt))
+		end
+		
+		if down_key == _ON then
+			updateCamera(screen_width, screen_height, camera_zoom, camera_zoom - (0.01 * 60 * dt))
+		end
+	end
+	
+	-- End debug keys
+	
 	end
 
 end
@@ -438,6 +462,13 @@ function love.draw()
 	lg.pop()
 	
 	ui.draw()
+	
+	-- Debug UI
+	
+	lg.setColor(1,1,1,0.6)
+	lg.print("Debug mode: " .. debug_mode, 30, screen_height - 50)
+	
+	-- End Debug UI
 
 end
 
