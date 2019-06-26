@@ -6,7 +6,7 @@ function export.saveLOL()
 	
 		file = io.open(document_name .. ".lol", "w")
 		file:write("Magma v1.0\n")
-		file:write(document_name .. "," .. document_w .. "," .. document_h .. ";\n")
+		file:write(document_w .. "," .. document_h .. ";\n")
 		
 		local i = 1
 		while i <= #ui.layer do
