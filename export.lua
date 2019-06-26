@@ -14,19 +14,6 @@ function export.saveLOL()
 			if polygon.data[ui.layer[i].count] ~= nil then
 			
 				local clone = polygon.data[ui.layer[i].count]
-			
-				local k
-				for k = 1, #polygon.data[ui.layer[i].count].cache do
-					local cc = clone.cache
-					file:write(cc[k][1] .. "-" .. cc[k][2])
-					
-					if k == #polygon.data[ui.layer[i].count].cache then
-						file:write(";\n")
-					else
-						file:write(",")
-					end
-					
-				end
 				
 				if ui.layer[i].visible then
 					file:write("1,")
