@@ -39,9 +39,13 @@ t_key = _OFF
 space_key = _OFF
 tab_key = _OFF
 enter_key = _OFF
+period_key = _OFF
+comma_key = _OFF
 
 up_key = _OFF
 down_key = _OFF
+left_key = _OFF
+right_key = _OFF
 
 camera_moved = false
 camera_x = 0
@@ -54,6 +58,12 @@ selection_mouse_y = 0
 document_name = "Untitled"
 document_w = 0
 document_h = 0
+
+grid_x = 0
+grid_y = 0
+grid_w = 32
+grid_h = 32
+debug_grid = "resize"
 
 function updateCamera(w, h, zo, zn)
 
@@ -177,12 +187,16 @@ function love.update(dt)
 	
 	up_key = input.pullSwitch(love.keyboard.isDown("up"), up_key)
 	down_key = input.pullSwitch(love.keyboard.isDown("down"), down_key)
+	left_key = input.pullSwitch(love.keyboard.isDown("left"), left_key)
+	right_key = input.pullSwitch(love.keyboard.isDown("right"), right_key)
 	
 	lctrl_key = input.pullSwitch(love.keyboard.isDown("l" .. ctrl_name), lctrl_key)
 	rctrl_key = input.pullSwitch(love.keyboard.isDown("r" .. ctrl_name), rctrl_key)
 	space_key = input.pullSwitch(love.keyboard.isDown("space"), space_key)
 	tab_key = input.pullSwitch(love.keyboard.isDown("tab"), tab_key)
 	enter_key = input.pullSwitch(love.keyboard.isDown("return"), enter_key)
+	period_key = input.pullSwitch(love.keyboard.isDown("."), period_key)
+	comma_key = input.pullSwitch(love.keyboard.isDown(","), comma_key)
 	
 	-- debug buttons
 	one_button = input.pullSwitch(love.keyboard.isDown("f3"), one_button)
@@ -264,8 +278,13 @@ function love.update(dt)
 			polygon.new(tm.polygon_loc, new_col, true)
 		end
 		
-		selection_mouse_x = mx - math.floor(camera_x)
-		selection_mouse_y = my - math.floor(camera_y)
+		if debug_mode ~= "grid" then
+			selection_mouse_x = mx - math.floor(camera_x)
+			selection_mouse_y = my - math.floor(camera_y)
+		else
+			selection_mouse_x = ((math.floor((mx - camera_x) / grid_w) * grid_w) + (grid_x % grid_w))
+			selection_mouse_y = ((math.floor((my - camera_y) / grid_h) * grid_h) + (grid_y % grid_h))
+		end
 		
 		-- Test if we are placing a vertex or moving a vertex
 		if vertex_selection[1] == nil then -- If selection is empty
@@ -280,9 +299,18 @@ function love.update(dt)
 		local i
 		for i = 1, #vertex_selection do
 		
+			local cx, cy
+			if debug_mode ~= "grid" then
+				cx = mx
+				cy = my
+			else
+				cx = ((math.floor((mx - camera_x) / grid_w) * grid_w) + (grid_x % grid_w) + math.floor(camera_x))
+				cy = ((math.floor((my - camera_y) / grid_h) * grid_h) + (grid_y % grid_h) + math.floor(camera_y))
+			end
+		
 			-- Move verices by offset of selection_mouse_*
 			local pp = polygon.data[tm.polygon_loc].raw[vertex_selection[i].index]
-			pp.x, pp.y = vertex_selection[i].x + (mx - selection_mouse_x - math.floor(camera_x)), vertex_selection[i].y + (my - selection_mouse_y - math.floor(camera_y))
+			pp.x, pp.y = vertex_selection[i].x + (cx - selection_mouse_x - math.floor(camera_x)), vertex_selection[i].y + (cy - selection_mouse_y - math.floor(camera_y))
 		
 		end
 	
@@ -353,6 +381,28 @@ function love.update(dt)
 		end
 	end
 	
+	if debug_mode == "grid" then
+		if debug_grid == "shift" then
+		if up_key == _ON then grid_y = grid_y - 1 end
+		if down_key == _ON then grid_y = grid_y + 1 end
+		if left_key == _ON then grid_x = grid_x - 1 end
+		if right_key == _ON then grid_x = grid_x + 1 end
+		end
+		
+		if debug_grid == "resize" then
+		if up_key == _PRESS then grid_h = grid_h - 1 end
+		if down_key == _PRESS then grid_h = grid_h + 1 end
+		if left_key == _PRESS then grid_w = grid_w - 1 end
+		if right_key == _PRESS then grid_w = grid_w + 1 end
+		end
+		
+		if comma_key == _PRESS then debug_grid = "shift" end
+		if period_key == _PRESS then debug_grid = "resize" end
+		
+		grid_w = math.max(grid_w, 2)
+		grid_h = math.max(grid_h, 2)
+	end
+	
 	-- End debug keys
 	
 	end
@@ -370,9 +420,27 @@ function love.draw()
 	lg.translate(math.floor(camera_x * camera_zoom), math.floor(camera_y * camera_zoom))
 	
 	if document_w ~= 0 then
+	
+	
+	if debug_mode == "grid" then
+		lg.setColor(1,1,1,0.25)
+	
+		local xx, yy
+		
+		for xx = (grid_x % grid_w) * camera_zoom, document_w * camera_zoom, grid_w * camera_zoom do
+			lg.rectangle("fill", xx, 0, 1, document_h * camera_zoom)
+		end
+		
+		for yy = (grid_y % grid_h) * camera_zoom, document_h * camera_zoom, grid_h * camera_zoom do
+			lg.rectangle("fill", 0, yy, document_w * camera_zoom, 1)
+		end
+	
+	end
+	
 	lg.setColor(c_off_white)
 	lg.rectangle("line", 0, 0, document_w * camera_zoom, document_h * camera_zoom)
 	lg.setColor(c_white)
+	
 	end
 	
 	polygon.draw()
@@ -466,7 +534,13 @@ function love.draw()
 	-- Debug UI
 	
 	lg.setColor(1,1,1,0.6)
-	lg.print("Debug mode: " .. debug_mode, 30, screen_height - 50)
+	
+	local debug_info = ""
+	if debug_mode == "grid" then
+		debug_info = " " .. debug_grid .. " x:" .. grid_x .. " y:" .. grid_y .. " w:" .. grid_w ..  " h:" .. grid_h
+	end
+	
+	lg.print("Debug mode: " .. debug_mode .. debug_info, 30, screen_height - 50)
 	
 	-- End Debug UI
 
