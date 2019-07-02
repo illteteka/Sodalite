@@ -1,12 +1,15 @@
 local tm = {}
 
-TM_NEW_POLYGON  = 0
-TM_ADD_VERTEX   = 1
-TM_DEL_LINE     = 2
-TM_MOVE_VERTEX  = 3
-TM_CHANGE_COLOR = 4
-TM_PICK_LAYER   = 5
-TM_MOVE_LAYER   = 6
+TM_NEW_POLYGON   = 0
+TM_ADD_VERTEX    = 1
+TM_DEL_LINE      = 2
+TM_MOVE_VERTEX   = 3
+TM_CHANGE_COLOR  = 4
+TM_PICK_LAYER    = 5
+TM_MOVE_LAYER    = 6
+TM_ADD_ELLIPSE   = 7
+TM_ELLIPSE_SEG   = 8
+TM_ELLIPSE_ANGLE = 9
 
 function tm.init()
 
@@ -86,6 +89,24 @@ function tm.store(action, a, b, c, d, e)
 		elseif (action == TM_MOVE_LAYER) then
 		
 			moment.action = TM_MOVE_LAYER
+			moment.original = a
+			moment.new = b
+		
+		elseif (action == TM_ADD_ELLIPSE) then
+		
+			moment.action = TM_ADD_ELLIPSE
+			moment.segments = a
+			moment._angle = b
+		
+		elseif (action == TM_ELLIPSE_SEG) then
+		
+			moment.action = TM_ELLIPSE_SEG
+			moment.original = a
+			moment.new = b
+			
+		elseif (action == TM_ELLIPSE_ANGLE) then
+		
+			moment.action = TM_ELLIPSE_ANGLE
 			moment.original = a
 			moment.new = b
 		

@@ -3,15 +3,19 @@ local polygon = {}
 -- Init variables
 polygon.data = {}
 
+polygon.kind = "polygon"
+polygon.segments = 25
+polygon._angle = 0
+
 -- Generators
 
-function polygon.new(loc, color, use_tm)
+function polygon.new(loc, color, kind, use_tm)
 
 	local shape = {}
 	local vertices = {}
 	local line_cache = {}
 	
-	shape.kind = "polygon"
+	shape.kind = kind
 	shape.color = color or {1, 1, 1, 1}
 	shape.raw = vertices
 	shape.cache = line_cache -- Each shape holds a cache of its perimeter in the form of a list of lines
@@ -66,7 +70,10 @@ function polygon.calcVertex(x, y, loc, use_tm)
 	
 	end
 
-	if point_selected == -1 then
+	-- Stop ellipses from having more than 2 vertices
+	local ellipse_limit = polygon.data[tm.polygon_loc].kind == "ellipse" and #polygon.data[tm.polygon_loc].raw == 2
+	
+	if point_selected == -1 and not ellipse_limit then
 	
 	local line_to_purge = -1
 	
@@ -129,10 +136,19 @@ function polygon.addVertex(x, y, loc, old_line, use_tm)
 	if #copy.raw == 1 then
 		-- Time machine functions record vertex position, allows users to undo
 		tm.store(TM_ADD_VERTEX, x, y, 1)
+		
+		if copy.kind == "ellipse" then
+			copy.segments = polygon.segments
+			copy._angle = polygon._angle
+			tm.store(TM_ADD_ELLIPSE, polygon.segments, polygon._angle)
+		end
+		
 	elseif #copy.raw == 2 then
-		-- Link line 2 to line 1
-		copy.raw[1].va = 2
-		table.insert(copy.cache, {1, 2})
+		if copy.kind ~= "ellipse" then
+			-- Link line 2 to line 1
+			copy.raw[1].va = 2
+			table.insert(copy.cache, {1, 2})
+		end
 		
 		tm.store(TM_ADD_VERTEX, x, y, 2)
 	elseif #copy.raw == 3 then
@@ -192,11 +208,17 @@ function polygon.redo()
 		local move_moment = moment[#moment]
 		
 		if moment[1].action == TM_NEW_POLYGON then
-			polygon.new(tm.polygon_loc, moment[1].color, false)
+			polygon.new(tm.polygon_loc, moment[1].color, moment[1].kind, false)
 			polygon.calcVertex(moment[2].x, moment[2].y, tm.polygon_loc, false)
 			
 			local pp = polygon.data[tm.polygon_loc].raw[move_moment.index]
 			pp.x, pp.y = move_moment.x, move_moment.y
+			
+			if moment[1].kind == "ellipse" then
+				polygon.data[tm.polygon_loc].segments = moment[3].segments
+				polygon.data[tm.polygon_loc]._angle = moment[3]._angle
+			end
+			
 		elseif moment[1].action == TM_ADD_VERTEX then
 			polygon.calcVertex(moment[1].x, moment[1].y, tm.polygon_loc, false)
 			
@@ -230,6 +252,14 @@ function polygon.redo()
 		
 			ui.moveLayer(moment[1].original, moment[1].new)
 		
+		elseif moment[1].action == TM_ELLIPSE_SEG then
+		
+			polygon.data[tm.polygon_loc].segments = moment[1].new
+			
+		elseif moment[1].action == TM_ELLIPSE_ANGLE then
+		
+			polygon.data[tm.polygon_loc]._angle = moment[1].new
+			
 		end
 	
 	end
@@ -308,6 +338,14 @@ function polygon.undo()
 		
 			ui.moveLayer(moment[1].new, moment[1].original)
 		
+		elseif moment[1].action == TM_ELLIPSE_SEG then
+		
+			polygon.data[tm.polygon_loc].segments = moment[1].original
+			
+		elseif moment[1].action == TM_ELLIPSE_ANGLE then
+		
+			polygon.data[tm.polygon_loc]._angle = moment[1].original
+			
 		end
 		
 		tm.cursor = tm.cursor - 1
@@ -317,6 +355,22 @@ function polygon.undo()
 	
 	return repeat_undo
 
+end
+
+function polygon.lengthdir_x(length, dir)
+	return length * math.cos(dir)
+end
+
+function polygon.lengthdir_y(length, dir)
+	return -length * math.sin(dir)
+end
+
+function polygon.rotateX(x, y, px, py, c, s)
+	return (c * (x - px) + s * (y - py) + px)
+end
+
+function polygon.rotateY(x, y, px, py, c, s)
+	return (s * (x - px) - c * (y - py) + py)
 end
 
 function polygon.draw()
@@ -347,6 +401,62 @@ function polygon.draw()
 					end
 					
 					j = j + 1
+				
+				end
+			
+			elseif clone.kind == "ellipse" then
+			
+				local sc = camera_zoom
+				if #clone.raw > 1 then
+				
+					-- Load points from raw
+					local aa, bb = clone.raw[1], clone.raw[2]
+					local cx, cy, cw, ch
+					
+					-- Calculate w/h
+					cw = math.abs(aa.x - bb.x) / 2
+					ch = math.abs(aa.y - bb.y) / 2
+					
+					-- Make x/y the points closest to the north west
+					if bb.x < aa.x then cx = bb.x else cx = aa.x end
+					if bb.y < aa.y then cy = bb.y else cy = aa.y end
+					
+					cx = cx + cw
+					cy = cy + ch
+					
+					local cseg, cang = clone.segments, clone._angle
+					
+					-- Ellipse vars
+					local v, i = 0, 0
+					local cinc = (360 / cseg)
+					local _rad, _cos, _sin = math.rad, math.cos, math.sin
+					
+					while i < cseg do
+		
+						local cx2, cy2, cx3, cy3, cxx2, cyy2, cxx3, cyy3
+						cx2 = polygon.lengthdir_x(cw, _rad(v))
+						cy2 = polygon.lengthdir_y(ch, _rad(v))
+						cx3 = polygon.lengthdir_x(cw, _rad(v + cinc))
+						cy3 = polygon.lengthdir_y(ch, _rad(v + cinc))
+						
+						if (cang % 360 ~= 0) then
+							local cang2 = _rad(-cang)
+							local cc, ss = _cos(cang2), _sin(cang2)
+							cxx2 = polygon.rotateX(cx2, cy2, 0, 0, cc, ss)
+							cyy2 = polygon.rotateY(cx2, cy2, 0, 0, cc, ss)
+							cxx3 = polygon.rotateX(cx3, cy3, 0, 0, cc, ss)
+							cyy3 = polygon.rotateY(cx3, cy3, 0, 0, cc, ss)
+						else -- Do less math if not rotating
+							cxx2, cyy2, cxx3, cyy3 = cx2, cy2, cx3, cy3
+						end
+						
+						lg.polygon("fill", cx * sc, cy * sc, (cx + cxx2) * sc, (cy + cyy2) * sc, (cx + cxx3) * sc, (cy + cyy3) * sc)
+						--lg.line(cx + cxx2, cy + cyy2, cx + cxx3, cy + cyy3) -- Draw outline
+						
+						v = v + cinc
+						i = i + 1
+					
+					end
 				
 				end
 			

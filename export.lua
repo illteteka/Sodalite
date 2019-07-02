@@ -44,6 +44,14 @@ function export.saveLOL()
 						file:write("," .. raw_copy.vb)
 					end
 					
+					if clone.segments ~= nil and j == 1 then
+						file:write("," .. clone.segments)
+					end
+					
+					if clone._angle ~= nil and j == 1 then
+						file:write("," .. clone._angle)
+					end
+					
 					if i == #ui.layer and j == #clone.raw then
 						file:write(";")
 					elseif j == #clone.raw then

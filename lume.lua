@@ -65,14 +65,6 @@ local iteratee = function(x)
   return function(z) return z[x] end
 end
 
-function lume.lengthdir_x(length, dir)
-	return length * math_cos(dir)
-end
-
-function lume.lengthdir_y(length, dir)
-	return -length * math_sin(dir)
-end
-
 function lume.clamp(x, min, max)
   return x < min and min or (x > max and max or x)
 end

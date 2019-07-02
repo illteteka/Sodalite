@@ -275,7 +275,7 @@ function love.update(dt)
 		-- Create a new shape if one doesn't exist
 		if polygon.data[tm.polygon_loc] == nil then
 			local new_col = {palette.active[1], palette.active[2], palette.active[3], palette.active[4]}
-			polygon.new(tm.polygon_loc, new_col, true)
+			polygon.new(tm.polygon_loc, new_col, polygon.kind, true)
 		end
 		
 		if debug_mode ~= "grid" then
@@ -364,8 +364,8 @@ function love.update(dt)
 	
 	-- Debug keys
 	
-	if t_key == _PRESS then debug_mode = "triangle" end
-	if y_key == _PRESS and input.ctrlCombo(y_key) == false then debug_mode = "circle" end
+	if t_key == _PRESS then debug_mode = "polygon" end
+	if y_key == _PRESS and input.ctrlCombo(y_key) == false then debug_mode = "ellipse" end
 	if u_key == _PRESS then debug_mode = "line" end
 	if i_key == _PRESS then debug_mode = "mirror" end
 	if o_key == _PRESS then debug_mode = "grid" end
@@ -401,6 +401,26 @@ function love.update(dt)
 		
 		grid_w = math.max(grid_w, 2)
 		grid_h = math.max(grid_h, 2)
+	end
+	
+	if debug_mode == "ellipse" then
+	
+		if polygon.data[1] ~= nil and polygon.data[tm.polygon_loc] ~= nil and polygon.data[tm.polygon_loc].kind == "ellipse" then
+			local myshape = polygon.data[tm.polygon_loc]
+			local old_seg = myshape.segments
+			if up_key == _PRESS then myshape.segments = myshape.segments + 1   myshape.segments = math.max(myshape.segments, 3) tm.store(TM_ELLIPSE_SEG, old_seg, myshape.segments) tm.step() end
+			if down_key == _PRESS then myshape.segments = myshape.segments - 1 myshape.segments = math.max(myshape.segments, 3) tm.store(TM_ELLIPSE_SEG, old_seg, myshape.segments) tm.step() end
+			if left_key == _PRESS then myshape._angle = myshape._angle - 1     tm.store(TM_ELLIPSE_ANGLE, myshape._angle + 1,   myshape._angle) tm.step() end
+			if right_key == _PRESS then myshape._angle = myshape._angle + 1    tm.store(TM_ELLIPSE_ANGLE, myshape._angle - 1,   myshape._angle) tm.step() end
+		else
+			if up_key == _PRESS then polygon.segments = polygon.segments + 1 end
+			if down_key == _PRESS then polygon.segments = polygon.segments - 1 end
+			if left_key == _PRESS then polygon._angle = polygon._angle - 1 end
+			if right_key == _PRESS then polygon._angle = polygon._angle + 1 end
+			
+			polygon.segments = math.max(polygon.segments, 3)
+		end
+	
 	end
 	
 	-- End debug keys
@@ -538,6 +558,14 @@ function love.draw()
 	local debug_info = ""
 	if debug_mode == "grid" then
 		debug_info = " " .. debug_grid .. " x:" .. grid_x .. " y:" .. grid_y .. " w:" .. grid_w ..  " h:" .. grid_h
+	end
+	
+	if debug_mode == "polygon" then
+		polygon.kind = "polygon"
+	end
+	
+	if debug_mode == "ellipse" then
+		polygon.kind = "ellipse"
 	end
 	
 	lg.print("Debug mode: " .. debug_mode .. debug_info, 30, screen_height - 50)
