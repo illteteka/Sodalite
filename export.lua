@@ -4,7 +4,12 @@ function export.saveLOL()
 
 	if polygon.data[ui.layer[1].count] ~= nil then
 	
-		file = io.open(document_name .. ".lol", "w")
+		local prefix = ""
+		if love ~= nil then
+			prefix = love.filesystem.getSourceBaseDirectory() .. "/"
+		end
+	
+		file = io.open(prefix .. document_name .. ".lol", "w")
 		file:write("Magma v1.0\n")
 		file:write(document_w .. "," .. document_h .. ";\n")
 		
