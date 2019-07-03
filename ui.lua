@@ -859,12 +859,13 @@ function ui.update(dt)
 				-- OK button
 				ui.popupLoseFocus(ui.popup[1][1].kind)
 				document_name = ui.popup[2][2].name
-				document_w = ui.popup[3][2].name
-				document_h = ui.popup[4][2].name
+				document_w = tonumber(ui.popup[3][2].name)
+				document_h = tonumber(ui.popup[4][2].name)
 				
 				camera_zoom = 1
 				resetCamera()
 				
+				artboard.init()
 				tm.init()
 				polygon.data = {}
 				ui.layer = {}
@@ -941,12 +942,13 @@ function ui.update(dt)
 							elseif kind == "ok" and ui.popup[1][1].kind == "f.new" then -- OK button for f.new (new document)
 								ui.popupLoseFocus(ui.popup[1][1].kind)
 								document_name = ui.popup[2][2].name
-								document_w = ui.popup[3][2].name
-								document_h = ui.popup[4][2].name
+								document_w = tonumber(ui.popup[3][2].name)
+								document_h = tonumber(ui.popup[4][2].name)
 								
 								camera_zoom = 1
 								resetCamera()
 								
+								artboard.init()
 								tm.init()
 								polygon.data = {}
 								ui.layer = {}

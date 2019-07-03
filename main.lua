@@ -6,6 +6,7 @@ tm = require "timemachine"
 lume = require "lume"
 import = require "import"
 export = require "export"
+artboard = require "artboard"
 
 lg = love.graphics
 screen_width = 1280
@@ -36,6 +37,7 @@ o_key = _OFF
 i_key = _OFF
 u_key = _OFF
 t_key = _OFF
+r_key = _OFF
 space_key = _OFF
 tab_key = _OFF
 enter_key = _OFF
@@ -64,6 +66,11 @@ grid_y = 0
 grid_w = 32
 grid_h = 32
 debug_grid = "resize"
+
+mouse_x = -1
+mouse_y = -1
+mouse_x_previous = -1
+mouse_y_previous = -1
 
 function updateCamera(w, h, zo, zn)
 
@@ -167,7 +174,9 @@ end
 
 function love.update(dt)
 
+	mouse_x_previous, mouse_y_previous = mouse_x, mouse_y
 	local mx, my = math.floor(love.mouse.getX() / camera_zoom), math.floor(love.mouse.getY() / camera_zoom)
+	mouse_x, mouse_y = mx, my
 
 	-- Update input
 	input.update(dt)
@@ -177,6 +186,7 @@ function love.update(dt)
 	i_key = input.pullSwitch(love.keyboard.isDown("i"), i_key) --*
 	o_key = input.pullSwitch(love.keyboard.isDown("o"), o_key) --*
 	p_key = input.pullSwitch(love.keyboard.isDown("p"), p_key) --*
+	r_key = input.pullSwitch(love.keyboard.isDown("r"), r_key) --*
 	s_key = input.pullSwitch(love.keyboard.isDown("s"), s_key)
 	t_key = input.pullSwitch(love.keyboard.isDown("t"), t_key) --*
 	u_key = input.pullSwitch(love.keyboard.isDown("u"), u_key) --*
@@ -254,84 +264,102 @@ function love.update(dt)
 	
 	if ui_active == false and document_w ~= 0 then
 	
-	if polygon.data[tm.polygon_loc] ~= nil and input.ctrlCombo(a_key) then
+	if artboard.active == false then
 	
-		--[[
-		local i
-		for i = 1, #polygon.data[tm.polygon_loc].raw do
+		if polygon.data[tm.polygon_loc] ~= nil and input.ctrlCombo(a_key) then
 		
-			local moved_point = {}
-			moved_point.index = i
-			moved_point.x = polygon.data[tm.polygon_loc].raw[i].x
-			moved_point.y = polygon.data[tm.polygon_loc].raw[i].y
-			table.insert(vertex_selection, moved_point)
+			--[[
+			local i
+			for i = 1, #polygon.data[tm.polygon_loc].raw do
+			
+				local moved_point = {}
+				moved_point.index = i
+				moved_point.x = polygon.data[tm.polygon_loc].raw[i].x
+				moved_point.y = polygon.data[tm.polygon_loc].raw[i].y
+				table.insert(vertex_selection, moved_point)
+			
+			end--]]
 		
-		end--]]
-	
-	end
-	
-	if mouse_switch == _PRESS then
-	
-		-- Create a new shape if one doesn't exist
-		if polygon.data[tm.polygon_loc] == nil then
-			local new_col = {palette.active[1], palette.active[2], palette.active[3], palette.active[4]}
-			polygon.new(tm.polygon_loc, new_col, polygon.kind, true)
 		end
 		
-		if debug_mode ~= "grid" then
-			selection_mouse_x = mx - math.floor(camera_x)
-			selection_mouse_y = my - math.floor(camera_y)
-		else
-			selection_mouse_x = ((math.floor((mx - camera_x) / grid_w) * grid_w) + (grid_x % grid_w))
-			selection_mouse_y = ((math.floor((my - camera_y) / grid_h) * grid_h) + (grid_y % grid_h))
-		end
+		if mouse_switch == _PRESS then
 		
-		-- Test if we are placing a vertex or moving a vertex
-		if vertex_selection[1] == nil then -- If selection is empty
-		polygon.calcVertex(selection_mouse_x, selection_mouse_y, tm.polygon_loc, true)
-		end
-	
-	end
-	
-	if mouse_switch == _ON then
-	
-		-- If a point is selected, have it follow the mouse
-		local i
-		for i = 1, #vertex_selection do
-		
-			local cx, cy
+			-- Create a new shape if one doesn't exist
+			if polygon.data[tm.polygon_loc] == nil then
+				local new_col = {palette.active[1], palette.active[2], palette.active[3], palette.active[4]}
+				polygon.new(tm.polygon_loc, new_col, polygon.kind, true)
+			end
+			
 			if debug_mode ~= "grid" then
-				cx = mx
-				cy = my
+				selection_mouse_x = mx - math.floor(camera_x)
+				selection_mouse_y = my - math.floor(camera_y)
 			else
-				cx = ((math.floor((mx - camera_x) / grid_w) * grid_w) + (grid_x % grid_w) + math.floor(camera_x))
-				cy = ((math.floor((my - camera_y) / grid_h) * grid_h) + (grid_y % grid_h) + math.floor(camera_y))
+				selection_mouse_x = ((math.floor((mx - camera_x) / grid_w) * grid_w) + (grid_x % grid_w))
+				selection_mouse_y = ((math.floor((my - camera_y) / grid_h) * grid_h) + (grid_y % grid_h))
+			end
+			
+			-- Test if we are placing a vertex or moving a vertex
+			if vertex_selection[1] == nil then -- If selection is empty
+			polygon.calcVertex(selection_mouse_x, selection_mouse_y, tm.polygon_loc, true)
 			end
 		
-			-- Move verices by offset of selection_mouse_*
-			local pp = polygon.data[tm.polygon_loc].raw[vertex_selection[i].index]
-			pp.x, pp.y = vertex_selection[i].x + (cx - selection_mouse_x - math.floor(camera_x)), vertex_selection[i].y + (cy - selection_mouse_y - math.floor(camera_y))
-		
-		end
-	
-	end
-	
-	if mouse_switch == _RELEASE then
-	
-		-- If a point was selected, add TM_MOVE_VERTEX to time machine
-		local i
-		for i = 1, #vertex_selection do
-		
-			local pp = polygon.data[tm.polygon_loc].raw[vertex_selection[i].index]
-			tm.store(TM_MOVE_VERTEX, vertex_selection[i].index, pp.x, pp.y, vertex_selection[i].x, vertex_selection[i].y)
-		
 		end
 		
-		if #vertex_selection ~= 0 then
-			tm.step()
+		if mouse_switch == _ON then
+		
+			-- If a point is selected, have it follow the mouse
+			local i
+			for i = 1, #vertex_selection do
+			
+				local cx, cy
+				if debug_mode ~= "grid" then
+					cx = mx
+					cy = my
+				else
+					cx = ((math.floor((mx - camera_x) / grid_w) * grid_w) + (grid_x % grid_w) + math.floor(camera_x))
+					cy = ((math.floor((my - camera_y) / grid_h) * grid_h) + (grid_y % grid_h) + math.floor(camera_y))
+				end
+			
+				-- Move verices by offset of selection_mouse_*
+				local pp = polygon.data[tm.polygon_loc].raw[vertex_selection[i].index]
+				pp.x, pp.y = vertex_selection[i].x + (cx - selection_mouse_x - math.floor(camera_x)), vertex_selection[i].y + (cy - selection_mouse_y - math.floor(camera_y))
+			
+			end
+		
 		end
+		
+		if mouse_switch == _RELEASE then
+		
+			-- If a point was selected, add TM_MOVE_VERTEX to time machine
+			local i
+			for i = 1, #vertex_selection do
+			
+				local pp = polygon.data[tm.polygon_loc].raw[vertex_selection[i].index]
+				tm.store(TM_MOVE_VERTEX, vertex_selection[i].index, pp.x, pp.y, vertex_selection[i].x, vertex_selection[i].y)
+			
+			end
+			
+			if #vertex_selection ~= 0 then
+				tm.step()
+			end
+		
+			vertex_selection = {}
+		end
+		
+	else
 	
-		vertex_selection = {}
+		if mouse_switch == _ON then
+			if artboard.visible and artboard.canvas ~= nil then
+				artboard.add(mx - math.floor(camera_x), my - math.floor(camera_y), mouse_x_previous - math.floor(camera_x), mouse_y_previous - math.floor(camera_y))
+			end
+		end
+		
+		if rmb_switch == _ON then
+			if artboard.visible and artboard.canvas ~= nil then
+				artboard.add(mx - math.floor(camera_x), my - math.floor(camera_y), mouse_x_previous - math.floor(camera_x), mouse_y_previous - math.floor(camera_y), true)
+			end
+		end
+		
 	end
 	
 	if mouse_switch == _OFF then
@@ -364,12 +392,28 @@ function love.update(dt)
 	
 	-- Debug keys
 	
+	if r_key == _PRESS then debug_mode = "artboard" end
 	if t_key == _PRESS then debug_mode = "polygon" end
 	if y_key == _PRESS and input.ctrlCombo(y_key) == false then debug_mode = "ellipse" end
 	if u_key == _PRESS then debug_mode = "line" end
 	if i_key == _PRESS then debug_mode = "mirror" end
 	if o_key == _PRESS then debug_mode = "grid" end
 	if p_key == _PRESS then debug_mode = "zoom" end
+	
+	if debug_mode == "artboard" then
+	
+		if up_key == _PRESS then artboard.active = not artboard.active end
+		if down_key == _PRESS then artboard.visible = not artboard.visible end
+		if left_key == _PRESS then artboard.draw_top = not artboard.draw_top end
+		if right_key == _PRESS then artboard.transparent = not artboard.transparent end
+		
+		if c_key == _PRESS then
+			lg.setCanvas(artboard.canvas)
+			lg.clear()
+			lg.setCanvas()
+		end
+	
+	end
 	
 	if debug_mode == "zoom" then
 		if up_key == _ON then
@@ -441,25 +485,34 @@ function love.draw()
 	
 	if document_w ~= 0 then
 	
-	
-	if debug_mode == "grid" then
-		lg.setColor(1,1,1,0.25)
-	
-		local xx, yy
-		
-		for xx = (grid_x % grid_w) * camera_zoom, document_w * camera_zoom, grid_w * camera_zoom do
-			lg.rectangle("fill", xx, 0, 1, document_h * camera_zoom)
-		end
-		
-		for yy = (grid_y % grid_h) * camera_zoom, document_h * camera_zoom, grid_h * camera_zoom do
-			lg.rectangle("fill", 0, yy, document_w * camera_zoom, 1)
+		if artboard.draw_top and artboard.visible and artboard.canvas ~= nil then
+			local artcol = c_white
+			if artboard.transparent then
+				artcol = {1, 1, 1, 0.5}
+			end
+			
+			lg.setColor(artcol)
+			lg.draw(artboard.canvas, 0, 0, 0, camera_zoom)
 		end
 	
-	end
-	
-	lg.setColor(c_off_white)
-	lg.rectangle("line", 0, 0, document_w * camera_zoom, document_h * camera_zoom)
-	lg.setColor(c_white)
+		if debug_mode == "grid" then
+			lg.setColor(1,1,1,0.25)
+		
+			local xx, yy
+			
+			for xx = (grid_x % grid_w) * camera_zoom, document_w * camera_zoom, grid_w * camera_zoom do
+				lg.rectangle("fill", xx, 0, 1, document_h * camera_zoom)
+			end
+			
+			for yy = (grid_y % grid_h) * camera_zoom, document_h * camera_zoom, grid_h * camera_zoom do
+				lg.rectangle("fill", 0, yy, document_w * camera_zoom, 1)
+			end
+		
+		end
+		
+		lg.setColor(c_off_white)
+		lg.rectangle("line", 0, 0, document_w * camera_zoom, document_h * camera_zoom)
+		lg.setColor(c_white)
 	
 	end
 	
@@ -537,7 +590,7 @@ function love.draw()
 			local tx, ty = clone.raw[j].x, clone.raw[j].y
 			local sc = camera_zoom
 			
-			if #clone.raw < 3 or (lume.distance(mx - math.floor(camera_x), my - math.floor(camera_y), tx, ty) < vertex_radius) then
+			if (#clone.raw < 3 and clone.kind == "polygon") or (lume.distance(mx - math.floor(camera_x), my - math.floor(camera_y), tx, ty) < vertex_radius) then
 				lg.draw(spr_vertex, math.floor(tx * sc) - 5, math.floor(ty * sc) - 5)
 			end
 			
@@ -547,6 +600,16 @@ function love.draw()
 		
 	end
 	
+	if not artboard.draw_top and artboard.visible and artboard.canvas ~= nil then
+		local artcol = c_white
+		if artboard.transparent then
+			artcol = {1, 1, 1, 0.5}
+		end
+		
+		lg.setColor(artcol)
+		lg.draw(artboard.canvas, 0, 0, 0, camera_zoom)
+	end
+	
 	lg.pop()
 	
 	ui.draw()
@@ -554,8 +617,29 @@ function love.draw()
 	-- Debug UI
 	
 	lg.setColor(1,1,1,0.6)
-	
 	local debug_info = ""
+	
+	if debug_mode == "artboard" then
+		local av = "false"
+		if artboard.visible then av = "true" end
+		
+		local aa = "false"
+		if artboard.active then aa = "true" end
+		
+		local at = "bottom"
+		if artboard.draw_top then at = "top" end
+		
+		local ar = "no"
+		if artboard.transparent then ar = "yes" end
+		
+		debug_info = " visible:" .. av .. ", drawable:" .. aa .. ", position: " .. at .. ", transparent: " .. ar
+	end
+	
+	if debug_mode == "line" or debug_mode == "mirror" then
+		lg.setColor(1,0,0,0.6)
+		debug_info = " not implemented"
+	end
+	
 	if debug_mode == "grid" then
 		debug_info = " " .. debug_grid .. " x:" .. grid_x .. " y:" .. grid_y .. " w:" .. grid_w ..  " h:" .. grid_h
 	end

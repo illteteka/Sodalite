@@ -38,6 +38,7 @@ function import.open(file)
 		ui.layer = {}
 		
 		import.read(file_contents)
+		artboard.init()
 		
 		camera_zoom = 1
 		resetCamera()
@@ -63,7 +64,7 @@ function import.read(file)
 			if file_state == "SETUP" then
 				-- Width
 				local sub_cursor = string.find(i, ",")
-				document_w = i:sub(cursor, sub_cursor - 1)
+				document_w = tonumber(i:sub(cursor, sub_cursor - 1))
 				
 				-- Height
 				cursor = sub_cursor + 1

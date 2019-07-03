@@ -6,6 +6,7 @@ _PRESS = 2
 _RELEASE = 3
 
 mouse_switch = _OFF
+rmb_switch = _OFF
 
 function input.printSwitch(x)
 	if x == _OFF then
@@ -66,6 +67,7 @@ end
 function input.update(dt)
 
 	mouse_switch = input.pullSwitch(love.mouse.isDown(1), mouse_switch)
+	rmb_switch   = input.pullSwitch(love.mouse.isDown(2), rmb_switch)
 
 end
 
