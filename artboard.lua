@@ -8,10 +8,41 @@ artboard.active = false
 artboard.draw_top = false
 artboard.transparent = false
 
+artboard.step_location = 0
+artboard.length = 0
+
+function recursivelyDelete( item )
+	if love.filesystem.getInfo( item , "directory" ) then
+		for _, child in pairs( love.filesystem.getDirectoryItems( item )) do
+			recursivelyDelete( item .. '/' .. child )
+			love.filesystem.remove( item .. '/' .. child )
+		end
+	elseif love.filesystem.getInfo( item ) then
+		love.filesystem.remove( item )
+	end
+	love.filesystem.remove( item )
+end
+
 function artboard.init()
 
+	-- Clear undo cache
+	if love.filesystem.getInfo("cache") == nil then
+		love.filesystem.createDirectory("cache")
+	else
+		recursivelyDelete("cache")
+		love.filesystem.createDirectory("cache")
+	end
+	
+	artboard.step_location = 0
+	artboard.length = 0
+
 	-- Reset canvas and collect garbage
+	if artboard.canvas ~= nil then
+		artboard.canvas:release()
+	end
+	
 	artboard.canvas = nil
+	collectgarbage()
 	collectgarbage()
 
 	-- Make the w/h a power of 2
@@ -32,7 +63,18 @@ function artboard.init()
 
 end
 
-function artboard.save()
+function artboard.saveCache()
+
+	if love.filesystem.getInfo("cache") == nil then
+		love.filesystem.createDirectory("cache")
+	end
+
+	artboard.step_location = artboard.step_location + 1
+	artboard.length = artboard.length + 1
+	
+	local save_state = artboard.canvas:newImageData() 
+	save_state:encode("png", "cache/art_" .. artboard.step_location .. ".png")
+	save_state = nil
 
 end
 

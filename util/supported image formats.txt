@@ -1,0 +1,12 @@
+supported file import
+bmp yes
+jpg yes
+jpe yes
+jpeg yes
+png yes
+tga yes
+
+unsupported file import
+monochrome bitmap
+gif
+tiff

@@ -10,16 +10,23 @@ file_pos = 0
 function import.open(file)
 	
 	local fname = file:getFilename()
-	local file_ext = fname:sub(fname:len() - FILE_EXTENSION:len() + 1)
+	local file_dot = string.find(fname,"%.")
+	local file_ext = ""
 	
-	local dname = fname
-	dname = dname:sub(0, dname:len() - FILE_EXTENSION:len() - 1)
-	while (string.find(dname,"\\")) do
-		local sl = string.find(dname,"\\")
-		dname = dname:sub(sl + 1)
+	if file_dot ~= nil then
+	
+		file_ext = fname:sub(file_dot + 1)
+		
+		local dname = fname
+		dname = dname:sub(0, dname:len() - file_ext:len() - 1)
+		while (string.find(dname,"\\")) do
+			local sl = string.find(dname,"\\")
+			dname = dname:sub(sl + 1)
+		end
+		
+		document_name = dname
+	
 	end
-	
-	document_name = dname
 	
 	if (file_ext == FILE_EXTENSION) then
 		local file_contents = file:read("string")

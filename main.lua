@@ -169,7 +169,49 @@ function love.keypressed(x)
 end
 
 function love.filedropped(file)
-	import.open(file)
+
+	local fname = file:getFilename()
+	local file_dot = string.find(fname,"%.")
+	
+	if (file_dot ~= nil) then
+	
+		local file_ext = fname:sub(file_dot + 1)
+		local supported_images = (file_ext == "bmp") or (file_ext == "jpg") or (file_ext == "jpe") or (file_ext == "jpeg") or (file_ext == "png") or (file_ext == "tga")
+		
+		if (file_ext == FILE_EXTENSION) then
+			import.open(file)
+		elseif (document_w ~= 0) and (supported_images) then
+			
+			-- Load image dragged on window
+			local fload = io.open(fname, "rb")
+			local nfd, err = love.filesystem.newFileData(fload:read("*a"), "")
+			local test_load_image = nil
+			
+			-- Image is nil if the image is corrupt/unsupported
+			pcall(function() test_load_image = lg.newImage(nfd) end)
+
+			fload:close()
+			
+			-- Draw imported image to canvas
+			if (test_load_image ~= nil) then
+				lg.setCanvas(artboard.canvas)
+				lg.clear()
+				lg.draw(test_load_image, 0, 0) -- Drawing it once has alpha of 153????
+				lg.draw(test_load_image, 0, 0)
+				lg.draw(test_load_image, 0, 0)
+				lg.draw(test_load_image, 0, 0)
+				lg.setCanvas()
+				
+				artboard.saveCache()
+				
+				-- Delete image from memory
+				test_load_image:release()
+				test_load_image = nil
+			end
+			
+		end
+	
+	end
 end
 
 function love.update(dt)
@@ -360,6 +402,10 @@ function love.update(dt)
 			end
 		end
 		
+		if mouse_switch == _RELEASE or rmb_switch == _RELEASE then
+			artboard.saveCache()
+		end
+		
 	end
 	
 	if mouse_switch == _OFF then
@@ -411,6 +457,8 @@ function love.update(dt)
 			lg.setCanvas(artboard.canvas)
 			lg.clear()
 			lg.setCanvas()
+			
+			artboard.saveCache()
 		end
 	
 	end
@@ -656,6 +704,10 @@ function love.draw()
 	
 	-- End Debug UI
 
+end
+
+function love.quit()
+	recursivelyDelete("cache")
 end
 
 function print_r ( t )
