@@ -17,6 +17,9 @@ c_highlight_active = {151/255, 97/255, 227/255, 1}
 c_highlight_inactive = {155/255, 173/255, 195/255, 1}
 c_layer_box = {107/255, 62/255, 66/255, 1}
 
+c_art_box = {224/255, 195/255, 229/255, 1}
+c_art_inactive = {202/255, 167/255, 208/255, 1}
+
 palette.w = 12
 palette.h = 6
 

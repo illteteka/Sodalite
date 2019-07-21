@@ -63,14 +63,57 @@ function artboard.init()
 
 end
 
+function artboard.loadFile(fname, save)
+
+	-- Load image dragged on window
+	local fload = io.open(fname, "rb")
+	local nfd, err = love.filesystem.newFileData(fload:read("*a"), "")
+	local test_load_image = nil
+	
+	-- Image is nil if the image is corrupt/unsupported
+	pcall(function() test_load_image = lg.newImage(nfd) end)
+
+	fload:close()
+	
+	-- Draw imported image to canvas
+	if (test_load_image ~= nil) then
+		lg.setCanvas(artboard.canvas)
+		lg.clear()
+		lg.draw(test_load_image, 0, 0) -- Drawing it once has alpha of 153????
+		lg.draw(test_load_image, 0, 0)
+		lg.draw(test_load_image, 0, 0)
+		lg.draw(test_load_image, 0, 0)
+		lg.draw(test_load_image, 0, 0)
+		lg.draw(test_load_image, 0, 0)
+		lg.draw(test_load_image, 0, 0)
+		lg.draw(test_load_image, 0, 0)
+		lg.setCanvas()
+		
+		if save then
+			artboard.saveCache()
+		end
+		
+		-- Delete image from memory
+		test_load_image:release()
+		test_load_image = nil
+	end
+
+end
+
 function artboard.saveCache()
 
 	if love.filesystem.getInfo("cache") == nil then
 		love.filesystem.createDirectory("cache")
 	end
 
-	artboard.step_location = artboard.step_location + 1
-	artboard.length = artboard.length + 1
+	if artboard.step_location == artboard.length then
+		artboard.step_location = artboard.step_location + 1
+		artboard.length = artboard.length + 1
+	else
+		print(artboard.step_location, artboard.length)
+		artboard.step_location = artboard.step_location + 1
+		artboard.length = artboard.step_location
+	end
 	
 	local save_state = artboard.canvas:newImageData() 
 	save_state:encode("png", "cache/art_" .. artboard.step_location .. ".png")
@@ -106,6 +149,28 @@ function artboard.add(x, y, a, b, erase)
 	if erase then lg.setBlendMode("alpha") end
 	
 	lg.setCanvas()
+
+end
+
+function artboard.undo()
+
+	artboard.step_location = artboard.step_location - 1
+	
+	if artboard.step_location <= 0 then
+		lg.setCanvas(artboard.canvas)
+		lg.clear()
+		lg.setCanvas()
+		
+		artboard.step_location = 0
+	else
+	
+		local ab_path = "cache/art_" .. artboard.step_location .. ".png"
+		
+		if love.filesystem.getInfo(ab_path) ~= nil then
+			artboard.loadFile(love.filesystem.getSaveDirectory() .. "/" .. ab_path, false)
+		end
+	
+	end
 
 end
 

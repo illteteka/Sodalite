@@ -144,6 +144,12 @@ function love.load()
 	spr_arrow_up = lg.newImage("textures/arrow_up.png")
 	spr_arrow_down = lg.newImage("textures/arrow_down.png")
 	
+	art_grad_slider = lg.newImage("textures/art_gradient_slider.png")
+	art_slider_1 = lg.newImage("textures/art_slider_1.png")
+	art_slider_2 = lg.newImage("textures/art_slider_2.png")
+	art_slider_3 = lg.newImage("textures/art_slider_3.png")
+	art_slider_button = lg.newImage("textures/art_slider_button.png")
+	
 	icon_add = lg.newImage("textures/icon_add.png")
 	icon_trash = lg.newImage("textures/icon_trash.png")
 	icon_eye = lg.newImage("textures/icon_eye.png")
@@ -181,34 +187,7 @@ function love.filedropped(file)
 		if (file_ext == FILE_EXTENSION) then
 			import.open(file)
 		elseif (document_w ~= 0) and (supported_images) then
-			
-			-- Load image dragged on window
-			local fload = io.open(fname, "rb")
-			local nfd, err = love.filesystem.newFileData(fload:read("*a"), "")
-			local test_load_image = nil
-			
-			-- Image is nil if the image is corrupt/unsupported
-			pcall(function() test_load_image = lg.newImage(nfd) end)
-
-			fload:close()
-			
-			-- Draw imported image to canvas
-			if (test_load_image ~= nil) then
-				lg.setCanvas(artboard.canvas)
-				lg.clear()
-				lg.draw(test_load_image, 0, 0) -- Drawing it once has alpha of 153????
-				lg.draw(test_load_image, 0, 0)
-				lg.draw(test_load_image, 0, 0)
-				lg.draw(test_load_image, 0, 0)
-				lg.setCanvas()
-				
-				artboard.saveCache()
-				
-				-- Delete image from memory
-				test_load_image:release()
-				test_load_image = nil
-			end
-			
+			artboard.loadFile(fname, true)
 		end
 	
 	end
@@ -406,9 +385,17 @@ function love.update(dt)
 			artboard.saveCache()
 		end
 		
+		if mouse_switch == _OFF then
+	
+			if input.ctrlCombo(z_key) then
+				artboard.undo()
+			end
+			
+		end
+		
 	end
 	
-	if mouse_switch == _OFF then
+	if mouse_switch == _OFF and debug_mode ~= "artboard" then
 	
 		if input.ctrlCombo(z_key) then
 			vertex_selection = {}
@@ -432,6 +419,7 @@ function love.update(dt)
 		
 		if document_w ~= 0 and input.ctrlCombo(s_key) then
 			export.saveLOL()
+			export.saveSVG()
 		end
 	
 	end

@@ -427,11 +427,11 @@ function polygon.draw()
 					local cseg, cang = clone.segments, clone._angle
 					
 					-- Ellipse vars
-					local v, i = 0, 0
+					local v, k = 0, 0
 					local cinc = (360 / cseg)
 					local _rad, _cos, _sin = math.rad, math.cos, math.sin
 					
-					while i < cseg do
+					while k < cseg do
 		
 						local cx2, cy2, cx3, cy3, cxx2, cyy2, cxx3, cyy3
 						cx2 = polygon.lengthdir_x(cw, _rad(v))
@@ -454,7 +454,7 @@ function polygon.draw()
 						--lg.line(cx + cxx2, cy + cyy2, cx + cxx3, cy + cyy3) -- Draw outline
 						
 						v = v + cinc
-						i = i + 1
+						k = k + 1
 					
 					end
 				

@@ -1063,20 +1063,22 @@ function ui.drawOutlinePal(x, y, w, h, invert)
 	lg.rectangle("fill", x + gap - 1, y - 29, 1, 30)
 end
 
-function ui.drawSlider(x, y, w, pos)
-	-- w - 11
-	lg.setColor(c_white)
-	lg.draw(spr_slider_1, x, y + 9)
-	lg.draw(spr_slider_2, x + 1, y + 9, 0, (w - 3)/1, 1)
-	lg.draw(spr_slider_3, x + w - 2, y + 9)
-	lg.draw(spr_slider_button, x + pos, y)
-	
-end
-
 function ui.draw()
 
+	-- Local vars for palette swapping the editor
+	local col_box, col_inactive = c_box, c_highlight_inactive
+	local tex_btn, tex_slide_1, tex_slide_2, tex_slide_3, tex_gradient = spr_slider_button, spr_slider_1, spr_slider_2, spr_slider_3, grad_slider
+	
+	if debug_mode == "artboard" then
+	
+	col_box, col_inactive = c_art_box, c_art_inactive
+	tex_btn, tex_slide_1, tex_slide_2, tex_slide_3, tex_gradient = art_slider_button, art_slider_1, art_slider_2, art_slider_3, art_grad_slider
+	
+	end
+	-- End palette swap
+
 	local mx, my = love.mouse.getX(), love.mouse.getY()
-	lg.setColor(c_box)
+	lg.setColor(col_box)
 	lg.rectangle("fill", 0, 0, screen_width, 25)
 	lg.setColor(c_white)
 	lg.draw(grad_large, 0, 1, 0, screen_width/256, 23)
@@ -1108,7 +1110,7 @@ function ui.draw()
 	local palw = (13 * psize)
 	local palx, paly = screen_width - palw + 8, 165
 	
-	lg.setColor(c_box)
+	lg.setColor(col_box)
 	lg.rectangle("fill", palx - 8, 25, palw, 300)
 	ui.drawOutline(palx - 7, 25, palw - 2, 299, false)
 	
@@ -1139,14 +1141,21 @@ function ui.draw()
 	
 		lg.setColor(c_off_white)
 		lg.rectangle("fill", ix - 5, iy + 25 + h - 1, 46, 20)
-		lg.setColor(c_highlight_inactive)
+		lg.setColor(col_inactive)
 		lg.rectangle("line", ix - 5, iy + 25 + h - 1, 46, 20)
 		lg.setColor(c_black)
 		lg.print(ui.palette[i].name, ix - font:getWidth(ui.palette[i].name) - 12, iy + 25 + h)
 		lg.print(ui.palette[i].value, ix, iy + 25 + h)
 		
 		local slide_pos = (tonumber(ui.palette[i].value) / 255) * 111
-		ui.drawSlider(ix - 147, iy + 25 + h - 1, 122, slide_pos)
+		
+		local slx, sly, slw = ix - 147, iy + 25 + h - 1, 122
+		
+		lg.setColor(c_white)
+		lg.draw(tex_slide_1, slx, sly + 9)
+		lg.draw(tex_slide_2, slx + 1, sly + 9, 0, (slw - 3)/1, 1)
+		lg.draw(tex_slide_3, slx + slw - 2, sly + 9)
+		lg.draw(tex_btn, slx + slide_pos, sly)
 		
 		h = h + 28
 	
@@ -1197,7 +1206,7 @@ function ui.draw()
 	local layh = screen_height - 376
 	
 	-- Fill area
-	lg.setColor(c_box)
+	lg.setColor(col_box)
 	lg.rectangle("fill", layx, layy, 208, screen_height - layy)
 	
 	ui.drawOutline(layx + 1, layy + 10, layw + 16, 30)
@@ -1231,7 +1240,7 @@ function ui.draw()
 		for i = layer_amt, 1, -1 do
 			local yy = 40 + ((layer_amt - i) * 25)
 			
-			local box_color = c_highlight_inactive
+			local box_color = col_inactive
 			
 			if ui.layer[i].count == tm.polygon_loc then
 				lg.setColor(c_highlight_active)
@@ -1277,7 +1286,7 @@ function ui.draw()
 		
 		local l_alpha = 0.1
 		local yy = 40 + ((layer_amt - ui.lyr_clicked) * 25)
-		local box_color = {c_highlight_inactive[1], c_highlight_inactive[2], c_highlight_inactive[3], l_alpha}
+		local box_color = {col_inactive[1], col_inactive[2], col_inactive[3], l_alpha}
 		
 		local sel_x, sel_y = 0, my - layy - yy
 		lg.translate(sel_x, sel_y)
@@ -1369,12 +1378,12 @@ function ui.draw()
 	ui.drawOutline(screen_width - 16, screen_height - 24, 15, 14, true)
 	
 	lg.setColor(c_white)
-	lg.draw(grad_slider, screen_width - 16, layy + 41 + 14, 0, 1, layh - 28)
+	lg.draw(tex_gradient,   screen_width - 16, layy + 41 + 14, 0, 1, layh - 28)
 	lg.draw(spr_arrow_up,   screen_width - 12, layy + 41 + 4)
 	lg.draw(spr_arrow_down, screen_width - 12, screen_height - 24 + 4)
 	
 	-- Scroll button
-	lg.setColor(c_box)
+	lg.setColor(col_box)
 	local scroll_len = screen_height - 38 - (layy + 41 + 14)
 	lg.rectangle("fill", screen_width - 16, layy + 41 + 14 + math.floor(scroll_len * ui.lyr_scroll_percent), 15, 14)
 	ui.drawOutline(screen_width - 16, layy + 41 + 14 + math.floor(scroll_len * ui.lyr_scroll_percent), 15, 14, true)
@@ -1398,7 +1407,7 @@ function ui.draw()
 	
 		local px, py, pw, ph, pxo = ui.popup_x, ui.popup_y, ui.popup_w, ui.popup_h, ui.popup_x_offset
 	
-		lg.setColor(c_box)
+		lg.setColor(col_box)
 		lg.rectangle("fill", px, py, pw, ph)
 		lg.setColor(c_white)
 		lg.draw(grad_active, px, py + 1, 0, pw/256, 23)
@@ -1418,7 +1427,7 @@ function ui.draw()
 				local name = ui.popup[i][j].name
 				local kind = ui.popup[i][j].kind
 				
-				local col = c_highlight_inactive
+				local col = col_inactive
 				local this_selected = (i == ui.popup_sel_a and j == ui.popup_sel_b)
 				if this_selected then
 					col = c_highlight_active
@@ -1473,7 +1482,7 @@ function ui.draw()
 	-- Draw context menu
 	if ui.context_menu[1] ~= nil then
 	
-		lg.setColor(c_box)
+		lg.setColor(col_box)
 		lg.rectangle("fill", ui.context_x, ui.context_y, ui.context_w, ui.context_h)
 		
 		ui.drawOutline(ui.context_x + 1, ui.context_y + 1, ui.context_w - 2, ui.context_h - 2, false)
@@ -1491,7 +1500,7 @@ function ui.draw()
 				bc = c_highlight_active
 			else
 				tc = c_gray
-				bc = c_highlight_inactive
+				bc = col_inactive
 			end
 			
 			-- If entry in the menu
