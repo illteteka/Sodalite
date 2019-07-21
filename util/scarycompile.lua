@@ -9,7 +9,7 @@ BINS = {}
 LUAS = {}
 DIRS = {}
 
-local handle = io.popen("ls " .. COMP_PATH .. "\"")
+local handle = io.popen('dir /b')
 
 for line in handle:lines() do
 	if string.match(line, ".") then
