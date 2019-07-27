@@ -443,7 +443,10 @@ function love.update(dt)
 		
 		if c_key == _PRESS then
 			lg.setCanvas(artboard.canvas)
+			lg.push()
+			lg.setScissor()
 			lg.clear()
+			lg.pop()
 			lg.setCanvas()
 			
 			artboard.saveCache()
