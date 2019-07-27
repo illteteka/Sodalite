@@ -77,6 +77,8 @@ function artboard.loadFile(fname, save)
 	
 	-- Draw imported image to canvas
 	if (test_load_image ~= nil) then
+		lg.push()
+		lg.setScissor()
 		lg.setCanvas(artboard.canvas)
 		lg.clear()
 		lg.draw(test_load_image, 0, 0) -- Drawing it once has alpha of 153????
@@ -88,6 +90,7 @@ function artboard.loadFile(fname, save)
 		lg.draw(test_load_image, 0, 0)
 		lg.draw(test_load_image, 0, 0)
 		lg.setCanvas()
+		lg.pop()
 		
 		if save then
 			artboard.saveCache()
@@ -123,6 +126,9 @@ end
 
 function artboard.add(x, y, a, b, erase)
 
+	lg.push()
+	lg.setScissor()
+
 	local thickness = math.max(math.floor(document_w / 32), 1)
 
 	lg.setCanvas(artboard.canvas)
@@ -149,6 +155,8 @@ function artboard.add(x, y, a, b, erase)
 	if erase then lg.setBlendMode("alpha") end
 	
 	lg.setCanvas()
+	
+	lg.pop()
 
 end
 
