@@ -380,7 +380,9 @@ function love.update(dt)
 				end
 			end
 		
-		elseif ((ui_active == false) or (ui_on_mouse_up)) then
+		end
+		
+		if ((ui_active == false) or (ui_on_mouse_up)) then
 		
 			if mouse_switch == _OFF then
 		
@@ -441,6 +443,10 @@ function love.update(dt)
 			if down_key == _PRESS then artboard.visible = not artboard.visible end
 			if left_key == _PRESS then artboard.draw_top = not artboard.draw_top end
 			if right_key == _PRESS then artboard.transparent = not artboard.transparent end
+			
+			if artboard.active then
+				palette.activeIsEditable = false
+			end
 			
 			if c_key == _PRESS then
 				artboard.clear()

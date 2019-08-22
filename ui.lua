@@ -555,17 +555,26 @@ function ui.update(dt)
 				palette.slot = final_col
 				
 				if palette.active == palette.colors[final_col + 1] then
-					palette.activeIsEditable = true
-					
-					if polygon.data[tm.polygon_loc] ~= nil then --and debug_mode ~= "artboard"
-						tm.store(TM_CHANGE_COLOR, polygon.data[tm.polygon_loc].color, palette.active)
-						tm.step()
+				
+					if artboard.active == false then
+				
+						palette.activeIsEditable = true
 						
-						palette.startingColor = polygon.data[tm.polygon_loc].color
+						if polygon.data[tm.polygon_loc] ~= nil then
+							tm.store(TM_CHANGE_COLOR, polygon.data[tm.polygon_loc].color, palette.active)
+							tm.step()
+							
+							palette.startingColor = polygon.data[tm.polygon_loc].color
+							
+							local copy_col = {palette.active[1], palette.active[2], palette.active[3], palette.active[4]}
+							polygon.data[tm.polygon_loc].color = copy_col
+						end
 						
-						local copy_col = {palette.active[1], palette.active[2], palette.active[3], palette.active[4]}
-						polygon.data[tm.polygon_loc].color = copy_col
+					else
+						-- Stop dynamic polygon palette changing when in the artboard
+						palette.activeIsEditable = false
 					end
+					
 				else
 					palette.active = palette.colors[final_col + 1]
 					palette.updateFromBoxes()
