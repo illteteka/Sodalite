@@ -72,6 +72,11 @@ mouse_y = -1
 mouse_x_previous = -1
 mouse_y_previous = -1
 
+ui_off_mouse_down = false
+ui_on_mouse_up = false
+
+artboard_is_drawing = false
+
 function updateCamera(w, h, zo, zn)
 
 	-- Stop scale factor from being less than 0
@@ -250,42 +255,13 @@ function love.update(dt)
 		cas = camera_zoom
 	end
 	
-	if lctrl_key == _OFF and rctrl_key == _OFF then
-	
-		if w_key == _ON then
-			camera_y = camera_y + (camera_spd * 60 * cas * dt)
-			camera_moved = true
-		elseif s_key == _ON then
-			camera_y = camera_y - (camera_spd * 60 * cas * dt)
-			camera_moved = true
-		end
-		
-		if a_key == _ON then
-			camera_x = camera_x + (camera_spd * 60 * cas * dt)
-			camera_moved = true
-		elseif d_key == _ON then
-			camera_x = camera_x - (camera_spd * 60 * cas * dt)
-			camera_moved = true
-		end
-	
-	end
-	
-	if camera_moved and up_key == _OFF and down_key == _OFF and w_key == _OFF and s_key == _OFF and a_key == _OFF and d_key == _OFF then
-		camera_x = math.floor(camera_x)
-		camera_y = math.floor(camera_y)
-		camera_moved = false
-	end
-	
-	if input.ctrlCombo(space_key) then
-		resetCamera()
-	end
-	
 	local ui_active
 	ui_active = ui.update(dt)
+	ui_on_mouse_up = (ui_active == true) and (mouse_switch == _OFF)
+
+	if ui.popup[1] == nil and document_w ~= 0 then
 	
-	if ui_active == false and document_w ~= 0 then
-	
-	if artboard.active == false then
+	if artboard.active == false and ((ui_active == false) or (ui_off_mouse_down)) then
 	
 		if polygon.data[tm.polygon_loc] ~= nil and input.ctrlCombo(a_key) then
 		
@@ -328,6 +304,8 @@ function love.update(dt)
 		
 		if mouse_switch == _ON then
 		
+			ui_off_mouse_down = true
+		
 			-- If a point is selected, have it follow the mouse
 			local i
 			for i = 1, #vertex_selection do
@@ -351,6 +329,8 @@ function love.update(dt)
 		
 		if mouse_switch == _RELEASE then
 		
+			ui_off_mouse_down = false
+		
 			-- If a point was selected, add TM_MOVE_VERTEX to time machine
 			local i
 			for i = 1, #vertex_selection do
@@ -367,35 +347,54 @@ function love.update(dt)
 			vertex_selection = {}
 		end
 		
-	else
+	else -- artboard is active
 	
-		if mouse_switch == _ON then
-			if artboard.visible and artboard.canvas ~= nil then
-				artboard.add(mx - math.floor(camera_x), my - math.floor(camera_y), mouse_x_previous - math.floor(camera_x), mouse_y_previous - math.floor(camera_y))
-			end
-		end
+		if ((ui_active == false) or (ui_off_mouse_down)) then
 		
-		if rmb_switch == _ON then
-			if artboard.visible and artboard.canvas ~= nil then
-				artboard.add(mx - math.floor(camera_x), my - math.floor(camera_y), mouse_x_previous - math.floor(camera_x), mouse_y_previous - math.floor(camera_y), true)
-			end
-		end
+			local ax, ay = mx - camera_x, my - camera_y
 		
-		if mouse_switch == _RELEASE or rmb_switch == _RELEASE then
-			artboard.saveCache()
-		end
-		
-		if mouse_switch == _OFF then
-	
-			if input.ctrlCombo(z_key) then
-				artboard.undo()
+			if mouse_switch == _PRESS or rmb_switch == _PRESS then
+				-- Check if mouse press was on the workable canvas
+				artboard_is_drawing = (ax >= 0 and ax <= document_w) and (ay >= 0 and ay <= document_h)
 			end
-			
+		
+			if artboard_is_drawing then
+				if mouse_switch == _ON then
+					if artboard.visible and artboard.canvas ~= nil then
+						ui_off_mouse_down = true
+						artboard.add(mx - math.floor(camera_x), my - math.floor(camera_y), mouse_x_previous - math.floor(camera_x), mouse_y_previous - math.floor(camera_y))
+					end
+				end
+				
+				if rmb_switch == _ON then
+					if artboard.visible and artboard.canvas ~= nil then
+						ui_off_mouse_down = true
+						artboard.add(mx - math.floor(camera_x), my - math.floor(camera_y), mouse_x_previous - math.floor(camera_x), mouse_y_previous - math.floor(camera_y), true)
+					end
+				end
+				
+				if mouse_switch == _RELEASE or rmb_switch == _RELEASE then
+					ui_off_mouse_down = false
+					artboard.saveCache()
+					artboard_is_drawing = false
+				end
+			end
+		
+		elseif ((ui_active == false) or (ui_on_mouse_up)) then
+		
+			if mouse_switch == _OFF then
+		
+				if input.ctrlCombo(z_key) then
+					artboard.undo()
+				end
+				
+			end
+		
 		end
 		
 	end
 	
-	if mouse_switch == _OFF and debug_mode ~= "artboard" then
+	if mouse_switch == _OFF and debug_mode ~= "artboard" and ((ui_active == false) or (ui_on_mouse_up)) then
 	
 		if input.ctrlCombo(z_key) then
 			vertex_selection = {}
@@ -426,87 +425,116 @@ function love.update(dt)
 	
 	-- Debug keys
 	
-	if r_key == _PRESS then debug_mode = "artboard" end
-	if t_key == _PRESS then debug_mode = "polygon" end
-	if y_key == _PRESS and input.ctrlCombo(y_key) == false then debug_mode = "ellipse" end
-	if u_key == _PRESS then debug_mode = "line" end
-	if i_key == _PRESS then debug_mode = "mirror" end
-	if o_key == _PRESS then debug_mode = "grid" end
-	if p_key == _PRESS then debug_mode = "zoom" end
+	if ((ui_active == false) or (ui_on_mouse_up)) then
 	
-	if debug_mode == "artboard" then
-	
-		if up_key == _PRESS then artboard.active = not artboard.active end
-		if down_key == _PRESS then artboard.visible = not artboard.visible end
-		if left_key == _PRESS then artboard.draw_top = not artboard.draw_top end
-		if right_key == _PRESS then artboard.transparent = not artboard.transparent end
+		if r_key == _PRESS then debug_mode = "artboard" end
+		if t_key == _PRESS then debug_mode = "polygon" end
+		if y_key == _PRESS and input.ctrlCombo(y_key) == false then debug_mode = "ellipse" end
+		if u_key == _PRESS then debug_mode = "line" end
+		if i_key == _PRESS then debug_mode = "mirror" end
+		if o_key == _PRESS then debug_mode = "grid" end
+		if p_key == _PRESS then debug_mode = "zoom" end
 		
-		if c_key == _PRESS then
-			lg.setCanvas(artboard.canvas)
-			lg.push()
-			lg.setScissor()
-			lg.clear()
-			lg.pop()
-			lg.setCanvas()
+		if debug_mode == "artboard" then
+		
+			if up_key == _PRESS then artboard.active = not artboard.active end
+			if down_key == _PRESS then artboard.visible = not artboard.visible end
+			if left_key == _PRESS then artboard.draw_top = not artboard.draw_top end
+			if right_key == _PRESS then artboard.transparent = not artboard.transparent end
 			
-			artboard.saveCache()
-		end
-	
-	end
-	
-	if debug_mode == "zoom" then
-		if up_key == _ON then
-			updateCamera(screen_width, screen_height, camera_zoom, camera_zoom + (0.01 * 60 * dt))
+			if c_key == _PRESS then
+				artboard.clear()
+			end
+		
 		end
 		
-		if down_key == _ON then
-			updateCamera(screen_width, screen_height, camera_zoom, camera_zoom - (0.01 * 60 * dt))
-		end
-	end
-	
-	if debug_mode == "grid" then
-		if debug_grid == "shift" then
-		if up_key == _ON then grid_y = grid_y - 1 end
-		if down_key == _ON then grid_y = grid_y + 1 end
-		if left_key == _ON then grid_x = grid_x - 1 end
-		if right_key == _ON then grid_x = grid_x + 1 end
-		end
-		
-		if debug_grid == "resize" then
-		if up_key == _PRESS then grid_h = grid_h - 1 end
-		if down_key == _PRESS then grid_h = grid_h + 1 end
-		if left_key == _PRESS then grid_w = grid_w - 1 end
-		if right_key == _PRESS then grid_w = grid_w + 1 end
-		end
-		
-		if comma_key == _PRESS then debug_grid = "shift" end
-		if period_key == _PRESS then debug_grid = "resize" end
-		
-		grid_w = math.max(grid_w, 2)
-		grid_h = math.max(grid_h, 2)
-	end
-	
-	if debug_mode == "ellipse" then
-	
-		if polygon.data[1] ~= nil and polygon.data[tm.polygon_loc] ~= nil and polygon.data[tm.polygon_loc].kind == "ellipse" then
-			local myshape = polygon.data[tm.polygon_loc]
-			local old_seg = myshape.segments
-			if up_key == _PRESS then myshape.segments = myshape.segments + 1   myshape.segments = math.max(myshape.segments, 3) tm.store(TM_ELLIPSE_SEG, old_seg, myshape.segments) tm.step() end
-			if down_key == _PRESS then myshape.segments = myshape.segments - 1 myshape.segments = math.max(myshape.segments, 3) tm.store(TM_ELLIPSE_SEG, old_seg, myshape.segments) tm.step() end
-			if left_key == _PRESS then myshape._angle = myshape._angle - 1     tm.store(TM_ELLIPSE_ANGLE, myshape._angle + 1,   myshape._angle) tm.step() end
-			if right_key == _PRESS then myshape._angle = myshape._angle + 1    tm.store(TM_ELLIPSE_ANGLE, myshape._angle - 1,   myshape._angle) tm.step() end
-		else
-			if up_key == _PRESS then polygon.segments = polygon.segments + 1 end
-			if down_key == _PRESS then polygon.segments = polygon.segments - 1 end
-			if left_key == _PRESS then polygon._angle = polygon._angle - 1 end
-			if right_key == _PRESS then polygon._angle = polygon._angle + 1 end
+		if debug_mode == "zoom" then
+			if up_key == _ON then
+				updateCamera(screen_width, screen_height, camera_zoom, camera_zoom + (0.01 * 60 * dt))
+			end
 			
-			polygon.segments = math.max(polygon.segments, 3)
+			if down_key == _ON then
+				updateCamera(screen_width, screen_height, camera_zoom, camera_zoom - (0.01 * 60 * dt))
+			end
+		end
+		
+		if debug_mode == "grid" then
+			if debug_grid == "shift" then
+			if up_key == _ON then grid_y = grid_y - 1 end
+			if down_key == _ON then grid_y = grid_y + 1 end
+			if left_key == _ON then grid_x = grid_x - 1 end
+			if right_key == _ON then grid_x = grid_x + 1 end
+			end
+			
+			if debug_grid == "resize" then
+			if up_key == _PRESS then grid_h = grid_h - 1 end
+			if down_key == _PRESS then grid_h = grid_h + 1 end
+			if left_key == _PRESS then grid_w = grid_w - 1 end
+			if right_key == _PRESS then grid_w = grid_w + 1 end
+			end
+			
+			if comma_key == _PRESS then debug_grid = "shift" end
+			if period_key == _PRESS then debug_grid = "resize" end
+			
+			grid_w = math.max(grid_w, 2)
+			grid_h = math.max(grid_h, 2)
+		end
+		
+		if debug_mode == "ellipse" then
+		
+			if polygon.data[1] ~= nil and polygon.data[tm.polygon_loc] ~= nil and polygon.data[tm.polygon_loc].kind == "ellipse" then
+				local myshape = polygon.data[tm.polygon_loc]
+				local old_seg = myshape.segments
+				if up_key == _PRESS then myshape.segments = myshape.segments + 1   myshape.segments = math.max(myshape.segments, 3) tm.store(TM_ELLIPSE_SEG, old_seg, myshape.segments) tm.step() end
+				if down_key == _PRESS then myshape.segments = myshape.segments - 1 myshape.segments = math.max(myshape.segments, 3) tm.store(TM_ELLIPSE_SEG, old_seg, myshape.segments) tm.step() end
+				if left_key == _PRESS then myshape._angle = myshape._angle - 1     tm.store(TM_ELLIPSE_ANGLE, myshape._angle + 1,   myshape._angle) tm.step() end
+				if right_key == _PRESS then myshape._angle = myshape._angle + 1    tm.store(TM_ELLIPSE_ANGLE, myshape._angle - 1,   myshape._angle) tm.step() end
+			else
+				if up_key == _PRESS then polygon.segments = polygon.segments + 1 end
+				if down_key == _PRESS then polygon.segments = polygon.segments - 1 end
+				if left_key == _PRESS then polygon._angle = polygon._angle - 1 end
+				if right_key == _PRESS then polygon._angle = polygon._angle + 1 end
+				
+				polygon.segments = math.max(polygon.segments, 3)
+			end
+		
 		end
 	
 	end
 	
 	-- End debug keys
+	
+	-- Camera controls
+	if lctrl_key == _OFF and rctrl_key == _OFF then
+	
+		if w_key == _ON then
+			camera_y = camera_y + (camera_spd * 60 * cas * dt)
+			camera_moved = true
+		elseif s_key == _ON then
+			camera_y = camera_y - (camera_spd * 60 * cas * dt)
+			camera_moved = true
+		end
+		
+		if a_key == _ON then
+			camera_x = camera_x + (camera_spd * 60 * cas * dt)
+			camera_moved = true
+		elseif d_key == _ON then
+			camera_x = camera_x - (camera_spd * 60 * cas * dt)
+			camera_moved = true
+		end
+	
+	end
+	
+	if camera_moved and up_key == _OFF and down_key == _OFF and w_key == _OFF and s_key == _OFF and a_key == _OFF and d_key == _OFF then
+		camera_x = math.floor(camera_x)
+		camera_y = math.floor(camera_y)
+		camera_moved = false
+	end
+	
+	if input.ctrlCombo(space_key) then
+		resetCamera()
+	end
+	-- End camera controls
 	
 	end
 

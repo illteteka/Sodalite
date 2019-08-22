@@ -131,7 +131,7 @@ function artboard.add(x, y, a, b, erase)
 	if erase then lg.setColor(0,0,0,0) lg.setBlendMode("replace", "premultiplied") end
 	
 	if x == a and y == b then
-		lg.rectangle("fill", x - (thickness/2), y - (thickness/2), thickness, thickness)
+		lg.circle("fill", x, y, thickness)
 	else
 		
 		local llerp = lume.lerp
@@ -140,13 +140,23 @@ function artboard.add(x, y, a, b, erase)
 		local i = 1
 		while i <= dist do
 			local aa, bb = llerp(x, a, i/dist), llerp(y, b, i/dist)
-			lg.rectangle("fill", aa - (thickness/2), bb - (thickness/2), thickness, thickness)
+			lg.circle("fill", aa, bb, thickness)
 			i = i + 1
 		end
 		
 	end
 	
 	if erase then lg.setBlendMode("alpha") end
+	
+	-- The artboard is a power of two and might be larger than the canvas
+	-- If the user draws outsize of the canvas but into legal artboard territory, just erase it
+	if (document_w < artboard.w) or (document_h < artboard.h) then
+		lg.setColor(0,0,0,0)
+		lg.setBlendMode("replace", "premultiplied")
+		lg.rectangle("fill", document_w + 1, 0, artboard.w - document_w, artboard.h)
+		lg.rectangle("fill", 0, document_h + 1, artboard.w, artboard.h - document_h)
+		lg.setBlendMode("alpha")
+	end
 	
 	lg.setCanvas()
 	
@@ -174,6 +184,16 @@ function artboard.undo()
 	
 	end
 
+end
+
+function artboard.clear()
+	lg.setCanvas(artboard.canvas)
+	lg.push()
+	lg.setScissor()
+	lg.clear()
+	lg.pop()
+	lg.setCanvas()
+	artboard.saveCache()
 end
 
 return artboard

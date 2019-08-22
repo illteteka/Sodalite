@@ -456,27 +456,30 @@ function ui.update(dt)
 		my_on_menu = (my >= ui.context_y) and (my <= ui.context_y + ui.context_h)
 		
 		-- If context menu was interacted with
-		if mouse_switch == _PRESS and mx_on_menu and my_on_menu then
-			local i
-			local h = 0
-			for i = 1, #ui.context_menu do
-			
-				-- If entry in the menu
-				if ui.context_menu[i]._break == nil then
+		if mx_on_menu and my_on_menu then
+		
+			if mouse_switch == _PRESS then
+				local i
+				local h = 0
+				for i = 1, #ui.context_menu do
 				
-					local low = ui.context_y + h + 8
-					local upp = low + 20
+					-- If entry in the menu
+					if ui.context_menu[i]._break == nil then
 					
-					if my >= low and my <= upp then
-						if ui.context_menu[i].active then
-							ui.loadPopup(ui.context_menu[i].ref)
+						local low = ui.context_y + h + 8
+						local upp = low + 20
+						
+						if my >= low and my <= upp then
+							if ui.context_menu[i].active then
+								ui.loadPopup(ui.context_menu[i].ref)
+							end
+							exit_cm = ui.context_menu[i].active
 						end
-						exit_cm = ui.context_menu[i].active
+						
+						h = h + 22
+					else -- If entry is a break
+						h = h + 11
 					end
-					
-					h = h + 22
-				else -- If entry is a break
-					h = h + 11
 				end
 			end
 		
@@ -554,7 +557,7 @@ function ui.update(dt)
 				if palette.active == palette.colors[final_col + 1] then
 					palette.activeIsEditable = true
 					
-					if polygon.data[tm.polygon_loc] ~= nil then
+					if polygon.data[tm.polygon_loc] ~= nil then --and debug_mode ~= "artboard"
 						tm.store(TM_CHANGE_COLOR, polygon.data[tm.polygon_loc].color, palette.active)
 						tm.step()
 						
@@ -885,101 +888,110 @@ function ui.update(dt)
 		my_on_menu = (my >= ui.popup_y) and (my <= ui.popup_y + ui.popup_h)
 		
 		-- If the popup box was clicked on
-		if mouse_switch == _PRESS and mx_on_menu and my_on_menu then
-			local px, py, pw, ph, pxo = ui.popup_x, ui.popup_y, ui.popup_w, ui.popup_h, ui.popup_x_offset
-			local popup_clicked = false
-		
-			local i
-			local h = 12
-			for i = 2, #ui.popup do
-		
-				local j
-				for j = 1, #ui.popup[i] do
-				
-					local name = ui.popup[i][j].name
-					local kind = ui.popup[i][j].kind
-					local bx, by, bw, bh = -9999, 0, 0, 0
+		if mx_on_menu and my_on_menu then
+			
+			if mouse_switch == _PRESS then
+			
+				local px, py, pw, ph, pxo = ui.popup_x, ui.popup_y, ui.popup_w, ui.popup_h, ui.popup_x_offset
+				local popup_clicked = false
+			
+				local i
+				local h = 12
+				for i = 2, #ui.popup do
+			
+					local j
+					for j = 1, #ui.popup[i] do
 					
-					-- Get bounding box of element clicked
-					if kind == "textbox" then
-						bx = px + (pw / 2) - 5 + pxo
-						by = py + 25 + h - 1
-						bw = 251
-						bh = 20
-					elseif kind == "number" then
-						bx = px + (pw / 2) - 5 + pxo
-						by = py + 25 + h - 1
-						bw = 46
-						bh = 20
-					elseif kind == "ok" then
-						bx = px + (pw / 2) - 32 - 19 - 8
-						by = py + 25 + h + 6 - 3
-						bw = 35
-						bh = 25
-					elseif kind == "cancel" then
-						bx = px + (pw / 2) + 32 - 19 - 8
-						by = py + 25 + h + 6 - 3
-						bw = 55
-						bh = 25
-					end
-					
-					-- If bounding box is valid
-					if bx ~= -9999 then
-						local mx_box, my_box
-						mx_box = (mx >= bx) and (mx <= bx + bw)
-						my_box = (my >= by) and (my <= by + bh)
+						local name = ui.popup[i][j].name
+						local kind = ui.popup[i][j].kind
+						local bx, by, bw, bh = -9999, 0, 0, 0
 						
-						-- If bounding box was clicked on
-						if mx_box and my_box then
-							
-							popup_clicked = true
-							
-							if kind == "textbox" or kind == "number" then
-								ui.popupLoseFocus(ui.popup[1][1].kind)
-								ui.sel_start = ui.popup[i][j].name
-								ui.sel_type = "popup"
-								ui.popup_sel_a, ui.popup_sel_b = i, j
-							elseif kind == "ok" and ui.popup[1][1].kind == "f.new" then -- OK button for f.new (new document)
-								ui.popupLoseFocus(ui.popup[1][1].kind)
-								document_name = ui.popup[2][2].name
-								document_w = tonumber(ui.popup[3][2].name)
-								document_h = tonumber(ui.popup[4][2].name)
-								
-								camera_zoom = 1
-								resetCamera()
-								
-								artboard.init()
-								tm.init()
-								polygon.data = {}
-								ui.layer = {}
-								ui.addLayer()
-								
-								exit_pop = true
-							elseif kind == "cancel" then
-								exit_pop = true
-							end
-							
+						-- Get bounding box of element clicked
+						if kind == "textbox" then
+							bx = px + (pw / 2) - 5 + pxo
+							by = py + 25 + h - 1
+							bw = 251
+							bh = 20
+						elseif kind == "number" then
+							bx = px + (pw / 2) - 5 + pxo
+							by = py + 25 + h - 1
+							bw = 46
+							bh = 20
+						elseif kind == "ok" then
+							bx = px + (pw / 2) - 32 - 19 - 8
+							by = py + 25 + h + 6 - 3
+							bw = 35
+							bh = 25
+						elseif kind == "cancel" then
+							bx = px + (pw / 2) + 32 - 19 - 8
+							by = py + 25 + h + 6 - 3
+							bw = 55
+							bh = 25
 						end
+						
+						-- If bounding box is valid
+						if bx ~= -9999 then
+							local mx_box, my_box
+							mx_box = (mx >= bx) and (mx <= bx + bw)
+							my_box = (my >= by) and (my <= by + bh)
+							
+							-- If bounding box was clicked on
+							if mx_box and my_box then
+								
+								popup_clicked = true
+								
+								if kind == "textbox" or kind == "number" then
+									ui.popupLoseFocus(ui.popup[1][1].kind)
+									ui.sel_start = ui.popup[i][j].name
+									ui.sel_type = "popup"
+									ui.popup_sel_a, ui.popup_sel_b = i, j
+								elseif kind == "ok" and ui.popup[1][1].kind == "f.new" then -- OK button for f.new (new document)
+									ui.popupLoseFocus(ui.popup[1][1].kind)
+									document_name = ui.popup[2][2].name
+									document_w = tonumber(ui.popup[3][2].name)
+									document_h = tonumber(ui.popup[4][2].name)
+									
+									camera_zoom = 1
+									resetCamera()
+									
+									artboard.init()
+									tm.init()
+									polygon.data = {}
+									ui.layer = {}
+									ui.addLayer()
+									
+									exit_pop = true
+								elseif kind == "cancel" then
+									exit_pop = true
+								end
+								
+							end
+						end
+						
 					end
 					
+					h = h + 28
 				end
 				
-				h = h + 28
+				if not popup_clicked then
+					ui.popupLoseFocus(ui.popup[1][1].kind)
+				end
+				
+				if exit_pop then
+					ui.popupLoseFocus(ui.popup[1][1].kind)
+					ui.popup = {}
+					ui_active = true
+					ui.context_menu = {}
+					ui.title_active = false
+				end
+				
 			end
 			
-			if not popup_clicked then
-				ui.popupLoseFocus(ui.popup[1][1].kind)
-			end
+			ui_active = true
 			
-			if exit_pop then
-				ui.popupLoseFocus(ui.popup[1][1].kind)
-				ui.popup = {}
-				ui_active = true
-				ui.context_menu = {}
-				ui.title_active = false
-			end
 		elseif mouse_switch == _PRESS then
 			ui.popupLoseFocus(ui.popup[1][1].kind)
+			ui_active = true
 		end
 		
 	end
@@ -994,6 +1006,9 @@ function ui.update(dt)
 	end
 	
 	ui.popup_enter = false
+	
+	-- Make ui active if interacting with palette/layer window
+	ui_active = ui_active or (mx >= screen_width - 208)
 	
 	return ui_active
 
