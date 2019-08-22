@@ -43,6 +43,8 @@ tab_key = _OFF
 enter_key = _OFF
 period_key = _OFF
 comma_key = _OFF
+minus_key = _OFF
+plus_key = _OFF
 
 up_key = _OFF
 down_key = _OFF
@@ -233,6 +235,8 @@ function love.update(dt)
 	enter_key = input.pullSwitch(love.keyboard.isDown("return"), enter_key)
 	period_key = input.pullSwitch(love.keyboard.isDown("."), period_key)
 	comma_key = input.pullSwitch(love.keyboard.isDown(","), comma_key)
+	minus_key = input.pullSwitch(love.keyboard.isDown("-"), minus_key)
+	plus_key = input.pullSwitch(love.keyboard.isDown("="), plus_key)
 	
 	-- debug buttons
 	one_button = input.pullSwitch(love.keyboard.isDown("f3"), one_button)
@@ -349,6 +353,14 @@ function love.update(dt)
 		
 	else -- artboard is active
 	
+		if minus_key == _PRESS then
+			artboard.brush_size = math.max(artboard.brush_size - 1, 1)
+		end
+		
+		if plus_key == _PRESS then
+			artboard.brush_size = artboard.brush_size + 1
+		end
+	
 		if ((ui_active == false) or (ui_off_mouse_down)) then
 		
 			local ax, ay = mx - camera_x, my - camera_y
@@ -421,6 +433,7 @@ function love.update(dt)
 		if document_w ~= 0 and input.ctrlCombo(s_key) then
 			export.saveLOL()
 			export.saveSVG()
+			export.saveArtboard()
 		end
 	
 	end

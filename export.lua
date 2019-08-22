@@ -200,4 +200,27 @@ function export.saveSVG()
 
 end
 
+function export.saveArtboard()
+	
+	if artboard.edited then
+	
+		artboard.saveCache(true)
+		
+		local copy_png = io.open(love.filesystem.getSaveDirectory() .. "/cache/export.png", "rb")
+		local copy_str = copy_png:read("*a")
+		copy_png:close()
+		
+		local prefix = ""
+		if love ~= nil then
+			prefix = love.filesystem.getSourceBaseDirectory() .. "/"
+		end
+		
+		local save_png = io.open(prefix .. document_name .. ".png", "wb")
+		save_png:write(copy_str)
+		save_png:close()
+	
+	end
+	
+end
+
 return export

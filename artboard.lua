@@ -7,6 +7,8 @@ artboard.visible = true
 artboard.active = false
 artboard.draw_top = false
 artboard.transparent = false
+artboard.brush_size = 1
+artboard.edited = false
 
 artboard.step_location = 0
 artboard.length = 0
@@ -33,6 +35,7 @@ function artboard.init()
 		love.filesystem.createDirectory("cache")
 	end
 	
+	artboard.edited = false
 	artboard.step_location = 0
 	artboard.length = 0
 
@@ -60,6 +63,8 @@ function artboard.init()
 	lg.setCanvas(artboard.canvas)
 	lg.clear()
 	lg.setCanvas()
+	
+	artboard.brush_size = math.max(math.floor(document_w / 32), 1)
 
 end
 
@@ -97,7 +102,7 @@ function artboard.loadFile(fname, save)
 
 end
 
-function artboard.saveCache()
+function artboard.saveCache(export)
 
 	if love.filesystem.getInfo("cache") == nil then
 		love.filesystem.createDirectory("cache")
@@ -112,18 +117,29 @@ function artboard.saveCache()
 		artboard.length = artboard.step_location
 	end
 	
+	--print("aefe" .. (export or " nope"))
+	
+	local fname = ""
+	if not export then
+		fname = "cache/art_" .. artboard.step_location .. ".png"
+	else
+		fname = "cache/export.png"
+	end
+	
 	local save_state = artboard.canvas:newImageData() 
-	save_state:encode("png", "cache/art_" .. artboard.step_location .. ".png")
+	save_state:encode("png", fname)
 	save_state = nil
 
 end
 
 function artboard.add(x, y, a, b, erase)
 
+	artboard.edited = true
+
 	lg.push()
 	lg.setScissor()
 
-	local thickness = math.max(math.floor(document_w / 32), 1)
+	local thickness = artboard.brush_size
 
 	lg.setCanvas(artboard.canvas)
 	
@@ -131,7 +147,11 @@ function artboard.add(x, y, a, b, erase)
 	if erase then lg.setColor(0,0,0,0) lg.setBlendMode("replace", "premultiplied") end
 	
 	if x == a and y == b then
-		lg.circle("fill", x, y, thickness)
+		if thickness == 1 then
+			lg.rectangle("fill", x, y, 1, 1)
+		else
+			lg.circle("fill", x, y, thickness)
+		end
 	else
 		
 		local llerp = lume.lerp
@@ -140,7 +160,11 @@ function artboard.add(x, y, a, b, erase)
 		local i = 1
 		while i <= dist do
 			local aa, bb = llerp(x, a, i/dist), llerp(y, b, i/dist)
-			lg.circle("fill", aa, bb, thickness)
+			if thickness == 1 then
+				lg.rectangle("fill", aa, bb, 1, 1)
+			else
+				lg.circle("fill", aa, bb, thickness)
+			end
 			i = i + 1
 		end
 		
