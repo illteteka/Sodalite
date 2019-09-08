@@ -13,6 +13,9 @@ artboard.edited = false
 artboard.step_location = 0
 artboard.length = 0
 
+artboard.max_length = 25
+artboard.offset = 0
+
 function recursivelyDelete( item )
 	if love.filesystem.getInfo( item , "directory" ) then
 		for _, child in pairs( love.filesystem.getDirectoryItems( item )) do
@@ -38,6 +41,7 @@ function artboard.init()
 	artboard.edited = false
 	artboard.step_location = 0
 	artboard.length = 0
+	artboard.offset = 0
 
 	-- Reset canvas and collect garbage
 	if artboard.canvas ~= nil then
@@ -107,17 +111,28 @@ function artboard.saveCache(export)
 	if love.filesystem.getInfo("cache") == nil then
 		love.filesystem.createDirectory("cache")
 	end
-
+	
 	if artboard.step_location == artboard.length then
 		artboard.step_location = artboard.step_location + 1
 		artboard.length = artboard.length + 1
+		
+		-- Limit the undo cache to artboard.max_length
+		if artboard.length - artboard.offset > artboard.max_length then
+			artboard.offset = artboard.offset + 1
+			love.filesystem.remove("cache/art_" .. artboard.offset .. ".png")
+		end
+		
 	else
-		print(artboard.step_location, artboard.length)
+		
+		-- Artboard position was overwritten, delete old cache
+		local i
+		for i = artboard.step_location + 2, artboard.length do
+			love.filesystem.remove("cache/art_" .. i .. ".png")
+		end
+	
 		artboard.step_location = artboard.step_location + 1
 		artboard.length = artboard.step_location
 	end
-	
-	--print("aefe" .. (export or " nope"))
 	
 	local fname = ""
 	if not export then
@@ -191,6 +206,13 @@ end
 function artboard.undo()
 
 	artboard.step_location = artboard.step_location - 1
+
+	-- TODO: This stops the user from undoing into whitespace if they're over the max_length
+	-- Bad solution since you can fluctuate between the last undoable state and making a new state
+	-- Not a bug so much as an unwanted feature
+	if (artboard.step_location < artboard.offset) and (artboard.step_location > 0) then
+		artboard.step_location = artboard.offset + 1
+	end
 	
 	if artboard.step_location <= 0 then
 		lg.setCanvas(artboard.canvas)
@@ -206,6 +228,19 @@ function artboard.undo()
 			artboard.loadFile(love.filesystem.getSaveDirectory() .. "/" .. ab_path, false)
 		end
 	
+	end
+
+end
+
+function artboard.redo()
+
+	local test_pos = artboard.step_location + 1
+	
+	local ab_path = "cache/art_" .. test_pos .. ".png"
+		
+	if love.filesystem.getInfo(ab_path) ~= nil then
+		artboard.loadFile(love.filesystem.getSaveDirectory() .. "/" .. ab_path, false)
+		artboard.step_location = artboard.step_location + 1
 	end
 
 end

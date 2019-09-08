@@ -402,6 +402,10 @@ function love.update(dt)
 					artboard.undo()
 				end
 				
+				if input.ctrlCombo(y_key) then
+					artboard.redo()
+				end
+				
 			end
 		
 		end
