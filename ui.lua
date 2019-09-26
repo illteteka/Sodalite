@@ -527,14 +527,14 @@ function ui.update(dt)
 	-- Check collision of palette
 	local psize = 16
 	local palw = (13 * psize)
-	local palx, paly = screen_width - palw, 26
+	local palx, paly = screen_width - palw, 53
 	local palh = 300
 	local mx_on_menu, my_on_menu
 	mx_on_menu = (mx >= palx) and (mx <= palx + palw)
 	my_on_menu = (my >= paly) and (my <= paly + palh)
 	if mouse_switch == _PRESS and mx_on_menu and my_on_menu then
 		
-		if my >= 42 and my <= 42 + 18 then -- RGB/HSL buttons
+		if my >= 69 and my <= 69 + 18 then -- RGB/HSL buttons
 			
 			if mx >= palx - 4 + 8 and mx <= palx - 4 + 25 + 10 + 8 then
 				ui.palette_mode = "RGB"
@@ -544,9 +544,9 @@ function ui.update(dt)
 				palette.canPaste = false
 			end
 			
-		elseif my > 181 and my < 181 + (psize * palette.h) then -- Color picker
+		elseif my > 208 and my < 208 + (psize * palette.h) then -- Color picker
 			local raw_x = mx - palx - 8
-			local raw_y = my - 181
+			local raw_y = my - 208
 			local sel_x, sel_y
 			sel_x = math.floor(raw_x / 16)
 			if sel_x > -1 and sel_x < 12 then
@@ -586,7 +586,7 @@ function ui.update(dt)
 		end
 		
 		-- Scroll bar
-		local ix, iy = screen_width - 50, 52
+		local ix, iy = screen_width - 50, 79
 		if mx >= ix - 147 and mx <= ix - 147 + 122 then
 			local i
 			for i = 1, 3 do
@@ -634,9 +634,9 @@ function ui.update(dt)
 	end
 	
 	-- Check collision on layer menu
-	local layx, layy = screen_width - 208, 325
+	local layx, layy = screen_width - 208, 352
 	local layw = 208 - 2 - 16
-	local layh = screen_height - 376
+	local layh = screen_height - 403
 	if (mouse_switch == _PRESS) and (mx >= screen_width - 208) and (my >= layy) then
 	
 		-- Scroll bar
@@ -695,7 +695,7 @@ function ui.update(dt)
 			-- Check if layer was clicked on
 			if (mx >= layx + 32) and (mx <= layx + layw) and (my >= layy + 40) and (my <= layy + 40 + layh) then
 			
-				local moffset = my - 365
+				local moffset = my - 392
 			
 				local layer_amt = #ui.layer
 				local layer_element_size = math.max((25 * layer_amt) - layh - 1, 0)
@@ -737,7 +737,7 @@ function ui.update(dt)
 			-- Check if layer hide button was clicked on
 			if (mx >= layx + 1) and (mx <= layx + 31) and (my >= layy + 40) and (my <= layy + 40 + layh) then
 			
-				local moffset = my - 365
+				local moffset = my - 392
 			
 				local layer_amt = #ui.layer
 				local layer_element_size = math.max((25 * layer_amt) - layh - 1, 0)
@@ -779,13 +779,13 @@ function ui.update(dt)
 		
 		local scroll_offset = math.floor(ui.lyr_scroll_percent * layer_element_size)
 	
-		local moffset = my - 365
+		local moffset = my - 392
 		local y_test = (moffset + scroll_offset)
 		local layer_top = math.floor((moffset + scroll_offset) / 25) * 25
 		local layer_num = layer_amt - math.floor((moffset + scroll_offset) / 25)
 	
 		-- Make it so we can't swap with layers that are not visible on screen (above the layer window)
-		if (my >= 365-6) then
+		if (my >= 392-6) then
 	
 			-- If layer move is within bounds
 			if (layer_num >= 0 and layer_num <= layer_amt) then
@@ -1103,7 +1103,7 @@ function ui.draw()
 
 	local mx, my = love.mouse.getX(), love.mouse.getY()
 	lg.setColor(col_box)
-	lg.rectangle("fill", 0, 0, screen_width, 25)
+	lg.rectangle("fill", 0, 0, screen_width, 54)
 	lg.setColor(c_white)
 	lg.draw(grad_large, 0, 1, 0, screen_width/256, 23)
 	
@@ -1132,28 +1132,28 @@ function ui.draw()
 	-- Draw palette
 	local psize = 16
 	local palw = (13 * psize)
-	local palx, paly = screen_width - palw + 8, 165
+	local palx, paly = screen_width - palw + 8, 192
 	
 	lg.setColor(col_box)
-	lg.rectangle("fill", palx - 8, 25, palw, 300)
-	ui.drawOutline(palx - 7, 25, palw - 2, 299, false)
+	lg.rectangle("fill", palx - 8, 52, palw, 300)
+	ui.drawOutline(palx - 7, 52, palw - 2, 299, false)
 	
 	-- Color picker
-	ui.drawOutlinePal(palx - 4, 65, palw - 9, 99, ui.palette_mode == "HSL")
+	ui.drawOutlinePal(palx - 4, 92, palw - 9, 99, ui.palette_mode == "HSL")
 	
 	lg.setColor(c_black)
-	lg.print("RGB", palx + 1, 42)
-	lg.print("HSL", palx + 1 + 40, 42)
+	lg.print("RGB", palx + 1, 69)
+	lg.print("HSL", palx + 1 + 40, 69)
 	
-	if my >= 42 and my <= 42 + 18 then
+	if my >= 69 and my <= 69 + 18 then
 		if ui.palette_mode == "RGB" and mx >= palx + 36 and mx <= palx + 36 + 24 + 10 then
-			ui.drawOutline(palx + 41 - 5, 42, 24 + 10, 18,true)
+			ui.drawOutline(palx + 41 - 5, 69, 24 + 10, 18,true)
 		elseif ui.palette_mode == "HSL" and mx >= palx - 4 and mx <= palx - 4 + 25 + 10 then
-			ui.drawOutline(palx + 1 - 5,  42, 25 + 10, 18,true)
+			ui.drawOutline(palx + 1 - 5,  69, 25 + 10, 18,true)
 		end
 	end
 	
-	local ix, iy = screen_width - 50, 52
+	local ix, iy = screen_width - 50, 79
 	local i
 	h = 0
 	local ioff = 0
@@ -1225,9 +1225,9 @@ function ui.draw()
 	ui.drawOutline(palx - 4, paly + (16 * 8) - 5, palw - 9, 30)
 	
 	-- Draw layer menu
-	local layx, layy = screen_width - 208, 325
+	local layx, layy = screen_width - 208, 352
 	local layw = 208 - 2 - 16
-	local layh = screen_height - 376
+	local layh = screen_height - 403
 	
 	-- Fill area
 	lg.setColor(col_box)
@@ -1347,18 +1347,18 @@ function ui.draw()
 		lg.translate(-sel_x, -sel_y)
 		
 		-- Highlight bars when rearranging layers
-		local moffset = my - 365
+		local moffset = my - 392
 		local y_test = (moffset + scroll_offset)
 		local layer_top = math.floor((moffset + scroll_offset) / 25) * 25
 		local layer_num = layer_amt - math.floor((moffset + scroll_offset) / 25)	
 		
-		if (my >= 365 - 6) and (my <= screen_height - 6) then -- Keep within bounds of layer selector
+		if (my >= 392 - 6) and (my <= screen_height - 6) then -- Keep within bounds of layer selector
 		
 			if layer_num >= 0 and layer_num <= layer_amt then
 			
 				if math.abs(y_test - layer_top) < 8 then
 					lx = layx + 32
-					ly = 365 + layer_top - 3 - scroll_offset
+					ly = 392 + layer_top - 3 - scroll_offset
 					lw = layw - 32
 					lh = 5
 					draw_l = true
@@ -1366,16 +1366,16 @@ function ui.draw()
 				
 				if math.abs(y_test - layer_top + 24) < 8 then
 					lx = layx + 32
-					ly = 365 + layer_top + 21 - scroll_offset
+					ly = 392 + layer_top + 21 - scroll_offset
 					lw = layw - 32
 					lh = 5
 					draw_l = true
 				end
 				
-			elseif (layer_num >= 0) and (my >= 365 - 6) then
+			elseif (layer_num >= 0) and (my >= 392 - 6) then
 			
 				lx = layx + 32
-				ly = 365 - 3 - scroll_offset
+				ly = 392 - 3 - scroll_offset
 				lw = layw - 32
 				lh = 5
 				draw_l = true
@@ -1383,7 +1383,7 @@ function ui.draw()
 			end
 			
 			-- Scroll layer window when placing a layer outside of bounds
-			if (my >= 365 - 6) and (my <= 365) then
+			if (my >= 392 - 6) and (my <= 392) then
 				ui.lyr_dir = "up"
 				ui.lyr_spd = 3
 			end
@@ -1417,7 +1417,7 @@ function ui.draw()
 	if draw_l then
 		
 		-- Keep ly within bounds of layer menu
-		ly = lume.clamp(ly, 365-6+3, screen_height-6-7)
+		ly = lume.clamp(ly, 392-6+3, screen_height-6-7)
 		
 		lg.setColor(c_off_white)
 		lg.rectangle("fill", lx, ly, lw, lh)
@@ -1425,6 +1425,24 @@ function ui.draw()
 		lg.rectangle("fill", lx, ly + 2, lw, lh - 4)
 			
 	end
+	
+	-- Draw toolbar
+	lg.setColor(col_box)
+	lg.rectangle("fill", 0, 54, 64, screen_height - 54)
+	
+	lg.setColor(col_inactive)
+	lg.rectangle("fill", 1, 26, screen_width - 2, 1)
+	lg.rectangle("fill", 1, 53, 61, 1)
+	lg.rectangle("fill", 2, 26, 1, screen_height - 27)
+	lg.rectangle("fill", 63, 26, 1, 26)
+	
+	lg.setColor(c_outline_dark)
+	lg.rectangle("fill", 1, 25, screen_width - 2, 1)
+	lg.rectangle("fill", 1, 52, screen_width - 2, 1)
+	lg.rectangle("fill", screen_width - 2, 25, 1, 27)
+	lg.rectangle("fill", 1, 26, 1, screen_height - 27)
+	lg.rectangle("fill", 62, 26, 1, screen_height - 27)
+	lg.rectangle("fill", 1, screen_height - 2, 61, 1)
 	
 	-- Draw popup box
 	if ui.popup[1] ~= nil then

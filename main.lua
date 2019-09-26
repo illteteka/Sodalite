@@ -87,8 +87,8 @@ function updateCamera(w, h, zo, zn)
 	end
 
 	-- Calculate expected center at old resolution
-	local old_x = (((screen_width  - document_w * zo) / 2) / zo) - (104 / zo)
-	local old_y = (((screen_height - document_h * zo) / 2) / zo) + (25 / 2 / zo)
+	local old_x = (((screen_width  - document_w * zo) / 2) / zo) - (72 / zo)
+	local old_y = (((screen_height - document_h * zo) / 2) / zo) + (54 / 2 / zo)
 
 	-- Get offset from center
 	local xm, ym = camera_x - old_x, camera_y - old_y
@@ -98,8 +98,8 @@ function updateCamera(w, h, zo, zn)
 	camera_zoom = zn
 	
 	-- Update camera and add offset
-	camera_x = (((screen_width  - document_w * zn) / 2) / zn) - (104 / zn) + xm
-	camera_y = (((screen_height - document_h * zn) / 2) / zn) + (25 / 2 / zn) + ym
+	camera_x = (((screen_width  - document_w * zn) / 2) / zn) - (72 / zn) + xm
+	camera_y = (((screen_height - document_h * zn) / 2) / zn) + (54 / 2 / zn) + ym
 	
 	-- math.floor camera once you're done scaling/resizing
 	camera_moved = true
@@ -107,8 +107,8 @@ function updateCamera(w, h, zo, zn)
 end
 
 function resetCamera()
-	camera_x = math.floor(((screen_width  - document_w * camera_zoom) / 2) / camera_zoom) - math.floor(104 / camera_zoom) -- right bar (- 208)
-	camera_y = math.floor(((screen_height - document_h * camera_zoom) / 2) / camera_zoom) + math.floor(25 / 2 / camera_zoom) -- top bar (+ 25)
+	camera_x = math.floor(((screen_width  - document_w * camera_zoom) / 2) / camera_zoom) - math.floor(72 / camera_zoom) -- right bar (- 208) (+ 64) (208/2 - 64/2)
+	camera_y = math.floor(((screen_height - document_h * camera_zoom) / 2) / camera_zoom) + math.floor(54 / 2 / camera_zoom) -- top bar (+ 54)
 end
 
 function love.load()
@@ -742,7 +742,7 @@ function love.draw()
 		polygon.kind = "ellipse"
 	end
 	
-	lg.print("Debug mode: " .. debug_mode .. debug_info, 30, screen_height - 50)
+	lg.print("Debug mode: " .. debug_mode .. debug_info, 94, screen_height - 50)
 	
 	-- End Debug UI
 
