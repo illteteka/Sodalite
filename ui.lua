@@ -52,6 +52,8 @@ ui.lyr_timer = 0
 ui.lyr_clicked = 0
 ui.lyr_click_y = 0
 
+ui.toolbar = {}
+
 function ui.init()
 	-- Add palette sliders
 	ui.addPS("R")
@@ -67,6 +69,20 @@ function ui.init()
 	ui.addTitle("Search",   ".search")
 	ui.addTitle("View",     ".view")
 	ui.addTitle("Encoding", ".encoding")
+	
+	-- Add toolbar items
+	ui.addTool("Cursor A",      icon_cursorb,  ".main")
+	ui.addTool("Cursor B",      icon_cursorw,  ".edit")
+	ui.addTool("Grid",          icon_grid,     ".grid")
+	ui.addTool("Zoom",          icon_zoom,     ".zoom")
+	ui.addTool("Color Grabber", icon_pick,     ".pick")
+	ui.addToolBreak()
+	ui.addTool("Polygon",       icon_triangle, ".tri")
+	ui.addTool("Ellipse",       icon_circle,   ".circ")
+	ui.addTool("Free Draw",     icon_draw,     ".artb")
+	ui.addToolBreak()
+	ui.addTool("Undo",          icon_undo,     ".undo")
+	ui.addTool("Redo",          icon_redo,     ".redo")
 end
 
 function ui.loadCM(x, y, ref)
@@ -133,6 +149,27 @@ function ui.addTitle(name, ref)
 	item.ref = ref
 	
 	table.insert(ui.title, item)
+
+end
+
+-- Toolbar
+function ui.addTool(name, icon, ref)
+
+	local item = {}
+	item.name = name
+	item.icon = icon
+	item.ref = ref
+	
+	table.insert(ui.toolbar, item)
+	
+end
+
+-- Toolbar break
+function ui.addToolBreak()
+
+	local item = {}
+	item._break = true
+	table.insert(ui.toolbar, item)
 
 end
 
@@ -838,6 +875,75 @@ function ui.update(dt)
 		ui.lyr_timer = 0
 	end
 	
+	-- Check toolbar collision
+	if (mouse_switch == _PRESS) and ((mx <= 64) or (my <= 54)) and (not ui_active) then
+		
+		local yy = my - 61
+		
+		local first_offset  = (yy >= 24 * 3)
+		local second_offset = (yy >= (24 * 5) + 12)
+		
+		local first_break = (first_offset and yy < (24 * 3) + 12)
+		local second_break = (second_offset and yy < (24 * 5) + 24)
+		
+		-- If not clicking between the line breaks
+		if not (first_break or second_break) then
+		
+			local y_offset = 0
+			
+			-- Add an offset to offset the distance of the line breaks
+			if second_offset then
+				y_offset = 24
+			elseif first_offset then
+				y_offset = 12
+			end
+			
+			local aa = math.floor((mx - 8)/24)
+			local bb = math.floor((my - 61 - y_offset)/24)
+			
+			local key = ((bb * 2) + aa + 1)
+			
+			-- Don't crash if clicking a toolbar icon out of bounds
+			local check_success = true
+			if key < 1 or key > #ui.toolbar then
+				key = 1
+				check_success = false
+			end
+			
+			local tool = ui.toolbar[key]
+			
+			if (tool.ref ~= nil) and (check_success) then
+			
+				-- Toolbar actions go here
+				if tool.ref == ".main" then
+					print("cursor a")
+				elseif tool.ref == ".edit" then
+					print("cursor b")
+				elseif tool.ref == ".grid" then
+					print("grid")
+				elseif tool.ref == ".zoom" then
+					print("zoom")
+				elseif tool.ref == ".pick" then
+					print("nose picker")
+				elseif tool.ref == ".tri" then
+					print("triangle")
+				elseif tool.ref == ".circ" then
+					print("circle")
+				elseif tool.ref == ".artb" then
+					print("draw somethin")
+				elseif tool.ref == ".undo" then
+					print("undo")
+				elseif tool.ref == ".redo" then
+					print("redo")
+				end
+			
+			end
+			
+		end
+		
+		ui_active = true
+	end
+	
 	-- Check collision on popup box
 	if ui.popup[1] ~= nil then
 		
@@ -1090,12 +1196,12 @@ end
 function ui.draw()
 
 	-- Local vars for palette swapping the editor
-	local col_box, col_inactive = c_box, c_highlight_inactive
+	local col_box, col_inactive, col_line_dark, col_line_light = c_box, c_highlight_inactive, c_line_dark, c_line_light
 	local tex_btn, tex_slide_1, tex_slide_2, tex_slide_3, tex_gradient = spr_slider_button, spr_slider_1, spr_slider_2, spr_slider_3, grad_slider
 	
 	if debug_mode == "artboard" then
 	
-	col_box, col_inactive = c_art_box, c_art_inactive
+	col_box, col_inactive, col_line_dark, col_line_light = c_art_box, c_art_inactive, c_art_line_dark, c_art_line_light
 	tex_btn, tex_slide_1, tex_slide_2, tex_slide_3, tex_gradient = art_slider_button, art_slider_1, art_slider_2, art_slider_3, art_grad_slider
 	
 	end
@@ -1444,6 +1550,35 @@ function ui.draw()
 	lg.rectangle("fill", 62, 26, 1, screen_height - 27)
 	lg.rectangle("fill", 1, screen_height - 2, 61, 1)
 	
+	-- Draw toolbar items
+	local i
+	local h, xx = 0, 0
+	for i = 1, #ui.toolbar do
+		if ui.toolbar[i]._break == nil then
+		
+			lg.setColor(c_white)
+			local ix, iy = 8 + (xx * 24), 61 + h
+			lg.draw(ui.toolbar[i].icon, ix, iy)
+			ui.drawOutline(ix, iy, 24, 24, true)
+			
+			xx = xx + 1
+			if xx == 2 then xx = 0 h = h + 24 end
+			
+		else
+		
+			h = h + 36
+		
+			lg.setColor(col_line_dark)
+			lg.rectangle("fill", 8, 54 + h, 48, 1)
+			
+			lg.setColor(col_line_light)
+			lg.rectangle("fill", 8, 55 + h, 48, 1)
+			
+			xx = 0
+			
+		end
+	end
+	
 	-- Draw popup box
 	if ui.popup[1] ~= nil then
 	
@@ -1563,9 +1698,9 @@ function ui.draw()
 				
 				h = h + 22
 			else -- If entry is a break
-				lg.setColor(c_line_dark)
+				lg.setColor(col_line_dark)
 				lg.rectangle("fill", ui.context_x + 4, ui.context_y + h + 14, ui.context_w - 8, 1)
-				lg.setColor(c_line_light)
+				lg.setColor(col_line_light)
 				lg.rectangle("fill", ui.context_x + 4, ui.context_y + h + 15, ui.context_w - 8, 1)
 			
 				h = h + 11

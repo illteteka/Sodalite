@@ -132,10 +132,6 @@ function love.load()
 	font = lg.newFont("opensans.ttf", 13)
 	lg.setFont(font)
 	
-	ui.init()
-	palette.init()
-	tm.init()
-	
 	grad_large = lg.newImage("textures/gradient_large.png")
 	grad_active = lg.newImage("textures/gradient_active.png")
 	grad_inactive = lg.newImage("textures/gradient_inactive.png")
@@ -161,6 +157,22 @@ function love.load()
 	icon_trash = lg.newImage("textures/icon_trash.png")
 	icon_eye = lg.newImage("textures/icon_eye.png")
 	icon_blink = lg.newImage("textures/icon_blink.png")
+	icon_circle = lg.newImage("textures/icon_circle.png")
+	icon_cursorb = lg.newImage("textures/icon_cursorb.png")
+	icon_cursorw = lg.newImage("textures/icon_cursorw.png")
+	icon_draw = lg.newImage("textures/icon_draw.png")
+	icon_grid = lg.newImage("textures/icon_grid.png")
+	icon_pick = lg.newImage("textures/icon_pick.png")
+	icon_redo = lg.newImage("textures/icon_redo.png")
+	icon_triangle = lg.newImage("textures/icon_triangle.png")
+	icon_undo = lg.newImage("textures/icon_undo.png")
+	icon_zoom = lg.newImage("textures/icon_zoom.png")
+	icon_zoom_in = lg.newImage("textures/icon_zoom_in.png")
+	icon_zoom_out = lg.newImage("textures/icon_zoom_out.png")
+	
+	ui.init()
+	palette.init()
+	tm.init()
 	
 end
 
@@ -435,8 +447,13 @@ function love.update(dt)
 		end
 		
 		if document_w ~= 0 and input.ctrlCombo(s_key) then
-			export.saveLOL()
-			export.saveSVG()
+			
+			-- Only make a save file if the vector data has been edited
+			if tm.data[1] ~= nil then
+				export.saveLOL()
+				export.saveSVG()
+			end
+			
 			export.saveArtboard()
 		end
 	
