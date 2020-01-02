@@ -38,6 +38,7 @@ i_key = _OFF
 u_key = _OFF
 t_key = _OFF
 r_key = _OFF
+e_key = _OFF
 space_key = _OFF
 tab_key = _OFF
 enter_key = _OFF
@@ -170,6 +171,12 @@ function love.load()
 	icon_zoom_in = lg.newImage("textures/icon_zoom_in.png")
 	icon_zoom_out = lg.newImage("textures/icon_zoom_out.png")
 	
+	cursor_typing = love.mouse.getSystemCursor("ibeam")
+	cursor_size_h = love.mouse.getSystemCursor("sizewe")
+	cursor_size_v = love.mouse.getSystemCursor("sizens")
+	cursor_size_rise = love.mouse.getSystemCursor("sizenesw")
+	cursor_size_fall = love.mouse.getSystemCursor("sizenwse")
+	
 	ui.init()
 	palette.init()
 	tm.init()
@@ -223,6 +230,7 @@ function love.update(dt)
 	a_key = input.pullSwitch(love.keyboard.isDown("a"), a_key)
 	c_key = input.pullSwitch(love.keyboard.isDown("c"), c_key)
 	d_key = input.pullSwitch(love.keyboard.isDown("d"), d_key)
+	e_key = input.pullSwitch(love.keyboard.isDown("e"), e_key) --*
 	i_key = input.pullSwitch(love.keyboard.isDown("i"), i_key) --*
 	o_key = input.pullSwitch(love.keyboard.isDown("o"), o_key) --*
 	p_key = input.pullSwitch(love.keyboard.isDown("p"), p_key) --*
@@ -470,6 +478,7 @@ function love.update(dt)
 		if i_key == _PRESS then debug_mode = "mirror" end
 		if o_key == _PRESS then debug_mode = "grid" end
 		if p_key == _PRESS then debug_mode = "zoom" end
+		if e_key == _PRESS then debug_mode = "preview" ui.preview_active = not ui.preview_active end
 		
 		if debug_mode == "artboard" then
 		

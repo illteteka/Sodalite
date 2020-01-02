@@ -52,6 +52,12 @@ ui.lyr_timer = 0
 ui.lyr_clicked = 0
 ui.lyr_click_y = 0
 
+ui.preview_active = false
+ui.preview_x = 100
+ui.preview_y = 100
+ui.preview_w = 300
+ui.preview_h = 300
+
 ui.toolbar = {}
 
 function ui.init()
@@ -950,7 +956,7 @@ function ui.update(dt)
 		local exit_pop = false
 		
 		-- Scroll inputs with tab
-		if tab_key == _PRESS then
+		if tab_key == _PRESS and ui.popup_sel_a ~= 0 and ui.popup_sel_b ~= 0 then
 			
 			if ui.popup[1][1].kind == "f.new" then
 			
@@ -1530,6 +1536,31 @@ function ui.draw()
 		lg.setColor(c_outline_dark)
 		lg.rectangle("fill", lx, ly + 2, lw, lh - 4)
 			
+	end
+	
+	-- Draw preview window
+	if ui.preview_active then
+	
+		local rx, ry, rw, rh = ui.preview_x, ui.preview_y, ui.preview_w, ui.preview_h
+		
+		lg.setColor(col_box)
+		lg.rectangle("fill", rx, ry, rw, rh)
+		lg.setColor(c_white)
+		lg.draw(grad_active, rx, ry + 1, 0, rw/256, 23)
+		
+		lg.print("Preview", rx + 10, ry + 3)
+		ui.drawOutline(rx + 1, ry + 25, rw - 2, rh - 26)
+		
+		local old_zoom = camera_zoom
+		
+		lg.setScissor(rx + 3, ry + 27, rw - 5, rh - 29)
+		lg.translate(rx + 3, ry + 27, rw - 5, rh - 29)
+		camera_zoom = 1
+		polygon.draw()
+		camera_zoom = old_zoom
+		lg.translate(-rx - 3, -ry - 27, -rw + 5, -rh + 29)
+		lg.setScissor()
+	
 	end
 	
 	-- Draw toolbar
