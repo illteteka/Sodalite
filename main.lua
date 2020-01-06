@@ -183,8 +183,13 @@ function love.load()
 	
 end
 
+function love.mousefocus(f)
+	ui.preview_dragging = false
+end
+
 function love.resize(w, h)
 	updateCamera(w, h, camera_zoom, camera_zoom)
+	ui.resizeWindow()
 end
 
 function love.textinput(x)

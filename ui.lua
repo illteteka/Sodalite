@@ -57,8 +57,19 @@ ui.preview_x = 100
 ui.preview_y = 100
 ui.preview_w = 300
 ui.preview_h = 300
+ui.preview_w_min = 200
+ui.preview_h_min = 200
+ui.preview_w_max = 500
+ui.preview_h_max = 500
+ui.preview_dragging = false
+ui.preview_drag_corner = -1
 
 ui.toolbar = {}
+
+ui.mouse_x = -1
+ui.mouse_y = -1
+ui.mouse_x_previous = -1
+ui.mouse_y_previous = -1
 
 function ui.init()
 	-- Add palette sliders
@@ -335,8 +346,8 @@ function ui.generatePopup()
 	
 	ui.popup_x_offset = -(((ui.popup_w/2) + (w/2)) / 4)
 	
-	ui.popup_x = math.floor((screen_width / 2) - (ui.popup_w / 2))
-	ui.popup_y = math.floor((screen_height / 2) - (ui.popup_h / 2))
+	-- Center the popup to the screen
+	ui.resizeWindow()
 
 end
 
@@ -430,9 +441,27 @@ function ui.moveLayer(old, new)
 
 end
 
+function ui.resizeWindow()
+
+	ui.popup_x = math.floor((screen_width / 2) - (ui.popup_w / 2))
+	ui.popup_y = math.floor((screen_height / 2) - (ui.popup_h / 2))
+	
+	if ui.preview_x < 65 then ui.preview_x = 65 end
+	if ui.preview_x > screen_width - ui.preview_w - 209 then ui.preview_x = screen_width - ui.preview_w - 209 end
+	if ui.preview_y < 55 then ui.preview_y = 55 end
+	if ui.preview_y > screen_height - 25 then ui.preview_y = screen_height - 25 end
+	if ui.preview_w < ui.preview_w_min then ui.preview_w = ui.preview_w_min end
+	if ui.preview_h < ui.preview_h_min then ui.preview_h = ui.preview_h_min end
+	if ui.preview_w > ui.preview_w_max then ui.preview_w = ui.preview_w_max end
+	if ui.preview_h > ui.preview_h_max then ui.preview_h = ui.preview_h_max end
+
+end
+
 function ui.update(dt)
 
-	local mx, my = love.mouse.getX(), love.mouse.getY()
+	ui.mouse_x_previous, ui.mouse_y_previous = ui.mouse_x, ui.mouse_y
+	ui.mouse_x, ui.mouse_y = love.mouse.getX(), love.mouse.getY()
+	local mx, my = ui.mouse_x, ui.mouse_y
 	local ui_active = false
 	local has_interaction = (mouse_switch == _PRESS or ui.context_menu[1] ~= nil)
 	
@@ -490,7 +519,7 @@ function ui.update(dt)
 	-- End check collision on title bar
 	
 	-- Check collision on context menu
-	if ui.context_menu[1] ~= nil then
+	if ui.context_menu[1] ~= nil and not ui.preview_dragging then
 		
 		local mx_on_menu, my_on_menu
 		local exit_cm = false
@@ -879,6 +908,106 @@ function ui.update(dt)
 	else
 		ui.lyr_dir = ""
 		ui.lyr_timer = 0
+	end
+	
+	-- Interaction for preview window
+	if ui.preview_active and not ui_active and ui.popup[1] == nil then
+		
+		local rx, ry, rw, rh = ui.preview_x, ui.preview_y, ui.preview_w, ui.preview_h
+		local pmx, pmy = mx - rx, my - ry
+		
+		local grab = 6
+		
+		local grab_left = (pmx <= 1 and pmx >= -grab)
+		local grab_right = (pmx >= rw - 1 and pmx <= rw + grab)
+		local grab_top = (pmy <= 1 and pmy >= -grab)
+		local grab_bot = (pmy >= rh - 1 and pmy <= rh + grab)
+		
+		-- Only show cursors when in bounds of the preview window
+		if pmx >= -grab and pmx <= rw + grab and pmy >= -grab and pmy <= rh + grab and not ui.preview_dragging then
+		
+			-- Set the correct cursor
+			if (grab_top and grab_left) then
+				love.mouse.setCursor(cursor_size_fall)
+				ui.preview_drag_corner = 1
+			elseif (grab_bot and grab_right) then
+				love.mouse.setCursor(cursor_size_fall)
+				ui.preview_drag_corner = 5
+			elseif (grab_top and grab_right) then
+				love.mouse.setCursor(cursor_size_rise)
+				ui.preview_drag_corner = 3
+			elseif (grab_bot and grab_left) then
+				love.mouse.setCursor(cursor_size_rise)
+				ui.preview_drag_corner = 7
+			elseif grab_top then
+				love.mouse.setCursor(cursor_size_v)
+				ui.preview_drag_corner = 2
+			elseif grab_bot then
+				love.mouse.setCursor(cursor_size_v)
+				ui.preview_drag_corner = 6
+			elseif grab_left then
+				love.mouse.setCursor(cursor_size_h)
+				ui.preview_drag_corner = 8
+			elseif grab_right then
+				love.mouse.setCursor(cursor_size_h)
+				ui.preview_drag_corner = 4
+			else
+				love.mouse.setCursor()
+				ui.preview_drag_corner = -1
+			end
+			
+			if mouse_switch == _PRESS then
+				ui.preview_dragging = true
+				ui_active = true
+			end
+			
+		else
+			love.mouse.setCursor()
+		end
+	
+	end
+		
+	if ui.preview_dragging then
+	
+		if mouse_switch == _RELEASE then
+			ui.preview_dragging = false
+			ui_active = true
+		else
+		
+			if ui.preview_drag_corner ~= -1 then --If we're resizing the preview window
+			
+				local drag = ui.preview_drag_corner
+				--print(drag)
+				if drag == 1 then --NW
+					
+				elseif drag == 2 then --N
+					
+				elseif drag == 3 then --NE
+					
+				elseif drag == 4 then --E
+					ui.preview_w = ui.preview_w + (mx - ui.mouse_x_previous)
+				elseif drag == 5 then --SE
+					ui.preview_w = ui.preview_w + (mx - ui.mouse_x_previous)
+					ui.preview_h = ui.preview_h + (my - ui.mouse_y_previous)
+				elseif drag == 6 then --S
+					ui.preview_h = ui.preview_h + (my - ui.mouse_y_previous)
+				elseif drag == 7 then --SW
+					
+				else --W
+					
+				end
+			
+			else --We're moving the preview from the titlebar
+				ui.preview_x = ui.preview_x + (mx - ui.mouse_x_previous)
+				ui.preview_y = ui.preview_y + (my - ui.mouse_y_previous)
+			end
+			
+			-- Keep the preview window in bounds of the screen window
+			ui.resizeWindow()
+			
+			ui_active = true
+		end
+		
 	end
 	
 	-- Check toolbar collision
@@ -1538,31 +1667,6 @@ function ui.draw()
 			
 	end
 	
-	-- Draw preview window
-	if ui.preview_active then
-	
-		local rx, ry, rw, rh = ui.preview_x, ui.preview_y, ui.preview_w, ui.preview_h
-		
-		lg.setColor(col_box)
-		lg.rectangle("fill", rx, ry, rw, rh)
-		lg.setColor(c_white)
-		lg.draw(grad_active, rx, ry + 1, 0, rw/256, 23)
-		
-		lg.print("Preview", rx + 10, ry + 3)
-		ui.drawOutline(rx + 1, ry + 25, rw - 2, rh - 26)
-		
-		local old_zoom = camera_zoom
-		
-		lg.setScissor(rx + 3, ry + 27, rw - 5, rh - 29)
-		lg.translate(rx + 3, ry + 27, rw - 5, rh - 29)
-		camera_zoom = 1
-		polygon.draw()
-		camera_zoom = old_zoom
-		lg.translate(-rx - 3, -ry - 27, -rw + 5, -rh + 29)
-		lg.setScissor()
-	
-	end
-	
 	-- Draw toolbar
 	lg.setColor(col_box)
 	lg.rectangle("fill", 0, 54, 64, screen_height - 54)
@@ -1608,6 +1712,33 @@ function ui.draw()
 			xx = 0
 			
 		end
+	end
+	
+	-- Draw preview window
+	if ui.preview_active then
+	
+		local rx, ry, rw, rh = ui.preview_x, ui.preview_y, ui.preview_w, ui.preview_h
+		
+		lg.setColor(col_box)
+		lg.rectangle("fill", rx, ry, rw, rh)
+		lg.setColor(c_white)
+		lg.draw(grad_active, rx, ry + 1, 0, rw/256, 23)
+		
+		lg.print("Preview", rx + 10, ry + 3)
+		ui.drawOutline(rx + 1, ry + 25, rw - 2, rh - 26)
+		
+		local old_zoom = camera_zoom
+		local bx, by, bw, bh = rx + 3, ry + 27, rw - 5, rh - 29
+		
+		lg.setScissor(bx, by, bw, bh)
+		lg.translate(bx, by, bw, bh)
+		camera_zoom = 1
+		-- TODO add artborad
+		polygon.draw()
+		camera_zoom = old_zoom
+		lg.translate(-bx, -by, -bw, -bh)
+		lg.setScissor()
+	
 	end
 	
 	-- Draw popup box

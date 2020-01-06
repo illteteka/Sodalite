@@ -68,7 +68,7 @@ function input.update(dt)
 
 	mouse_switch = input.pullSwitch(love.mouse.isDown(1), mouse_switch)
 	rmb_switch   = input.pullSwitch(love.mouse.isDown(2), rmb_switch)
-
+	
 end
 
 return input
