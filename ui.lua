@@ -61,6 +61,8 @@ ui.preview_w_min = 200
 ui.preview_h_min = 200
 ui.preview_w_max = 500
 ui.preview_h_max = 500
+ui.preview_w_init_pos = 0
+ui.preview_h_init_pos = 0
 ui.preview_dragging = false
 ui.preview_drag_corner = -1
 
@@ -70,6 +72,8 @@ ui.mouse_x = -1
 ui.mouse_y = -1
 ui.mouse_x_previous = -1
 ui.mouse_y_previous = -1
+ui.mouse_lock_x = -1
+ui.mouse_lock_y = -1
 
 function ui.init()
 	-- Add palette sliders
@@ -446,14 +450,123 @@ function ui.resizeWindow()
 	ui.popup_x = math.floor((screen_width / 2) - (ui.popup_w / 2))
 	ui.popup_y = math.floor((screen_height / 2) - (ui.popup_h / 2))
 	
-	if ui.preview_x < 65 then ui.preview_x = 65 end
-	if ui.preview_x > screen_width - ui.preview_w - 209 then ui.preview_x = screen_width - ui.preview_w - 209 end
-	if ui.preview_y < 55 then ui.preview_y = 55 end
+	if ui.preview_x < 65 then ui.preview_x = 65 ui.mouse_lock_x = math.floor(ui.preview_w/2) end
+	if ui.preview_x > screen_width - ui.preview_w - 209 then ui.preview_x = screen_width - ui.preview_w - 209 ui.mouse_lock_x = math.floor(ui.preview_w/2) end
+	if ui.preview_y < 55 then ui.preview_y = 55 ui.mouse_lock_y = 12 end
 	if ui.preview_y > screen_height - 25 then ui.preview_y = screen_height - 25 end
-	if ui.preview_w < ui.preview_w_min then ui.preview_w = ui.preview_w_min end
-	if ui.preview_h < ui.preview_h_min then ui.preview_h = ui.preview_h_min end
-	if ui.preview_w > ui.preview_w_max then ui.preview_w = ui.preview_w_max end
-	if ui.preview_h > ui.preview_h_max then ui.preview_h = ui.preview_h_max end
+	
+	local lock_w_max, lock_w_min, lock_h_max, lock_h_min = 0,0,0,0
+	
+	local drag = ui.preview_drag_corner
+	if drag == 1 or drag == 2 or drag == 8 then --NW, N, W
+		
+		if drag == 1 or drag == 2 then
+		
+			local orig_y, orig_h = ui.preview_y, ui.preview_h
+		
+			if ui.preview_h < ui.preview_h_min then
+			
+				ui.preview_y = math.min(ui.preview_y, ui.preview_h_init_pos - ui.preview_h_min)
+				ui.preview_h = math.max(ui.preview_h, ui.preview_h_min)
+				
+				if (orig_y ~= ui.preview_y) or (orig_h ~= ui.preview_h) then ui.mouse_lock_y = 0 end
+			
+			end
+			
+			if ui.preview_h > ui.preview_h_max then
+			
+				ui.preview_y = math.max(ui.preview_y, ui.preview_h_init_pos - ui.preview_h_max)
+				ui.preview_h = math.min(ui.preview_h, ui.preview_h_max)
+				
+				if (orig_y ~= ui.preview_y) or (orig_h ~= ui.preview_h) then ui.mouse_lock_y = 0 end
+			
+			end
+		
+		end
+		
+		if drag == 1 or drag == 8 then
+		
+			local orig_x, orig_w = ui.preview_x, ui.preview_w
+		
+			if ui.preview_w < ui.preview_w_min then
+			
+				ui.preview_x = math.min(ui.preview_x, ui.preview_w_init_pos - ui.preview_w_min)
+				ui.preview_w = math.max(ui.preview_w, ui.preview_w_min)
+				
+				if (orig_x ~= ui.preview_x) or (orig_w ~= ui.preview_w) then ui.mouse_lock_x = 0 end
+			
+			end
+			
+			if ui.preview_w > ui.preview_w_max then
+			
+				ui.preview_x = math.max(ui.preview_x, ui.preview_w_init_pos - ui.preview_w_max)
+				ui.preview_w = math.min(ui.preview_w, ui.preview_w_max)
+				
+				if (orig_x ~= ui.preview_x) or (orig_w ~= ui.preview_w) then ui.mouse_lock_x = 0 end
+			
+			end
+		
+		end
+		
+	elseif drag == 3 then --NE
+		
+		local orig_y, orig_h = ui.preview_y, ui.preview_h
+	
+		if ui.preview_h < ui.preview_h_min then
+		
+			ui.preview_y = math.min(ui.preview_y, ui.preview_h_init_pos - ui.preview_h_min)
+			ui.preview_h = math.max(ui.preview_h, ui.preview_h_min)
+			
+			if (orig_y ~= ui.preview_y) or (orig_h ~= ui.preview_h) then ui.mouse_lock_y = 0 end
+		
+		end
+		
+		if ui.preview_h > ui.preview_h_max then
+		
+			ui.preview_y = math.max(ui.preview_y, ui.preview_h_init_pos - ui.preview_h_max)
+			ui.preview_h = math.min(ui.preview_h, ui.preview_h_max)
+			
+			if (orig_y ~= ui.preview_y) or (orig_h ~= ui.preview_h) then ui.mouse_lock_y = 0 end
+		
+		end
+		
+		if ui.preview_w < ui.preview_w_min then ui.preview_w = ui.preview_w_min ui.mouse_lock_x = ui.preview_w_min end
+		if ui.preview_w > ui.preview_w_max then ui.preview_w = ui.preview_w_max ui.mouse_lock_x = ui.preview_w_max end
+		
+	elseif drag == 4 or drag == 5 or drag == 6 then
+		lock_w_max, lock_w_min, lock_h_max, lock_h_min = ui.preview_w_max, ui.preview_w_min, ui.preview_h_max, ui.preview_h_min
+		
+		if ui.preview_w < ui.preview_w_min then ui.preview_w = ui.preview_w_min ui.mouse_lock_x = lock_w_min end
+		if ui.preview_h < ui.preview_h_min then ui.preview_h = ui.preview_h_min ui.mouse_lock_y = lock_h_min end
+		if ui.preview_w > ui.preview_w_max then ui.preview_w = ui.preview_w_max ui.mouse_lock_x = lock_w_max end
+		if ui.preview_h > ui.preview_h_max then ui.preview_h = ui.preview_h_max ui.mouse_lock_y = lock_h_max end
+		
+	elseif drag == 7 then --SW
+		
+		if ui.preview_h < ui.preview_h_min then ui.preview_h = ui.preview_h_min ui.mouse_lock_y = ui.preview_h_min end
+		if ui.preview_h > ui.preview_h_max then ui.preview_h = ui.preview_h_max ui.mouse_lock_y = ui.preview_h_max end
+		
+		local orig_x, orig_w = ui.preview_x, ui.preview_w
+		
+		if ui.preview_w < ui.preview_w_min then
+		
+			ui.preview_x = math.min(ui.preview_x, ui.preview_w_init_pos - ui.preview_w_min)
+			ui.preview_w = math.max(ui.preview_w, ui.preview_w_min)
+			
+			if (orig_x ~= ui.preview_x) or (orig_w ~= ui.preview_w) then ui.mouse_lock_x = 0 end
+		
+		end
+		
+		if ui.preview_w > ui.preview_w_max then
+		
+			ui.preview_x = math.max(ui.preview_x, ui.preview_w_init_pos - ui.preview_w_max)
+			ui.preview_w = math.min(ui.preview_w, ui.preview_w_max)
+			
+			if (orig_x ~= ui.preview_x) or (orig_w ~= ui.preview_w) then ui.mouse_lock_x = 0 end
+		
+		end
+		
+	end
 
 end
 
@@ -926,6 +1039,8 @@ function ui.update(dt)
 		-- Only show cursors when in bounds of the preview window
 		if pmx >= -grab and pmx <= rw + grab and pmy >= -grab and pmy <= rh + grab and not ui.preview_dragging then
 		
+			local drag_titlebar = false
+		
 			-- Set the correct cursor
 			if (grab_top and grab_left) then
 				love.mouse.setCursor(cursor_size_fall)
@@ -954,15 +1069,22 @@ function ui.update(dt)
 			else
 				love.mouse.setCursor()
 				ui.preview_drag_corner = -1
+				drag_titlebar = (my <= ui.preview_y + 25)
 			end
 			
 			if mouse_switch == _PRESS then
-				ui.preview_dragging = true
-				ui_active = true
+				if ui.preview_drag_corner ~= -1 or drag_titlebar then
+					ui.preview_dragging = true
+					ui.preview_w_init_pos = ui.preview_x + ui.preview_w
+					ui.preview_h_init_pos = ui.preview_y + ui.preview_h
+					ui_active = true
+				end
 			end
 			
 		else
-			love.mouse.setCursor()
+			if not ui.preview_dragging then
+				love.mouse.setCursor()
+			end
 		end
 	
 	end
@@ -972,34 +1094,102 @@ function ui.update(dt)
 		if mouse_switch == _RELEASE then
 			ui.preview_dragging = false
 			ui_active = true
+			ui.mouse_lock_x = -1
+			ui.mouse_lock_y = -1
 		else
 		
+			local lock_w = false
+			local lock_h = false
+		
+			if ui.mouse_lock_x ~= -1 or ui.mouse_lock_y ~= -1 then
+				local check_x_drag = (ui.preview_x + ui.mouse_lock_x - mx)
+				local check_x_drag_prev = (ui.preview_x + ui.mouse_lock_x - ui.mouse_x_previous)
+				local check_y_drag = (ui.preview_y + ui.mouse_lock_y - my)
+				local check_y_drag_prev = (ui.preview_y + ui.mouse_lock_y - ui.mouse_y_previous)
+				
+				lock_w = true
+				if (check_x_drag * check_x_drag_prev <= 0) then
+					--print(check_x_drag, check_x_drag_prev)
+					ui.mouse_lock_x = -1
+					lock_w = false
+				end
+			
+				lock_h = true
+				if (check_y_drag * check_y_drag_prev <= 0) then
+					--print(check_y_drag, check_y_drag_prev)
+					ui.mouse_lock_y = -1
+					lock_h = false
+				end
+				
+				-- print("----------------------")
+				-- print("ui.mouse_lock_x", ui.mouse_lock_x)
+				-- print("ui.mouse_lock_y", ui.mouse_lock_y)
+				-- print("lock_w", lock_w)
+				-- print("lock_h", lock_h)
+				-- print("ui.preview_drag_corner", ui.preview_drag_corner)
+			end
+			
+			local original_x = ui.preview_x
+			local original_y = ui.preview_y
+			
 			if ui.preview_drag_corner ~= -1 then --If we're resizing the preview window
+			
+				local x_movement = ui.preview_x
+				local y_movement = ui.preview_y
+				local w_movement = ui.preview_w
+				local h_movement = ui.preview_h
 			
 				local drag = ui.preview_drag_corner
 				--print(drag)
 				if drag == 1 then --NW
-					
+					y_movement = ui.preview_y + (my - ui.mouse_y_previous)
+					h_movement = ui.preview_h - (my - ui.mouse_y_previous)
+					x_movement = ui.preview_x + (mx - ui.mouse_x_previous)
+					w_movement = ui.preview_w - (mx - ui.mouse_x_previous)
+					love.mouse.setCursor(cursor_size_fall)
 				elseif drag == 2 then --N
-					
+					y_movement = ui.preview_y + (my - ui.mouse_y_previous)
+					h_movement = ui.preview_h - (my - ui.mouse_y_previous)
+					love.mouse.setCursor(cursor_size_v)
 				elseif drag == 3 then --NE
-					
+					y_movement = ui.preview_y + (my - ui.mouse_y_previous)
+					h_movement = ui.preview_h - (my - ui.mouse_y_previous)
+					w_movement = ui.preview_w + (mx - ui.mouse_x_previous)
+					love.mouse.setCursor(cursor_size_rise)
 				elseif drag == 4 then --E
-					ui.preview_w = ui.preview_w + (mx - ui.mouse_x_previous)
+					w_movement = ui.preview_w + (mx - ui.mouse_x_previous)
+					love.mouse.setCursor(cursor_size_h)
 				elseif drag == 5 then --SE
-					ui.preview_w = ui.preview_w + (mx - ui.mouse_x_previous)
-					ui.preview_h = ui.preview_h + (my - ui.mouse_y_previous)
+					w_movement = ui.preview_w + (mx - ui.mouse_x_previous)
+					h_movement = ui.preview_h + (my - ui.mouse_y_previous)
+					love.mouse.setCursor(cursor_size_fall)
 				elseif drag == 6 then --S
-					ui.preview_h = ui.preview_h + (my - ui.mouse_y_previous)
+					h_movement = ui.preview_h + (my - ui.mouse_y_previous)
+					love.mouse.setCursor(cursor_size_v)
 				elseif drag == 7 then --SW
-					
-				else --W
-					
+					x_movement = ui.preview_x + (mx - ui.mouse_x_previous)
+					w_movement = ui.preview_w - (mx - ui.mouse_x_previous)
+					h_movement = ui.preview_h + (my - ui.mouse_y_previous)
+					love.mouse.setCursor(cursor_size_rise)
+				elseif drag == 8 then --W
+					x_movement = ui.preview_x + (mx - ui.mouse_x_previous)
+					w_movement = ui.preview_w - (mx - ui.mouse_x_previous)
+					love.mouse.setCursor(cursor_size_h)
+				end
+				
+				if not lock_w then
+					ui.preview_x = x_movement
+					ui.preview_w = w_movement
+				end
+				
+				if not lock_h then
+					ui.preview_y = y_movement
+					ui.preview_h = h_movement
 				end
 			
 			else --We're moving the preview from the titlebar
-				ui.preview_x = ui.preview_x + (mx - ui.mouse_x_previous)
-				ui.preview_y = ui.preview_y + (my - ui.mouse_y_previous)
+				if ui.mouse_lock_x == -1 then ui.preview_x = ui.preview_x + (mx - ui.mouse_x_previous) end
+				if ui.mouse_lock_y == -1 then ui.preview_y = ui.preview_y + (my - ui.mouse_y_previous) end
 			end
 			
 			-- Keep the preview window in bounds of the screen window
