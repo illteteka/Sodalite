@@ -55,16 +55,17 @@ ui.lyr_click_y = 0
 ui.preview_active = false
 ui.preview_x = 100
 ui.preview_y = 100
-ui.preview_w = 300
-ui.preview_h = 300
-ui.preview_w_min = 200
-ui.preview_h_min = 200
+ui.preview_w = 252
+ui.preview_h = 252
+ui.preview_w_min = 252
+ui.preview_h_min = 252
 ui.preview_w_max = 500
 ui.preview_h_max = 500
 ui.preview_w_init_pos = 0
 ui.preview_h_init_pos = 0
 ui.preview_dragging = false
 ui.preview_drag_corner = -1
+ui.preview_bg_color = {179/255, 192/255, 209/255, 1}
 
 ui.toolbar = {}
 
@@ -1073,11 +1074,68 @@ function ui.update(dt)
 			end
 			
 			if mouse_switch == _PRESS then
+				ui_active = true
+			
+				-- Close window button (x)
+				if (mx >= rx + rw - 22) and (mx <= rx + rw - 22 + 18) and (my >= ry + 5) and (my <= ry + 20) then
+					ui.preview_active = false
+				end
+			
 				if ui.preview_drag_corner ~= -1 or drag_titlebar then
 					ui.preview_dragging = true
 					ui.preview_w_init_pos = ui.preview_x + ui.preview_w
 					ui.preview_h_init_pos = ui.preview_y + ui.preview_h
-					ui_active = true
+				else
+				
+					-- Button interactions
+						
+					-- Textbox for scale input
+					local ix, iy = rx + 36, ry + rh - 50
+
+					-- Toggle between pixels and percentage scaling
+					if (mx >= ix - 32) and (mx <= ix - 32 + 24) and (my >= iy + 24) and (my <= iy + 47) then
+						print("toggle zoom mode")
+					end
+					
+					-- Textbox for preview
+					if (mx >= ix - 5) and (mx <= ix + 41) and (my >= iy + 25) and (my <= iy + 45) then
+						print("textboxxx")
+					end
+
+					-- Move vars to be near the button positions
+					ix = ix + 49
+					iy = iy + 24
+
+					-- Zoom In
+					if (mx >= ix) and (mx <= ix + 24) and (my >= iy) and (my <= iy + 24) then
+						print("zoom in")
+					end
+
+					-- Zoom Out
+					if (mx >= ix + 28) and (mx <= ix + 24 + 28) and (my >= iy) and (my <= iy + 24) then
+						print("zoom out")
+					end
+
+					-- Reset scale
+					if (mx >= ix + 56) and (mx <= ix + 24 + 56) and (my >= iy) and (my <= iy + 24) then
+						print("reset scale")
+					end
+
+					-- Fit to window
+					if (mx >= ix + 84) and (mx <= ix + 24 + 84) and (my >= iy) and (my <= iy + 24) then
+						print("Fit to window")
+					end
+
+					-- Toggle artboard
+					if (mx >= ix + 112) and (mx <= ix + 24 + 112) and (my >= iy) and (my <= iy + 24) then
+						print("toggle artboard")
+					end
+
+					-- Background color
+					if (mx >= rx + rw - 26) and (mx <= rx + rw - 3) and (my >= iy) and (my <= iy + 23) then
+						print("background color")
+					end
+				
 				end
 			end
 			
@@ -1121,12 +1179,6 @@ function ui.update(dt)
 					lock_h = false
 				end
 				
-				-- print("----------------------")
-				-- print("ui.mouse_lock_x", ui.mouse_lock_x)
-				-- print("ui.mouse_lock_y", ui.mouse_lock_y)
-				-- print("lock_w", lock_w)
-				-- print("lock_h", lock_h)
-				-- print("ui.preview_drag_corner", ui.preview_drag_corner)
 			end
 			
 			local original_x = ui.preview_x
@@ -1915,10 +1967,12 @@ function ui.draw()
 		lg.draw(grad_active, rx, ry + 1, 0, rw/256, 23)
 		
 		lg.print("Preview", rx + 10, ry + 3)
-		ui.drawOutline(rx + 1, ry + 25, rw - 2, rh - 26)
+		lg.setColor(ui.preview_bg_color)
+		lg.rectangle("fill", rx + 1, ry + 25, rw - 2, rh - 26 - 28)
+		ui.drawOutline(rx + 1, ry + 25, rw - 2, rh - 26 - 28)
 		
 		local old_zoom = camera_zoom
-		local bx, by, bw, bh = rx + 3, ry + 27, rw - 5, rh - 29
+		local bx, by, bw, bh = rx + 3, ry + 27, rw - 5, rh - 29 - 28
 		
 		lg.setScissor(bx, by, bw, bh)
 		lg.translate(bx, by, bw, bh)
@@ -1928,6 +1982,62 @@ function ui.draw()
 		camera_zoom = old_zoom
 		lg.translate(-bx, -by, -bw, -bh)
 		lg.setScissor()
+		
+		-- Draw preview buttons
+		
+		-- Textbox for scale input
+		local ix, iy = rx + 36, ry + rh - 50
+		lg.setColor(c_off_white)
+		lg.rectangle("fill", ix - 5, iy + 25, 46, 20)
+		lg.setColor(col_inactive)
+		lg.rectangle("line", ix - 5, iy + 25, 46, 20)
+		lg.setColor(c_black)
+		lg.print("px", ix - font:getWidth("px") - 12, iy + 25)
+		lg.print("1000", ix, iy + 25)
+		
+		-- Move vars to be near the button positions
+		ix = ix + 49
+		iy = iy + 24
+		
+		-- Other buttons
+		
+		-- Close window button (x)
+		lg.setColor(col_box)
+		lg.rectangle("fill", rx + rw - 22, ry + 5, 18, 15)
+		ui.drawOutline(rx + rw - 22, ry + 5, 18, 15, true)
+		lg.setColor(c_white)
+		lg.draw(icon_close, rx + rw - 22 + 5, ry + 9)
+		
+		-- Zoom In
+		ui.drawOutline(ix, iy, 24, 24, true)
+		lg.setColor(c_white)
+		lg.draw(icon_zoom_in, ix, iy)
+		
+		-- Zoom Out
+		ui.drawOutline(ix + 28, iy, 24, 24, true)
+		lg.setColor(c_white)
+		lg.draw(icon_zoom_out, ix + 28, iy)
+		
+		-- Reset scale
+		ui.drawOutline(ix + 56, iy, 24, 24, true)
+		lg.setColor(c_white)
+		lg.draw(icon_reset, ix + 56, iy)
+		
+		-- Fit to window
+		ui.drawOutline(ix + 84, iy, 24, 24, true)
+		lg.setColor(c_white)
+		lg.draw(icon_fit, ix + 84, iy)
+		
+		-- Toggle artboard
+		ui.drawOutline(ix + 112, iy, 24, 24, true)
+		lg.setColor(c_white)
+		lg.draw(icon_draw, ix + 112, iy)
+		
+		-- Background color
+		lg.setColor(c_outline_dark)
+		lg.rectangle("line", rx + rw - 26, iy, 23, 23)
+		lg.setColor(c_outline_light)
+		lg.rectangle("line", rx + rw - 26 + 1, iy + 1, 21, 21)
 	
 	end
 	
