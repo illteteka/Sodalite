@@ -66,6 +66,10 @@ ui.preview_h_init_pos = 0
 ui.preview_dragging = false
 ui.preview_drag_corner = -1
 ui.preview_bg_color = {179/255, 192/255, 209/255, 1}
+ui.preview_window_x = 0
+ui.preview_window_y = 0
+ui.preview_zoom = 1
+ui.preview_action = ""
 
 ui.toolbar = {}
 
@@ -571,6 +575,24 @@ function ui.resizeWindow()
 
 end
 
+function ui.updatePreviewZoom(sw, sh, zo, zn)
+
+	-- Calculate expected center at old resolution
+	local old_x = (((sw  - document_w * zo) / 2) / zo)
+	local old_y = (((sh  - document_h * zo) / 2) / zo)
+
+	-- Get offset from center
+	local xm, ym = ui.preview_window_x - old_x, ui.preview_window_y - old_y
+
+	-- Update screen size and zoom
+	ui.preview_zoom = zn
+
+	-- Update camera and add offset
+	ui.preview_window_x = (((sw  - document_w * zn) / 2) / zn) + xm
+	ui.preview_window_y = (((sh  - document_h * zn) / 2) / zn) + ym
+
+end
+
 function ui.update(dt)
 
 	ui.mouse_x_previous, ui.mouse_y_previous = ui.mouse_x, ui.mouse_y
@@ -1037,6 +1059,30 @@ function ui.update(dt)
 		local grab_top = (pmy <= 1 and pmy >= -grab)
 		local grab_bot = (pmy >= rh - 1 and pmy <= rh + grab)
 		
+		local bx, by, bw, bh = rx + 3, ry + 27, rw - 5, rh - 29 - 28
+		if mx >= bx and mx <= bx + bw and my >= by and my <= by + bh then
+		
+			
+			
+			if mouse_switch == _PRESS then
+			
+				ui.preview_action = "move"
+			
+			else
+			
+			-- Zoom in/out with the scroll wheel
+			ui.preview_zoom = math.max(ui.preview_zoom + ((mouse_wheel_y / 100) * 60 * dt), 0.05)
+			
+			-- local old_zoom, new_zoom = 0, 0
+			-- old_zoom = ui.preview_zoom
+			-- -- Zoom in/out with the scroll wheel
+			-- new_zoom = math.max(ui.preview_zoom + ((mouse_wheel_y / 100) * 60 * dt), 0.05)
+			-- ui.updatePreviewZoom(bw, bh, old_zoom, new_zoom)
+			
+			end
+		
+		end
+		
 		-- Only show cursors when in bounds of the preview window
 		if pmx >= -grab and pmx <= rw + grab and pmy >= -grab and pmy <= rh + grab and not ui.preview_dragging then
 		
@@ -1108,12 +1154,15 @@ function ui.update(dt)
 
 					-- Zoom In
 					if (mx >= ix) and (mx <= ix + 24) and (my >= iy) and (my <= iy + 24) then
-						print("zoom in")
+						local round_zoom = math.floor(ui.preview_zoom * 100)/100
+						ui.preview_zoom = round_zoom * 1.25
+						
 					end
 
 					-- Zoom Out
 					if (mx >= ix + 28) and (mx <= ix + 24 + 28) and (my >= iy) and (my <= iy + 24) then
-						print("zoom out")
+						local round_zoom = math.floor(ui.preview_zoom * 100)/100
+						ui.preview_zoom = math.max(round_zoom * 0.85, 0.05)
 					end
 
 					-- Reset scale
@@ -1250,6 +1299,18 @@ function ui.update(dt)
 			ui_active = true
 		end
 		
+	end
+	
+	if ui.preview_action == "move" then
+	
+		if mouse_switch == _RELEASE then
+			ui.preview_action = ""
+		else
+			love.mouse.setCursor()
+			ui.preview_window_x = ui.preview_window_x + (mx - ui.mouse_x_previous)
+			ui.preview_window_y = ui.preview_window_y + (my - ui.mouse_y_previous)
+		end
+	
 	end
 	
 	-- Check toolbar collision
@@ -1975,12 +2036,12 @@ function ui.draw()
 		local bx, by, bw, bh = rx + 3, ry + 27, rw - 5, rh - 29 - 28
 		
 		lg.setScissor(bx, by, bw, bh)
-		lg.translate(bx, by, bw, bh)
-		camera_zoom = 1
+		lg.translate(bx + ui.preview_window_x, by + ui.preview_window_y)
+		camera_zoom = ui.preview_zoom
 		-- TODO add artborad
 		polygon.draw()
 		camera_zoom = old_zoom
-		lg.translate(-bx, -by, -bw, -bh)
+		lg.translate(-bx - ui.preview_window_x, -by - ui.preview_window_y)
 		lg.setScissor()
 		
 		-- Draw preview buttons

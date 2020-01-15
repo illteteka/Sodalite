@@ -74,6 +74,8 @@ mouse_x = -1
 mouse_y = -1
 mouse_x_previous = -1
 mouse_y_previous = -1
+mouse_wheel_x = 0
+mouse_wheel_y = 0
 
 ui_off_mouse_down = false
 ui_on_mouse_up = false
@@ -188,11 +190,17 @@ end
 
 function love.mousefocus(f)
 	ui.preview_dragging = false
+	ui.preview_action = ""
 end
 
 function love.resize(w, h)
 	updateCamera(w, h, camera_zoom, camera_zoom)
 	ui.resizeWindow()
+end
+
+function love.wheelmoved(x, y)
+	mouse_wheel_x = x
+	mouse_wheel_y = y
 end
 
 function love.textinput(x)
@@ -594,6 +602,8 @@ function love.update(dt)
 	-- End camera controls
 	
 	end
+	
+	mouse_wheel_x, mouse_wheel_y = 0, 0
 
 end
 
