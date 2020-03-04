@@ -34,28 +34,18 @@ function input.pullSwitch(a, b)
 
 	if a then
 
-		-- Change mouse state. M_PRESS stays for 2 frames by using M_PRESS + 0.1 before turning M_ON
-		if b == _OFF then
+		if b == _OFF or b == _RELEASE then
 			output = _PRESS
 		elseif b == _PRESS then
-			output = _PRESS + 0.1
-		elseif b == _PRESS + 0.1 then
 			output = _ON
 		end
 
 	else
 
-		-- Change mouse state. M_RELEASE stays for 2 frames by using M_RELEASE + 0.1 before turning M_OFF
-		if b == _ON then
+		if b == _ON or b == _PRESS then
 			output = _RELEASE
 		elseif b == _RELEASE then
-			output = _RELEASE + 0.1
-		elseif b == _RELEASE + 0.1 then
 			output = _OFF
-		elseif b == _PRESS then
-			output = _PRESS + 0.1
-		elseif b == _PRESS + 0.1 then
-			output = _ON
 		end
 
 	end

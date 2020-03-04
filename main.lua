@@ -88,7 +88,7 @@ function updateCamera(w, h, zo, zn)
 	if zn < 0 then
 		zn = zo
 	end
-
+	
 	-- Calculate expected center at old resolution
 	local old_x = (((screen_width  - document_w * zo) / 2) / zo) - (72 / zo)
 	local old_y = (((screen_height - document_h * zo) / 2) / zo) + (54 / 2 / zo)
@@ -190,7 +190,9 @@ end
 
 function love.mousefocus(f)
 	ui.preview_dragging = false
-	ui.preview_action = ""
+	if ui.preview_action ~= "background" then
+		ui.preview_action = ""
+	end
 end
 
 function love.resize(w, h)

@@ -70,6 +70,7 @@ ui.preview_window_x = 0
 ui.preview_window_y = 0
 ui.preview_zoom = 1
 ui.preview_action = ""
+ui.preview_palette_enabled = false
 
 ui.toolbar = {}
 
@@ -575,24 +576,6 @@ function ui.resizeWindow()
 
 end
 
-function ui.updatePreviewZoom(sw, sh, zo, zn)
-
-	-- Calculate expected center at old resolution
-	local old_x = (((sw  - document_w * zo) / 2) / zo)
-	local old_y = (((sh  - document_h * zo) / 2) / zo)
-
-	-- Get offset from center
-	local xm, ym = ui.preview_window_x - old_x, ui.preview_window_y - old_y
-
-	-- Update screen size and zoom
-	ui.preview_zoom = zn
-
-	-- Update camera and add offset
-	ui.preview_window_x = (((sw  - document_w * zn) / 2) / zn) + xm
-	ui.preview_window_y = (((sh  - document_h * zn) / 2) / zn) + ym
-
-end
-
 function ui.update(dt)
 
 	ui.mouse_x_previous, ui.mouse_y_previous = ui.mouse_x, ui.mouse_y
@@ -600,6 +583,9 @@ function ui.update(dt)
 	local mx, my = ui.mouse_x, ui.mouse_y
 	local ui_active = false
 	local has_interaction = (mouse_switch == _PRESS or ui.context_menu[1] ~= nil)
+	
+	local col_title_bar = false
+	local col_cont_menu = false
 	
 	-- Check collision on title bar
 	if my < 24 then
@@ -626,6 +612,8 @@ function ui.update(dt)
 						ui.context_menu = {}
 					else -- Otherwise, open the context menu
 						ui.loadCM(title_len - 6, 24, ui.title[i].ref)
+						col_title_bar = true
+						ui.preview_palette_enabled = false
 					end
 				end
 			
@@ -680,6 +668,8 @@ function ui.update(dt)
 						if my >= low and my <= upp then
 							if ui.context_menu[i].active then
 								ui.loadPopup(ui.context_menu[i].ref)
+								col_cont_menu = true
+								ui.preview_palette_enabled = false
 							end
 							exit_cm = ui.context_menu[i].active
 						end
@@ -699,6 +689,11 @@ function ui.update(dt)
 			ui.title_active = false
 		end
 	
+	end
+	
+	if mouse_switch == _PRESS and col_cont_menu == false and col_title_bar == false then
+		ui.context_menu = {}
+		ui.title_active = false
 	end
 	
 	ui.allow_keyboard_input = (ui.sel_type ~= "")
@@ -722,7 +717,7 @@ function ui.update(dt)
 		palette.copy = new_col
 	end
 	
-	if input.ctrlCombo(v_key) and palette.canPaste and palette.copy ~= nil then	
+	if input.ctrlCombo(v_key) and palette.canPaste and palette.copy ~= nil and ui.preview_palette_enabled then
 		palette.colors[palette.slot + 1] = palette.copy
 		palette.active = palette.colors[palette.slot + 1]
 		palette.updateFromBoxes()
@@ -758,6 +753,7 @@ function ui.update(dt)
 			local sel_x, sel_y
 			sel_x = math.floor(raw_x / 16)
 			if sel_x > -1 and sel_x < 12 then
+				ui.preview_palette_enabled = true
 				sel_y = math.floor(raw_y / 16)
 				local final_col = (sel_y * palette.w) + sel_x
 				palette.slot = final_col
@@ -847,6 +843,7 @@ function ui.update(dt)
 	local layh = screen_height - 403
 	if (mouse_switch == _PRESS) and (mx >= screen_width - 208) and (my >= layy) then
 	
+		ui.preview_palette_enabled = false
 		-- Scroll bar
 		if (mx >= screen_width - 16) and (my >= layy + 41 + 14) and (my <= 14 + screen_height - 34) then
 			ui.lyr_scroll = true
@@ -1046,6 +1043,76 @@ function ui.update(dt)
 		ui.lyr_timer = 0
 	end
 	
+	-- Check toolbar collision
+	if (mouse_switch == _PRESS) and ((mx <= 64) or (my <= 54)) and (not ui_active) then
+		
+		ui.preview_palette_enabled = false
+		local yy = my - 61
+		
+		local first_offset  = (yy >= 24 * 3)
+		local second_offset = (yy >= (24 * 5) + 12)
+		
+		local first_break = (first_offset and yy < (24 * 3) + 12)
+		local second_break = (second_offset and yy < (24 * 5) + 24)
+		
+		-- If not clicking between the line breaks
+		if not (first_break or second_break) then
+		
+			local y_offset = 0
+			
+			-- Add an offset to offset the distance of the line breaks
+			if second_offset then
+				y_offset = 24
+			elseif first_offset then
+				y_offset = 12
+			end
+			
+			local aa = math.floor((mx - 8)/24)
+			local bb = math.floor((my - 61 - y_offset)/24)
+			
+			local key = ((bb * 2) + aa + 1)
+			
+			-- Don't crash if clicking a toolbar icon out of bounds
+			local check_success = true
+			if key < 1 or key > #ui.toolbar then
+				key = 1
+				check_success = false
+			end
+			
+			local tool = ui.toolbar[key]
+			
+			if (tool.ref ~= nil) and (check_success) then
+			
+				-- Toolbar actions go here
+				if tool.ref == ".main" then
+					print("cursor a")
+				elseif tool.ref == ".edit" then
+					print("cursor b")
+				elseif tool.ref == ".grid" then
+					print("grid")
+				elseif tool.ref == ".zoom" then
+					print("zoom")
+				elseif tool.ref == ".pick" then
+					print("nose picker")
+				elseif tool.ref == ".tri" then
+					print("triangle")
+				elseif tool.ref == ".circ" then
+					print("circle")
+				elseif tool.ref == ".artb" then
+					print("draw somethin")
+				elseif tool.ref == ".undo" then
+					print("undo")
+				elseif tool.ref == ".redo" then
+					print("redo")
+				end
+			
+			end
+			
+		end
+		
+		ui_active = true
+	end
+	
 	-- Interaction for preview window
 	if ui.preview_active and not ui_active and ui.popup[1] == nil then
 		
@@ -1062,23 +1129,19 @@ function ui.update(dt)
 		local bx, by, bw, bh = rx + 3, ry + 27, rw - 5, rh - 29 - 28
 		if mx >= bx and mx <= bx + bw and my >= by and my <= by + bh then
 		
-			
-			
 			if mouse_switch == _PRESS then
 			
+				ui.preview_palette_enabled = false
 				ui.preview_action = "move"
 			
 			else
 			
 			-- Zoom in/out with the scroll wheel
-			ui.preview_zoom = math.max(ui.preview_zoom + ((mouse_wheel_y / 100) * 60 * dt), 0.05)
 			
-			-- local old_zoom, new_zoom = 0, 0
-			-- old_zoom = ui.preview_zoom
-			-- -- Zoom in/out with the scroll wheel
-			-- new_zoom = math.max(ui.preview_zoom + ((mouse_wheel_y / 100) * 60 * dt), 0.05)
-			-- ui.updatePreviewZoom(bw, bh, old_zoom, new_zoom)
-			
+				if mouse_wheel_y ~= 0 then
+					ui.preview_zoom = math.max(ui.preview_zoom + ((mouse_wheel_y / 100) * 60 * dt), 0.05)
+				end
+				
 			end
 		
 		end
@@ -1141,11 +1204,13 @@ function ui.update(dt)
 					-- Toggle between pixels and percentage scaling
 					if (mx >= ix - 32) and (mx <= ix - 32 + 24) and (my >= iy + 24) and (my <= iy + 47) then
 						print("toggle zoom mode")
+						ui.preview_action = ""
 					end
 					
 					-- Textbox for preview
 					if (mx >= ix - 5) and (mx <= ix + 41) and (my >= iy + 25) and (my <= iy + 45) then
 						print("textboxxx")
+						ui.preview_action = ""
 					end
 
 					-- Move vars to be near the button positions
@@ -1156,33 +1221,41 @@ function ui.update(dt)
 					if (mx >= ix) and (mx <= ix + 24) and (my >= iy) and (my <= iy + 24) then
 						local round_zoom = math.floor(ui.preview_zoom * 100)/100
 						ui.preview_zoom = round_zoom * 1.25
-						
+						ui.preview_action = ""
 					end
 
 					-- Zoom Out
 					if (mx >= ix + 28) and (mx <= ix + 24 + 28) and (my >= iy) and (my <= iy + 24) then
 						local round_zoom = math.floor(ui.preview_zoom * 100)/100
 						ui.preview_zoom = math.max(round_zoom * 0.85, 0.05)
+						ui.preview_action = ""
 					end
 
 					-- Reset scale
 					if (mx >= ix + 56) and (mx <= ix + 24 + 56) and (my >= iy) and (my <= iy + 24) then
-						print("reset scale")
+						ui.preview_window_x = 0
+						ui.preview_window_y = 0
+						ui.preview_zoom = 1
+						ui.preview_action = ""
 					end
 
 					-- Fit to window
 					if (mx >= ix + 84) and (mx <= ix + 24 + 84) and (my >= iy) and (my <= iy + 24) then
 						print("Fit to window")
+						ui.preview_action = ""
 					end
 
 					-- Toggle artboard
 					if (mx >= ix + 112) and (mx <= ix + 24 + 112) and (my >= iy) and (my <= iy + 24) then
 						print("toggle artboard")
+						ui.preview_action = ""
 					end
 
 					-- Background color
 					if (mx >= rx + rw - 26) and (mx <= rx + rw - 3) and (my >= iy) and (my <= iy + 23) then
 						print("background color")
+						ui.preview_palette_enabled = false
+						ui.preview_action = "background"
 					end
 				
 				end
@@ -1194,6 +1267,10 @@ function ui.update(dt)
 			end
 		end
 	
+	else
+		if mouse_switch == _PRESS then
+			ui.preview_action = ""
+		end
 	end
 		
 	if ui.preview_dragging then
@@ -1205,6 +1282,7 @@ function ui.update(dt)
 			ui.mouse_lock_y = -1
 		else
 		
+			ui.preview_palette_enabled = false
 			local lock_w = false
 			local lock_h = false
 		
@@ -1281,16 +1359,19 @@ function ui.update(dt)
 				if not lock_w then
 					ui.preview_x = x_movement
 					ui.preview_w = w_movement
+					ui.preview_action = ""
 				end
 				
 				if not lock_h then
 					ui.preview_y = y_movement
 					ui.preview_h = h_movement
+					ui.preview_action = ""
 				end
 			
 			else --We're moving the preview from the titlebar
 				if ui.mouse_lock_x == -1 then ui.preview_x = ui.preview_x + (mx - ui.mouse_x_previous) end
 				if ui.mouse_lock_y == -1 then ui.preview_y = ui.preview_y + (my - ui.mouse_y_previous) end
+				ui.preview_action = ""
 			end
 			
 			-- Keep the preview window in bounds of the screen window
@@ -1313,73 +1394,19 @@ function ui.update(dt)
 	
 	end
 	
-	-- Check toolbar collision
-	if (mouse_switch == _PRESS) and ((mx <= 64) or (my <= 54)) and (not ui_active) then
-		
-		local yy = my - 61
-		
-		local first_offset  = (yy >= 24 * 3)
-		local second_offset = (yy >= (24 * 5) + 12)
-		
-		local first_break = (first_offset and yy < (24 * 3) + 12)
-		local second_break = (second_offset and yy < (24 * 5) + 24)
-		
-		-- If not clicking between the line breaks
-		if not (first_break or second_break) then
-		
-			local y_offset = 0
-			
-			-- Add an offset to offset the distance of the line breaks
-			if second_offset then
-				y_offset = 24
-			elseif first_offset then
-				y_offset = 12
-			end
-			
-			local aa = math.floor((mx - 8)/24)
-			local bb = math.floor((my - 61 - y_offset)/24)
-			
-			local key = ((bb * 2) + aa + 1)
-			
-			-- Don't crash if clicking a toolbar icon out of bounds
-			local check_success = true
-			if key < 1 or key > #ui.toolbar then
-				key = 1
-				check_success = false
-			end
-			
-			local tool = ui.toolbar[key]
-			
-			if (tool.ref ~= nil) and (check_success) then
-			
-				-- Toolbar actions go here
-				if tool.ref == ".main" then
-					print("cursor a")
-				elseif tool.ref == ".edit" then
-					print("cursor b")
-				elseif tool.ref == ".grid" then
-					print("grid")
-				elseif tool.ref == ".zoom" then
-					print("zoom")
-				elseif tool.ref == ".pick" then
-					print("nose picker")
-				elseif tool.ref == ".tri" then
-					print("triangle")
-				elseif tool.ref == ".circ" then
-					print("circle")
-				elseif tool.ref == ".artb" then
-					print("draw somethin")
-				elseif tool.ref == ".undo" then
-					print("undo")
-				elseif tool.ref == ".redo" then
-					print("redo")
-				end
-			
-			end
-			
+	if ui.preview_action == "background" then
+	
+		-- Copy and paste for palette
+		if input.ctrlCombo(c_key) then
+			local new_col = {ui.preview_bg_color[1], ui.preview_bg_color[2], ui.preview_bg_color[3], ui.preview_bg_color[4]}
+			palette.copy = new_col
 		end
 		
-		ui_active = true
+		if input.ctrlCombo(v_key) and palette.canPaste and palette.copy ~= nil then
+			local new_col = {palette.copy[1], palette.copy[2], palette.copy[3], palette.copy[4]}
+			ui.preview_bg_color = new_col
+		end
+	
 	end
 	
 	-- Check collision on popup box
@@ -1445,6 +1472,7 @@ function ui.update(dt)
 			
 			if mouse_switch == _PRESS then
 			
+				ui.preview_palette_enabled = false
 				local px, py, pw, ph, pxo = ui.popup_x, ui.popup_y, ui.popup_w, ui.popup_h, ui.popup_x_offset
 				local popup_clicked = false
 			
@@ -1549,19 +1577,15 @@ function ui.update(dt)
 		
 	end
 	
-	-- Last step in UI code, check if mouse exited UI elements
-	local ui_has_active_elements = (ui.context_menu[1] ~= nil or ui.title_active or ui.popup[1] ~= nil)
-	
-	if mouse_switch == _PRESS and ui_active == false and ui_has_active_elements then
-		ui_active = true
-		ui.context_menu = {}
-		ui.title_active = false
-	end
-	
 	ui.popup_enter = false
 	
 	-- Make ui active if interacting with palette/layer window
 	ui_active = ui_active or (mx >= screen_width - 208)
+	
+	if mouse_switch == _PRESS and ui_active == false then
+		ui.preview_action = ""
+		ui.preview_palette_enabled = false
+	end
 	
 	return ui_active
 
@@ -2035,14 +2059,16 @@ function ui.draw()
 		local old_zoom = camera_zoom
 		local bx, by, bw, bh = rx + 3, ry + 27, rw - 5, rh - 29 - 28
 		
+		lg.push()
 		lg.setScissor(bx, by, bw, bh)
-		lg.translate(bx + ui.preview_window_x, by + ui.preview_window_y)
+		lg.translate(bx, by)
+		lg.translate(math.floor(ui.preview_window_x * ui.preview_zoom), math.floor(ui.preview_window_y * ui.preview_zoom))
 		camera_zoom = ui.preview_zoom
 		-- TODO add artborad
 		polygon.draw()
 		camera_zoom = old_zoom
-		lg.translate(-bx - ui.preview_window_x, -by - ui.preview_window_y)
 		lg.setScissor()
+		lg.pop()
 		
 		-- Draw preview buttons
 		
@@ -2095,6 +2121,8 @@ function ui.draw()
 		lg.draw(icon_draw, ix + 112, iy)
 		
 		-- Background color
+		lg.setColor(ui.preview_bg_color)
+		lg.rectangle("fill", rx + rw - 26, iy, 23, 23)
 		lg.setColor(c_outline_dark)
 		lg.rectangle("line", rx + rw - 26, iy, 23, 23)
 		lg.setColor(c_outline_light)
