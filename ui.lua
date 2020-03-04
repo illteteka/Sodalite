@@ -71,6 +71,7 @@ ui.preview_window_y = 0
 ui.preview_zoom = 1
 ui.preview_action = ""
 ui.preview_palette_enabled = false
+ui.preview_artboard_enabled = false
 
 ui.toolbar = {}
 
@@ -1241,19 +1242,22 @@ function ui.update(dt)
 
 					-- Fit to window
 					if (mx >= ix + 84) and (mx <= ix + 24 + 84) and (my >= iy) and (my <= iy + 24) then
-						print("Fit to window")
+						ui.preview_window_x = 0
+						ui.preview_window_y = 0
+						local larger_preview_bound = math.min(ui.preview_w, ui.preview_h - 55)
+						local larger_window_bound = math.min(document_w, document_h)
+						ui.preview_zoom = larger_preview_bound / larger_window_bound
 						ui.preview_action = ""
 					end
 
 					-- Toggle artboard
 					if (mx >= ix + 112) and (mx <= ix + 24 + 112) and (my >= iy) and (my <= iy + 24) then
-						print("toggle artboard")
+						ui.preview_artboard_enabled = not ui.preview_artboard_enabled
 						ui.preview_action = ""
 					end
 
 					-- Background color
 					if (mx >= rx + rw - 26) and (mx <= rx + rw - 3) and (my >= iy) and (my <= iy + 23) then
-						print("background color")
 						ui.preview_palette_enabled = false
 						ui.preview_action = "background"
 					end
@@ -2063,9 +2067,31 @@ function ui.draw()
 		lg.setScissor(bx, by, bw, bh)
 		lg.translate(bx, by)
 		lg.translate(math.floor(ui.preview_window_x * ui.preview_zoom), math.floor(ui.preview_window_y * ui.preview_zoom))
+		
 		camera_zoom = ui.preview_zoom
-		-- TODO add artborad
+		
+		if artboard.draw_top and artboard.visible and artboard.canvas ~= nil and ui.preview_artboard_enabled then
+			local artcol = c_white
+			if artboard.transparent then
+				artcol = {1, 1, 1, 0.5}
+			end
+			
+			lg.setColor(artcol)
+			lg.draw(artboard.canvas, 0, 0, 0, ui.preview_zoom)
+		end
+		
 		polygon.draw()
+		
+		if not artboard.draw_top and artboard.visible and artboard.canvas ~= nil and ui.preview_artboard_enabled then
+			local artcol = c_white
+			if artboard.transparent then
+				artcol = {1, 1, 1, 0.5}
+			end
+			
+			lg.setColor(artcol)
+			lg.draw(artboard.canvas, 0, 0, 0, ui.preview_zoom)
+		end
+		
 		camera_zoom = old_zoom
 		lg.setScissor()
 		lg.pop()
