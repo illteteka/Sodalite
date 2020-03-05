@@ -496,7 +496,7 @@ function love.update(dt)
 		if i_key == _PRESS then debug_mode = "mirror" end
 		if o_key == _PRESS then debug_mode = "grid" end
 		if p_key == _PRESS then debug_mode = "zoom" end
-		if e_key == _PRESS then debug_mode = "preview" ui.preview_active = not ui.preview_active end
+		if e_key == _PRESS then debug_mode = "preview" ui.popupLoseFocus("preview") ui.preview_active = not ui.preview_active end
 		
 		if debug_mode == "artboard" then
 		

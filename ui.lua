@@ -29,8 +29,8 @@ ui.keyboard_timer_hit = false
 ui.input_cursor = 0
 ui.input_cursor_visible = false
 
-ui.sel_start = ""
-ui.sel_type = ""
+ui.active_textbox = ""
+ui.textbox_selection_origin = ""
 
 ui.allow_keyboard_input = false
 
@@ -72,6 +72,8 @@ ui.preview_zoom = 1
 ui.preview_action = ""
 ui.preview_palette_enabled = false
 ui.preview_artboard_enabled = false
+ui.preview_textbox = ""
+ui.preview_textbox_locked = true
 
 ui.toolbar = {}
 
@@ -151,6 +153,8 @@ function ui.loadPopup(ref)
 		-- Don't make duplicate popup
 	else
 		
+		ui.popupLoseFocus("preview")
+
 		ui.popup = {}
 		
 		if ref == "f.new" then
@@ -364,36 +368,44 @@ end
 
 function ui.popupLoseFocus(kind)
 	
-	if ui.popup_sel_a ~= 0 then 
-	
-	-- Reset value to previous value if textbox is empty
-	local name = ui.popup[ui.popup_sel_a][ui.popup_sel_b]
-	
-	if name.name == "" then
-		name.name = ui.sel_start
-	end
-	
-	-- Don't let width or height be less than 8 when making a new document
-	if kind == "f.new" then
-		if name.kind == "number" then
-			if tonumber(name.name) < 8 then
-				name.name = "8"
-			else
-				name.name = tostring(tonumber(name.name))
+	if ui.textbox_selection_origin == "popup" then
+		if ui.popup_sel_a ~= 0 then 
+		
+		-- Reset value to previous value if textbox is empty
+		local name = ui.popup[ui.popup_sel_a][ui.popup_sel_b]
+		
+		if name.name == "" then
+			name.name = ui.active_textbox
+		end
+		
+		-- Don't let width or height be less than 8 when making a new document
+		if kind == "f.new" then
+			if name.kind == "number" then
+				if tonumber(name.name) < 8 then
+					name.name = "8"
+				else
+					name.name = tostring(tonumber(name.name))
+				end
 			end
 		end
-	end
+		
+		end
+		
+		ui.popup_sel_a = 0
+		ui.popup_sel_b = 0
+		ui.textbox_selection_origin = ""
+	
+	elseif ui.textbox_selection_origin == "preview" then
+	
+		ui.textbox_selection_origin = ""
+		ui.preview_textbox_locked = true
 	
 	end
-	
-	ui.popup_sel_a = 0
-	ui.popup_sel_b = 0
-	ui.sel_type = ""
 	
 end
 
 function ui.keyboardHit(key)
-	if ui.sel_type == "popup" then
+	if ui.textbox_selection_origin == "popup" then
 	
 		local this_menu = ui.popup[ui.popup_sel_a][ui.popup_sel_b]
 		if string.len(key) == 1 then
@@ -421,7 +433,32 @@ function ui.keyboardHit(key)
 			end
 		end
 	
+	elseif ui.textbox_selection_origin == "preview" then
+		
+		print(key)
+		if string.len(key) == 1 then
+			
+			if ui.preview_textbox_locked == false then
+			
+				local allowed_keys = (tonumber(key) ~= nil) or key == "."
+				if allowed_keys and string.len(ui.preview_textbox) < 5 then
+					ui.preview_textbox = ui.preview_textbox .. key
+				end
+				
+			end
+			
+		else
+			if (key == "backspace") then
+				ui.preview_textbox = string.sub(ui.preview_textbox, 0, string.len(ui.preview_textbox) - 1)
+			elseif (key == "return") then
+				ui.popupLoseFocus("preview")
+				ui.keyboard_last = ""
+				ui.keyboard_test = ""
+			end
+		end
+	
 	end
+	
 end
 
 function ui.keyboardRepeat(dt)
@@ -697,7 +734,7 @@ function ui.update(dt)
 		ui.title_active = false
 	end
 	
-	ui.allow_keyboard_input = (ui.sel_type ~= "")
+	ui.allow_keyboard_input = (ui.textbox_selection_origin ~= "")
 	
 	-- Add keyboard input if interacting with a textbox
 	if ui.allow_keyboard_input then
@@ -1145,6 +1182,12 @@ function ui.update(dt)
 				
 			end
 		
+		else
+		
+			if ui.preview_action ~= "textbox" and (ui.popup[1] == nil) and ui.active_textbox == "preview" then
+				ui.popupLoseFocus("preview")
+			end
+		
 		end
 		
 		-- Only show cursors when in bounds of the preview window
@@ -1188,6 +1231,7 @@ function ui.update(dt)
 			
 				-- Close window button (x)
 				if (mx >= rx + rw - 22) and (mx <= rx + rw - 22 + 18) and (my >= ry + 5) and (my <= ry + 20) then
+					ui.popupLoseFocus("preview")
 					ui.preview_active = false
 				end
 			
@@ -1210,8 +1254,10 @@ function ui.update(dt)
 					
 					-- Textbox for preview
 					if (mx >= ix - 5) and (mx <= ix + 41) and (my >= iy + 25) and (my <= iy + 45) then
-						print("textboxxx")
-						ui.preview_action = ""
+						ui.preview_textbox_locked = false
+						ui.active_textbox = "preview"
+						ui.textbox_selection_origin = "preview"
+						ui.preview_action = "textbox"
 					end
 
 					-- Move vars to be near the button positions
@@ -1244,9 +1290,9 @@ function ui.update(dt)
 					if (mx >= ix + 84) and (mx <= ix + 24 + 84) and (my >= iy) and (my <= iy + 24) then
 						ui.preview_window_x = 0
 						ui.preview_window_y = 0
-						local larger_preview_bound = math.min(ui.preview_w, ui.preview_h - 55)
-						local larger_window_bound = math.min(document_w, document_h)
-						ui.preview_zoom = larger_preview_bound / larger_window_bound
+						local smaller_preview_bound = math.min(ui.preview_w, ui.preview_h - 55)
+						local smaller_window_bound = math.min(document_w, document_h)
+						ui.preview_zoom = smaller_preview_bound / smaller_window_bound
 						ui.preview_action = ""
 					end
 
@@ -1274,6 +1320,9 @@ function ui.update(dt)
 	else
 		if mouse_switch == _PRESS then
 			ui.preview_action = ""
+			if ui.preview_action ~= "textbox" and (ui.popup[1] == nil) and ui.active_textbox == "preview" then
+				ui.popupLoseFocus("preview")
+			end
 		end
 	end
 		
@@ -1298,14 +1347,12 @@ function ui.update(dt)
 				
 				lock_w = true
 				if (check_x_drag * check_x_drag_prev <= 0) then
-					--print(check_x_drag, check_x_drag_prev)
 					ui.mouse_lock_x = -1
 					lock_w = false
 				end
 			
 				lock_h = true
 				if (check_y_drag * check_y_drag_prev <= 0) then
-					--print(check_y_drag, check_y_drag_prev)
 					ui.mouse_lock_y = -1
 					lock_h = false
 				end
@@ -1388,6 +1435,7 @@ function ui.update(dt)
 	
 	if ui.preview_action == "move" then
 	
+		ui.popupLoseFocus("preview")
 		if mouse_switch == _RELEASE then
 			ui.preview_action = ""
 		else
@@ -1432,8 +1480,8 @@ function ui.update(dt)
 					ui.popup_sel_a = 2
 				end
 				
-				ui.sel_start = ui.popup[ui.popup_sel_a][ui.popup_sel_b].name
-				ui.sel_type = "popup"
+				ui.active_textbox = ui.popup[ui.popup_sel_a][ui.popup_sel_b].name
+				ui.textbox_selection_origin = "popup"
 			
 			end
 			
@@ -1527,8 +1575,8 @@ function ui.update(dt)
 								
 								if kind == "textbox" or kind == "number" then
 									ui.popupLoseFocus(ui.popup[1][1].kind)
-									ui.sel_start = ui.popup[i][j].name
-									ui.sel_type = "popup"
+									ui.active_textbox = ui.popup[i][j].name
+									ui.textbox_selection_origin = "popup"
 									ui.popup_sel_a, ui.popup_sel_b = i, j
 								elseif kind == "ok" and ui.popup[1][1].kind == "f.new" then -- OK button for f.new (new document)
 									ui.popupLoseFocus(ui.popup[1][1].kind)
@@ -2099,14 +2147,28 @@ function ui.draw()
 		-- Draw preview buttons
 		
 		-- Textbox for scale input
+		local col = col_inactive
+		local this_selected = (not ui.preview_textbox_locked)
+		if this_selected then
+			col = c_highlight_active
+			lg.setLineWidth(2)
+		end
+		
 		local ix, iy = rx + 36, ry + rh - 50
 		lg.setColor(c_off_white)
 		lg.rectangle("fill", ix - 5, iy + 25, 46, 20)
-		lg.setColor(col_inactive)
+		lg.setColor(col)
 		lg.rectangle("line", ix - 5, iy + 25, 46, 20)
 		lg.setColor(c_black)
 		lg.print("px", ix - font:getWidth("px") - 12, iy + 25)
-		lg.print("1000", ix, iy + 25)
+		lg.print(ui.preview_textbox, ix, iy + 25)
+		
+		lg.setLineWidth(1)
+		
+		if ui.input_cursor_visible and this_selected then
+			local lxx, lyy = ix + font:getWidth(ui.preview_textbox) + 3, iy + 25 + 3
+			lg.line(lxx, lyy, lxx, lyy + 14)
+		end
 		
 		-- Move vars to be near the button positions
 		ix = ix + 49
