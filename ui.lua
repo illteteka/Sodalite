@@ -74,6 +74,8 @@ ui.preview_palette_enabled = false
 ui.preview_artboard_enabled = false
 ui.preview_textbox = ""
 ui.preview_textbox_locked = true
+ui.preview_textbox_orig = ""
+ui.preview_textbox_mode = "px"
 
 ui.toolbar = {}
 
@@ -383,6 +385,8 @@ function ui.popupLoseFocus(kind)
 			if name.kind == "number" then
 				if tonumber(name.name) < 8 then
 					name.name = "8"
+				elseif tonumber(name.name) > 16384 then
+					name.name = "16384"
 				else
 					name.name = tostring(tonumber(name.name))
 				end
@@ -396,6 +400,21 @@ function ui.popupLoseFocus(kind)
 		ui.textbox_selection_origin = ""
 	
 	elseif ui.textbox_selection_origin == "preview" then
+	
+		if ui.preview_textbox ~= "." then
+				
+			local larger_window_bound = math.max(document_w, document_h)
+			if ui.preview_textbox_mode == "px" then
+				if ui.preview_zoom < 0.05 then
+					ui.preview_textbox = ui.preview_textbox_orig
+					ui.preview_zoom = tonumber(ui.preview_textbox) / larger_window_bound
+				end
+			else
+				ui.preview_zoom = math.max(ui.preview_zoom, 0.05)
+				ui.preview_zoom = math.min(ui.preview_zoom, 99999/larger_window_bound)
+			end
+		
+		end
 	
 		ui.textbox_selection_origin = ""
 		ui.preview_textbox_locked = true
@@ -435,14 +454,24 @@ function ui.keyboardHit(key)
 	
 	elseif ui.textbox_selection_origin == "preview" then
 		
-		print(key)
 		if string.len(key) == 1 then
 			
 			if ui.preview_textbox_locked == false then
 			
-				local allowed_keys = (tonumber(key) ~= nil) or key == "."
+				local allowed_keys = (tonumber(key) ~= nil) or ((key == ".") and (string.find(ui.preview_textbox,"%.") == nil))
 				if allowed_keys and string.len(ui.preview_textbox) < 5 then
 					ui.preview_textbox = ui.preview_textbox .. key
+					
+					if ui.preview_textbox ~= "." then
+						if ui.preview_textbox_mode == "px" then
+							local larger_window_bound = math.max(document_w, document_h)
+							ui.preview_zoom = tonumber(ui.preview_textbox) / larger_window_bound
+						else
+							ui.preview_textbox = math.floor(ui.preview_textbox)
+							ui.preview_zoom = ui.preview_textbox / 100
+						end
+					end
+					
 				end
 				
 			end
@@ -1177,7 +1206,9 @@ function ui.update(dt)
 			-- Zoom in/out with the scroll wheel
 			
 				if mouse_wheel_y ~= 0 then
+					local larger_window_bound = math.max(document_w, document_h)
 					ui.preview_zoom = math.max(ui.preview_zoom + ((mouse_wheel_y / 100) * 60 * dt), 0.05)
+					ui.preview_zoom = math.min(ui.preview_zoom, 99999/larger_window_bound)
 				end
 				
 			end
@@ -1188,6 +1219,26 @@ function ui.update(dt)
 				ui.popupLoseFocus("preview")
 			end
 		
+		end
+		
+		if tab_key == _PRESS then
+			if (ui.popup[1] == nil) and ui.active_textbox == "preview" then
+				ui.popupLoseFocus("preview")
+			end
+		end
+		
+		if ui.preview_textbox_locked then
+			if ui.preview_textbox_mode == "px" then
+				local larger_window_bound = math.max(document_w, document_h)
+				local txt_num = larger_window_bound * ui.preview_zoom
+				local txt_num_string = "" .. txt_num
+				if string.len(txt_num_string) > 5 then
+					txt_num = math.floor(txt_num)
+				end
+				ui.preview_textbox = txt_num
+			elseif ui.preview_textbox_mode == "%" then
+				ui.preview_textbox = math.floor(ui.preview_zoom * 100)
+			end
 		end
 		
 		-- Only show cursors when in bounds of the preview window
@@ -1248,12 +1299,17 @@ function ui.update(dt)
 
 					-- Toggle between pixels and percentage scaling
 					if (mx >= ix - 32) and (mx <= ix - 32 + 24) and (my >= iy + 24) and (my <= iy + 47) then
-						print("toggle zoom mode")
+						if ui.preview_textbox_mode == "px" then
+							ui.preview_textbox_mode = "%"
+						else
+							ui.preview_textbox_mode = "px"
+						end
 						ui.preview_action = ""
 					end
 					
 					-- Textbox for preview
 					if (mx >= ix - 5) and (mx <= ix + 41) and (my >= iy + 25) and (my <= iy + 45) then
+						ui.preview_textbox_orig = ui.preview_textbox
 						ui.preview_textbox_locked = false
 						ui.active_textbox = "preview"
 						ui.textbox_selection_origin = "preview"
@@ -1266,8 +1322,9 @@ function ui.update(dt)
 
 					-- Zoom In
 					if (mx >= ix) and (mx <= ix + 24) and (my >= iy) and (my <= iy + 24) then
+						local larger_window_bound = math.max(document_w, document_h)
 						local round_zoom = math.floor(ui.preview_zoom * 100)/100
-						ui.preview_zoom = round_zoom * 1.25
+						ui.preview_zoom = math.min(round_zoom * 1.25, 99999/larger_window_bound)
 						ui.preview_action = ""
 					end
 
@@ -1291,8 +1348,8 @@ function ui.update(dt)
 						ui.preview_window_x = 0
 						ui.preview_window_y = 0
 						local smaller_preview_bound = math.min(ui.preview_w, ui.preview_h - 55)
-						local smaller_window_bound = math.min(document_w, document_h)
-						ui.preview_zoom = smaller_preview_bound / smaller_window_bound
+						local larger_window_bound = math.max(document_w, document_h)
+						ui.preview_zoom = smaller_preview_bound / larger_window_bound
 						ui.preview_action = ""
 					end
 
@@ -2160,7 +2217,7 @@ function ui.draw()
 		lg.setColor(col)
 		lg.rectangle("line", ix - 5, iy + 25, 46, 20)
 		lg.setColor(c_black)
-		lg.print("px", ix - font:getWidth("px") - 12, iy + 25)
+		lg.print(ui.preview_textbox_mode, ix - font:getWidth(ui.preview_textbox_mode) - 12, iy + 25)
 		lg.print(ui.preview_textbox, ix, iy + 25)
 		
 		lg.setLineWidth(1)
