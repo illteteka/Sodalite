@@ -411,8 +411,8 @@ function ui.popupLoseFocus(kind)
 				end
 			else
 				ui.preview_zoom = math.max(ui.preview_zoom, 0.05)
-				ui.preview_zoom = math.min(ui.preview_zoom, 99999/larger_window_bound)
 			end
+			ui.preview_zoom = math.min(ui.preview_zoom, math.min(99999/larger_window_bound, 999.99))
 		
 		end
 	
@@ -1208,7 +1208,7 @@ function ui.update(dt)
 				if mouse_wheel_y ~= 0 then
 					local larger_window_bound = math.max(document_w, document_h)
 					ui.preview_zoom = math.max(ui.preview_zoom + ((mouse_wheel_y / 100) * 60 * dt), 0.05)
-					ui.preview_zoom = math.min(ui.preview_zoom, 99999/larger_window_bound)
+					ui.preview_zoom = math.min(ui.preview_zoom, math.min(99999/larger_window_bound, 999.99))
 				end
 				
 			end
@@ -1324,7 +1324,7 @@ function ui.update(dt)
 					if (mx >= ix) and (mx <= ix + 24) and (my >= iy) and (my <= iy + 24) then
 						local larger_window_bound = math.max(document_w, document_h)
 						local round_zoom = math.floor(ui.preview_zoom * 100)/100
-						ui.preview_zoom = math.min(round_zoom * 1.25, 99999/larger_window_bound)
+						ui.preview_zoom = math.min(round_zoom * 1.25, math.min(99999/larger_window_bound, 999.99))
 						ui.preview_action = ""
 					end
 
