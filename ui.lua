@@ -44,6 +44,8 @@ ui.palette_slider = 0
 ui.palette = {}
 
 ui.layer = {}
+ui.layer_deleted = {}
+ui.lyr_count = 1
 ui.lyr_scroll_percent = 0
 ui.lyr_scroll = false
 ui.lyr_dir = ""
@@ -274,40 +276,6 @@ function ui.addCMBreak()
 
 end
 
-function ui.addLayer()
-
-	local layer = {}
-	layer.visible = true
-	
-	if ui.layer[1] == nil then
-		layer.count = 1
-	else
-		layer.count = #ui.layer + 1
-	end
-	
-	layer.name = "Layer " .. layer.count
-	
-	table.insert(ui.layer, layer)
-
-end
-
-function ui.importLayer(v, n)
-
-	local layer = {}
-	layer.visible = v
-	
-	if ui.layer[1] == nil then
-		layer.count = 1
-	else
-		layer.count = #ui.layer + 1
-	end
-	
-	layer.name = n
-	
-	table.insert(ui.layer, layer)
-
-end
-
 function ui.generateCM(x, y)
 
 	local i
@@ -510,11 +478,50 @@ function ui.keyboardRepeat(dt)
 	end
 end
 
+function ui.addLayer()
+
+	local layer = {}
+	layer.visible = true
+	
+	layer.count = ui.lyr_count
+	ui.lyr_count = ui.lyr_count + 1
+	
+	layer.name = "Layer " .. layer.count
+	
+	table.insert(ui.layer, layer)
+	
+	return #ui.layer
+
+end
+
+function ui.importLayer(v, n)
+
+	local layer = {}
+	layer.visible = v
+	
+	layer.count = ui.lyr_count
+	ui.lyr_count = ui.lyr_count + 1
+	
+	layer.name = n
+	
+	table.insert(ui.layer, layer)
+
+end
+
 function ui.moveLayer(old, new)
 
 	local lyr_copy = ui.layer[old]
 	table.remove(ui.layer, old)
 	table.insert(ui.layer, new, lyr_copy)
+
+end
+
+function ui.deleteLayer(old)
+
+	local lyr_copy = ui.layer[old]
+	lyr_copy.visible = true
+	table.remove(ui.layer, old)
+	table.insert(ui.layer_deleted, lyr_copy)
 
 end
 
@@ -936,13 +943,11 @@ function ui.update(dt)
 			if (mx >= layx + 4) and (mx <= layx + 4 + 24) and (my >= layy + 13) and (my <= layy + 13 + 24) then
 				
 				local old_layer = tm.polygon_loc
-				tm.polygon_loc = #ui.layer + 1
-				shape_count = math.max(shape_count, tm.polygon_loc)
 				
-				tm.store(TM_PICK_LAYER, old_layer, tm.polygon_loc, true)
+				local new_layer_id = ui.addLayer()
+				tm.store(TM_PICK_LAYER, old_layer, new_layer_id, true)
 				tm.step()
 				
-				ui.addLayer()
 				ui.lyr_scroll_percent = 0
 			end
 			
@@ -950,7 +955,36 @@ function ui.update(dt)
 			if (mx >= layx + 4 + 24 + 8) and (mx <= layx + 4 + 24 + 24 + 8) and (my >= layy + 13) and (my <= layy + 13 + 24) then
 				
 				if (#ui.layer > 1) then
-					--print(tm.polygon_loc)
+					-- tm.polygon_loc is the literal id of the added layer (ignores reordering)
+					--print("polygon location???", tm.polygon_loc)
+					
+					
+					--print_r(ui.layer)
+					--print(ui.layer[tm.polygon_loc].count)
+					--print("ui.lyr_click_y", ui.lyr_click_y)
+					print("tm.polygon_loc", tm.polygon_loc)
+					
+					local find_layer = 0
+					for i = 1, #ui.layer do
+						if ui.layer[i].count == tm.polygon_loc then
+							find_layer = i
+						end
+					end
+					
+					if find_layer ~= 0 then
+						ui.deleteLayer(find_layer)
+						tm.store(TM_DELETE_LAYER, find_layer)
+						local old_layer = tm.polygon_loc
+						local new_layer = 0
+						--if find_layer > #ui.layer
+						tm.polygon_loc = ui.layer[find_layer - 1].count
+						tm.store(TM_PICK_LAYER, old_layer, tm.polygon_loc, true)
+						tm.step()
+					end
+					print("find_layer", find_layer)
+					
+					--, not necessary and possibly wrong
+					
 					--ui.deleteLayer(ui.lyr_ref)
 					--tm.store(TM_DELETE_LAYER, ui.lyr_ref)
 					--local old_layer = tm.polygon_loc
@@ -1554,20 +1588,7 @@ function ui.update(dt)
 				document_w = tonumber(ui.popup[3][2].name)
 				document_h = tonumber(ui.popup[4][2].name)
 				
-				camera_zoom = 1
-				resetCamera()
-				
-				artboard.init()
-				tm.init()
-				polygon.data = {}
-				ui.layer = {}
-				ui.addLayer()
-				
-				-- Exit popup
-				ui.popup = {}
-				ui_active = true
-				ui.context_menu = {}
-				ui.title_active = false
+				resetEditor(true, true)
 			end
 		
 		end
@@ -1641,14 +1662,7 @@ function ui.update(dt)
 									document_w = tonumber(ui.popup[3][2].name)
 									document_h = tonumber(ui.popup[4][2].name)
 									
-									camera_zoom = 1
-									resetCamera()
-									
-									artboard.init()
-									tm.init()
-									polygon.data = {}
-									ui.layer = {}
-									ui.addLayer()
+									resetEditor(false, true)
 									
 									exit_pop = true
 								elseif kind == "cancel" then

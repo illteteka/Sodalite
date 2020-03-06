@@ -12,7 +12,6 @@ lg = love.graphics
 screen_width = 1280
 screen_height = 700
 
-shape_count = 1
 vertex_selection = {}
 
 -- debug buttons
@@ -81,6 +80,35 @@ ui_off_mouse_down = false
 ui_on_mouse_up = false
 
 artboard_is_drawing = false
+
+function resetEditor(exit_popup, add_layer)
+
+	ui.preview_zoom = 1
+	ui.preview_window_x = 0
+	ui.preview_window_y = 0
+
+	camera_zoom = 1
+	resetCamera()
+	
+	artboard.init()
+	tm.init()
+	polygon.data = {}
+	ui.layer = {}
+	ui.layer_deleted = {}
+	ui.lyr_count = 1
+	if add_layer then
+		ui.addLayer()
+	end
+	
+	if exit_popup then
+		-- Exit popup
+		ui.popup = {}
+		ui_active = true
+		ui.context_menu = {}
+		ui.title_active = false
+	end
+
+end
 
 function updateCamera(w, h, zo, zn)
 

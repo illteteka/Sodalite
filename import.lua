@@ -35,20 +35,8 @@ function import.open(file)
 		file_state = "SETUP"
 		file_pos = 0
 		
-		ui.popup = {}
-		ui_active = true
-		ui.context_menu = {}
-		ui.title_active = false
-		
-		tm.init()
-		polygon.data = {}
-		ui.layer = {}
-		
+		resetEditor(true, false)
 		import.read(file_contents)
-		artboard.init()
-		
-		camera_zoom = 1
-		resetCamera()
 	end
 
 end
