@@ -483,14 +483,15 @@ function ui.addLayer()
 	local layer = {}
 	layer.visible = true
 	
-	layer.count = ui.lyr_count
-	ui.lyr_count = ui.lyr_count + 1
+	if ui.layer[1] == nil then
+		layer.count = 1
+	else
+		layer.count = #ui.layer + 1
+	end
 	
 	layer.name = "Layer " .. layer.count
 	
 	table.insert(ui.layer, layer)
-	
-	return #ui.layer
 
 end
 
@@ -499,8 +500,11 @@ function ui.importLayer(v, n)
 	local layer = {}
 	layer.visible = v
 	
-	layer.count = ui.lyr_count
-	ui.lyr_count = ui.lyr_count + 1
+	if ui.layer[1] == nil then
+		layer.count = 1
+	else
+		layer.count = #ui.layer + 1
+	end
 	
 	layer.name = n
 	
@@ -943,10 +947,12 @@ function ui.update(dt)
 			if (mx >= layx + 4) and (mx <= layx + 4 + 24) and (my >= layy + 13) and (my <= layy + 13 + 24) then
 				
 				local old_layer = tm.polygon_loc
-				
-				local new_layer_id = ui.addLayer()
-				tm.store(TM_PICK_LAYER, old_layer, new_layer_id, true)
+				tm.polygon_loc = #ui.layer + 1
+
+				tm.store(TM_PICK_LAYER, old_layer, tm.polygon_loc, true)
 				tm.step()
+
+				ui.addLayer()
 				
 				ui.lyr_scroll_percent = 0
 			end
@@ -956,44 +962,26 @@ function ui.update(dt)
 				
 				if (#ui.layer > 1) then
 					-- tm.polygon_loc is the literal id of the added layer (ignores reordering)
-					--print("polygon location???", tm.polygon_loc)
-					
-					
-					--print_r(ui.layer)
-					--print(ui.layer[tm.polygon_loc].count)
-					--print("ui.lyr_click_y", ui.lyr_click_y)
 					print("tm.polygon_loc", tm.polygon_loc)
 					
-					local find_layer = 0
-					for i = 1, #ui.layer do
-						if ui.layer[i].count == tm.polygon_loc then
-							find_layer = i
-						end
-					end
+					-- local find_layer = 0
+					-- for i = 1, #ui.layer do
+						-- if ui.layer[i].count == tm.polygon_loc then
+							-- find_layer = i
+						-- end
+					-- end
 					
-					if find_layer ~= 0 then
-						ui.deleteLayer(find_layer)
-						tm.store(TM_DELETE_LAYER, find_layer)
-						local old_layer = tm.polygon_loc
-						local new_layer = 0
-						--if find_layer > #ui.layer
-						tm.polygon_loc = ui.layer[find_layer - 1].count
-						tm.store(TM_PICK_LAYER, old_layer, tm.polygon_loc, true)
-						tm.step()
-					end
+					-- if find_layer ~= 0 then
+						-- ui.deleteLayer(find_layer)
+						-- tm.store(TM_DELETE_LAYER, find_layer)
+						-- local old_layer = tm.polygon_loc
+						-- local new_layer = 0
+						-- --if find_layer > #ui.layer
+						-- tm.polygon_loc = ui.layer[find_layer - 1].count
+						-- tm.store(TM_PICK_LAYER, old_layer, tm.polygon_loc, true)
+						-- tm.step()
+					-- end
 					print("find_layer", find_layer)
-					
-					--, not necessary and possibly wrong
-					
-					--ui.deleteLayer(ui.lyr_ref)
-					--tm.store(TM_DELETE_LAYER, ui.lyr_ref)
-					--local old_layer = tm.polygon_loc
-					--tm.polygon_loc = ui.layer[1].count
-					--tm.store(TM_PICK_LAYER, old_layer, tm.polygon_loc, true)
-					--tm.step()
-					--[[ui.deleteLayer(ui.layer[tm.polygon_loc].count)
-					tm.store(TM_DELETE_LAYER, ui.layer[tm.polygon_loc].count)
-					tm.step()--]]
 				end
 				
 			end
