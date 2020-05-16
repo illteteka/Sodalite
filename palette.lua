@@ -22,6 +22,19 @@ c_art_inactive = {202/255, 167/255, 208/255, 1}
 c_art_line_dark = {163/255, 149/255, 166/255, 1}
 c_art_line_light = {234/255, 217/255, 236/255, 1}
 
+c_btn_gray_top = {126/255, 133/255, 143/255, 1}
+c_btn_gray_mid = {156/255, 163/255, 170/255, 1}
+c_btn_pink_top = {161/255, 126/255, 156/255, 1}
+c_btn_pink_mid = {193/255, 153/255, 187/255, 1}
+c_btn_high_top = {223/255, 203/255, 251/255, 1}
+c_btn_high_bot = {107/255, 60/255, 172/255, 1}
+
+BTN_DEFAULT = 0
+BTN_GRAY = 1
+BTN_PINK = 2
+BTN_HIGHLIGHT_ON = 3
+BTN_HIGHLIGHT_OFF = 4
+
 palette.w = 12
 palette.h = 6
 

@@ -142,6 +142,26 @@ function resetCamera()
 	camera_y = math.floor(((screen_height - document_h * camera_zoom) / 2) / camera_zoom) + math.floor(54 / 2 / camera_zoom) -- top bar (+ 54)
 end
 
+function editorUndo()
+	vertex_selection = {}
+	palette.activeIsEditable = false
+	local repeat_undo = polygon.undo()
+	
+	while (repeat_undo) do
+		repeat_undo = polygon.undo()
+	end
+end
+
+function editorRedo()
+	vertex_selection = {}
+	palette.activeIsEditable = false
+	local repeat_redo = polygon.redo()
+	
+	while (repeat_redo) do
+		repeat_redo = polygon.redo()
+	end
+end
+
 function love.load()
 
 	if love.system.getOS() == "OS X" then
@@ -481,23 +501,11 @@ function love.update(dt)
 	if mouse_switch == _OFF and debug_mode ~= "artboard" and ((ui_active == false) or (ui_on_mouse_up)) then
 	
 		if input.ctrlCombo(z_key) then
-			vertex_selection = {}
-			palette.activeIsEditable = false
-			local repeat_undo = polygon.undo()
-			
-			while (repeat_undo) do
-				repeat_undo = polygon.undo()
-			end
+			editorUndo()
 		end
 		
 		if input.ctrlCombo(y_key) then
-			vertex_selection = {}
-			palette.activeIsEditable = false
-			local repeat_redo = polygon.redo()
-			
-			while (repeat_redo) do
-				repeat_redo = polygon.redo()
-			end
+			editorRedo()
 		end
 		
 		if document_w ~= 0 and input.ctrlCombo(s_key) then

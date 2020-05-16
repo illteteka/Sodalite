@@ -80,6 +80,9 @@ ui.preview_textbox_orig = ""
 ui.preview_textbox_mode = "px"
 
 ui.toolbar = {}
+ui.toolbar_clicked = -1
+ui.toolbar_undo = nil
+ui.toolbar_redo = nil
 
 ui.mouse_x = -1
 ui.mouse_y = -1
@@ -115,8 +118,8 @@ function ui.init()
 	ui.addTool("Ellipse",       icon_circle,   ".circ")
 	ui.addTool("Free Draw",     icon_draw,     ".artb")
 	ui.addToolBreak()
-	ui.addTool("Undo",          icon_undo,     ".undo")
-	ui.addTool("Redo",          icon_redo,     ".redo")
+	ui.toolbar_undo = ui.addTool("Undo",          icon_undo,     ".undo")
+	ui.toolbar_redo = ui.addTool("Redo",          icon_redo,     ".redo")
 end
 
 function ui.loadCM(x, y, ref)
@@ -195,8 +198,10 @@ function ui.addTool(name, icon, ref)
 	item.name = name
 	item.icon = icon
 	item.ref = ref
+	item.active = true
 	
 	table.insert(ui.toolbar, item)
+	return #ui.toolbar
 	
 end
 
@@ -1128,6 +1133,17 @@ function ui.update(dt)
 		ui.lyr_timer = 0
 	end
 	
+	-- Check toolbar disabled buttons
+	if artboard.active == false then
+		local tloc, tcur, tlen = tm.location, tm.cursor, tm.length
+		ui.toolbar[ui.toolbar_undo].active = (tloc > tcur) and (tcur ~= 0)
+		ui.toolbar[ui.toolbar_redo].active = (tloc < tlen)
+	else
+		-- TODO: Fix once the artboard is more finished, see artboard.undo()
+		ui.toolbar[ui.toolbar_undo].active = true
+		ui.toolbar[ui.toolbar_redo].active = true
+	end
+	
 	-- Check toolbar collision
 	if (mouse_switch == _PRESS) and ((mx <= 64) or (my <= 54)) and (not ui_active) then
 		
@@ -1166,7 +1182,9 @@ function ui.update(dt)
 			
 			local tool = ui.toolbar[key]
 			
-			if (tool.ref ~= nil) and (check_success) then
+			if (tool.active) and (tool.ref ~= nil) and (check_success) then
+			
+				ui.toolbar_clicked = key
 			
 				-- Toolbar actions go here
 				if tool.ref == ".main" then
@@ -1186,9 +1204,21 @@ function ui.update(dt)
 				elseif tool.ref == ".artb" then
 					print("draw somethin")
 				elseif tool.ref == ".undo" then
-					print("undo")
+					
+					if artboard.active == false then
+						editorUndo()
+					else
+						artboard.undo()
+					end
+					
 				elseif tool.ref == ".redo" then
-					print("redo")
+					
+					if artboard.active == false then
+						editorRedo()
+					else
+						artboard.redo()
+					end
+					
 				end
 			
 			end
@@ -1196,6 +1226,10 @@ function ui.update(dt)
 		end
 		
 		ui_active = true
+	end
+	
+	if (mouse_switch == _RELEASE) and (ui.toolbar_clicked ~= -1) then
+		ui.toolbar_clicked = -1
 	end
 	
 	-- Interaction for preview window
@@ -1727,6 +1761,43 @@ function ui.scrollButton()
 
 end
 
+function ui.drawButtonOutline(state, x, y, w, h)
+	
+	local c_top, c_mid, c_bot = nil, nil, nil
+	if (state == BTN_DEFAULT) then
+		c_top = c_outline_light
+		c_bot = c_outline_dark
+	elseif (state == BTN_GRAY) then
+		c_top = c_btn_gray_top
+		c_mid = c_btn_gray_mid
+		c_bot = c_outline_light
+	elseif (state == BTN_PINK) then
+		c_top = c_btn_pink_top
+		c_mid = c_btn_pink_mid
+		c_bot = c_outline_light
+	elseif (state == BTN_HIGHLIGHT_ON) then
+		c_top = c_btn_high_top
+		c_mid = c_highlight_active
+		c_bot = c_btn_high_bot
+	elseif (state == BTN_HIGHLIGHT_OFF) then
+		c_top = c_btn_high_bot
+		c_mid = c_highlight_active
+		c_bot = c_btn_high_top
+	end
+	
+	if c_mid ~= nil then
+		lg.setColor(c_mid)
+		lg.rectangle("fill", x, y, w, h)
+	end
+	lg.setColor(c_top)
+	lg.rectangle("fill", x, y, w - 1, 1)
+	lg.rectangle("fill", x, y, 1, h)
+	lg.setColor(c_bot)
+	lg.rectangle("fill", x + w - 1, y, 1, h)
+	lg.rectangle("fill", x + 1, y + h - 1, w - 1, 1)
+	
+end
+
 function ui.drawOutline(x, y, w, h, invert)
 	local ca, cb = c_outline_dark, c_outline_light
 	if invert then ca, cb = cb, ca end
@@ -2125,10 +2196,35 @@ function ui.draw()
 	for i = 1, #ui.toolbar do
 		if ui.toolbar[i]._break == nil then
 		
-			lg.setColor(c_white)
 			local ix, iy = 8 + (xx * 24), 61 + h
+			
+			local btn_state = BTN_DEFAULT
+			if ui.toolbar[i].active == false then
+				btn_state = BTN_GRAY
+				
+				if debug_mode == "artboard" then
+					btn_state = BTN_PINK
+				end
+				
+			else
+			
+				local mouse_hover_tool = false
+				mouse_hover_tool = ((mx >= ix) and (mx <= ix + 23) and (my >= iy) and (my <= iy + 23))
+				
+				if mouse_hover_tool and (ui.toolbar_clicked == -1) then
+					btn_state = BTN_HIGHLIGHT_ON
+				end
+				
+				if (mouse_switch ~= _OFF) and (ui.toolbar_clicked == i) then
+					btn_state = BTN_HIGHLIGHT_OFF
+				end
+			
+			end
+			
+			ui.drawButtonOutline(btn_state, ix, iy, 24, 24)
+			
+			lg.setColor(c_white)
 			lg.draw(ui.toolbar[i].icon, ix, iy)
-			ui.drawOutline(ix, iy, 24, 24, true)
 			
 			xx = xx + 1
 			if xx == 2 then xx = 0 h = h + 24 end
