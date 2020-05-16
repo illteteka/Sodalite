@@ -1,7 +1,3 @@
--- PATH = "\"" .. arg[0]:sub(0, arg[0]:len() - 11)
--- os.execute("mkdir " .. PATH .. "compile\"")
--- print(PATH .. "compile")
-
 COMP_PATH = "\"C:\\Users\\Sick\\Documents\\Git\\MDOS\\"
 LUA_PATH = "\"C:\\Users\\Sick\\Documents\\LuaJIT-2.0.0\\src\""
 

@@ -7,10 +7,9 @@ TM_MOVE_VERTEX   = 3
 TM_CHANGE_COLOR  = 4
 TM_PICK_LAYER    = 5
 TM_MOVE_LAYER    = 6
-TM_DELETE_LAYER  = 7
-TM_ADD_ELLIPSE   = 8
-TM_ELLIPSE_SEG   = 9
-TM_ELLIPSE_ANGLE = 10
+TM_ADD_ELLIPSE   = 7
+TM_ELLIPSE_SEG   = 8
+TM_ELLIPSE_ANGLE = 9
 
 function tm.init()
 
@@ -86,6 +85,7 @@ function tm.store(action, a, b, c, d, e)
 			moment.original = a
 			moment.new = b
 			moment.created_layer = c
+			moment.trash_layer = d
 		
 		elseif (action == TM_MOVE_LAYER) then
 		

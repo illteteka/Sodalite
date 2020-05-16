@@ -242,7 +242,9 @@ function polygon.redo()
 		
 			tm.polygon_loc = moment[1].new
 			
-			if moment[1].created_layer == true then
+			if moment[1].trash_layer == true then
+				ui.deleteLayer(moment[1].original)
+			elseif moment[1].created_layer == true then
 				ui.addLayer()
 			else
 				repeat_redo = true
@@ -328,7 +330,10 @@ function polygon.undo()
 		
 			tm.polygon_loc = moment[1].original
 			
-			if moment[1].created_layer == true then
+			if moment[1].trash_layer == true then
+				table.insert(ui.layer, moment[1].original, ui.layer_trash[#ui.layer_trash])
+				table.remove(ui.layer_trash)
+			elseif moment[1].created_layer == true then
 				table.remove(ui.layer)
 			else
 				repeat_undo = true

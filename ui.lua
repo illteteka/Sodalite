@@ -44,7 +44,7 @@ ui.palette_slider = 0
 ui.palette = {}
 
 ui.layer = {}
-ui.layer_deleted = {}
+ui.layer_trash = {}
 ui.lyr_count = 1
 ui.lyr_scroll_percent = 0
 ui.lyr_scroll = false
@@ -486,7 +486,7 @@ function ui.addLayer()
 	if ui.layer[1] == nil then
 		layer.count = 1
 	else
-		layer.count = #ui.layer + 1
+		layer.count = #ui.layer + #ui.layer_trash + 1
 	end
 	
 	layer.name = "Layer " .. layer.count
@@ -524,8 +524,8 @@ function ui.deleteLayer(old)
 
 	local lyr_copy = ui.layer[old]
 	lyr_copy.visible = true
+	table.insert(ui.layer_trash, lyr_copy)
 	table.remove(ui.layer, old)
-	table.insert(ui.layer_deleted, lyr_copy)
 
 end
 
@@ -947,9 +947,9 @@ function ui.update(dt)
 			if (mx >= layx + 4) and (mx <= layx + 4 + 24) and (my >= layy + 13) and (my <= layy + 13 + 24) then
 				
 				local old_layer = tm.polygon_loc
-				tm.polygon_loc = #ui.layer + 1
+				tm.polygon_loc = #ui.layer + #ui.layer_trash + 1
 
-				tm.store(TM_PICK_LAYER, old_layer, tm.polygon_loc, true)
+				tm.store(TM_PICK_LAYER, old_layer, tm.polygon_loc, true, false)
 				tm.step()
 
 				ui.addLayer()
@@ -962,26 +962,22 @@ function ui.update(dt)
 				
 				if (#ui.layer > 1) then
 					-- tm.polygon_loc is the literal id of the added layer (ignores reordering)
-					print("tm.polygon_loc", tm.polygon_loc)
 					
-					-- local find_layer = 0
-					-- for i = 1, #ui.layer do
-						-- if ui.layer[i].count == tm.polygon_loc then
-							-- find_layer = i
-						-- end
-					-- end
+					local find_layer = 0
+					for i = 1, #ui.layer do
+						if ui.layer[i].count == tm.polygon_loc then
+							find_layer = i
+						end
+					end
 					
-					-- if find_layer ~= 0 then
-						-- ui.deleteLayer(find_layer)
-						-- tm.store(TM_DELETE_LAYER, find_layer)
-						-- local old_layer = tm.polygon_loc
-						-- local new_layer = 0
-						-- --if find_layer > #ui.layer
-						-- tm.polygon_loc = ui.layer[find_layer - 1].count
-						-- tm.store(TM_PICK_LAYER, old_layer, tm.polygon_loc, true)
-						-- tm.step()
-					-- end
-					print("find_layer", find_layer)
+					if find_layer ~= 0 then
+						ui.deleteLayer(find_layer)
+						tm.polygon_loc = ui.layer[#ui.layer].count
+						tm.store(TM_PICK_LAYER, find_layer, tm.polygon_loc, false, true)
+						tm.step()
+						ui.lyr_scroll_percent = 0
+					end
+					
 				end
 				
 			end
@@ -1015,11 +1011,11 @@ function ui.update(dt)
 					end
 					
 					-- To reduce undo/redo ram usage, change previous swap to new layer instead of making another swap
-					if (not skip_tm) and (_tm_copy.action == TM_PICK_LAYER) and (_tm_copy.created_layer == false) then
+					if (not skip_tm) and (_tm_copy.action == TM_PICK_LAYER) and (_tm_copy.created_layer == false) and (_tm_copy.trash_layer == false) then
 						_tm_copy.new = tm.polygon_loc
 					else
 						if old_layer ~= tm.polygon_loc then -- If we swap to the current active layer, don't register the swap
-							tm.store(TM_PICK_LAYER, old_layer, tm.polygon_loc, false)
+							tm.store(TM_PICK_LAYER, old_layer, tm.polygon_loc, false, false)
 							tm.step()
 						end
 					end	
