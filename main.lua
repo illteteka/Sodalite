@@ -175,7 +175,7 @@ function love.load()
 	bad_is_dev = a ~= nil
 	if bad_is_dev then io.close(a) end
 	
-	love.window.setMode(screen_width, screen_height, {resizable=true, vsync=bad_is_dev, minwidth=640, minheight=480})
+	love.window.setMode(screen_width, screen_height, {resizable=true, vsync=bad_is_dev, minwidth=1024, minheight=600})
 	lg.setLineWidth(1)
 	lg.setLineStyle("rough")
 	love.keyboard.setKeyRepeat(true)
@@ -498,7 +498,7 @@ function love.update(dt)
 		
 	end
 	
-	if mouse_switch == _OFF and debug_mode ~= "artboard" and ((ui_active == false) or (ui_on_mouse_up)) then
+	if mouse_switch == _OFF and artboard.active == false and ((ui_active == false) or (ui_on_mouse_up)) then
 	
 		if input.ctrlCombo(z_key) then
 			editorUndo()
@@ -525,18 +525,12 @@ function love.update(dt)
 	
 	if ((ui_active == false) or (ui_on_mouse_up)) then
 	
-		if r_key == _PRESS then debug_mode = "artboard" end
-		if t_key == _PRESS then debug_mode = "polygon" end
-		if y_key == _PRESS and input.ctrlCombo(y_key) == false then debug_mode = "ellipse" end
-		if u_key == _PRESS then debug_mode = "line" end
-		if i_key == _PRESS then debug_mode = "mirror" end
 		if o_key == _PRESS then debug_mode = "grid" end
 		if p_key == _PRESS then debug_mode = "zoom" end
 		if e_key == _PRESS then debug_mode = "preview" ui.popupLoseFocus("preview") ui.preview_active = not ui.preview_active end
 		
-		if debug_mode == "artboard" then
+		if artboard.active then
 		
-			if up_key == _PRESS then artboard.active = not artboard.active end
 			if down_key == _PRESS then artboard.visible = not artboard.visible end
 			if left_key == _PRESS then artboard.draw_top = not artboard.draw_top end
 			if right_key == _PRESS then artboard.transparent = not artboard.transparent end
@@ -791,7 +785,7 @@ function love.draw()
 	lg.setColor(1,1,1,0.6)
 	local debug_info = ""
 	
-	if debug_mode == "artboard" then
+	if artboard.active then
 		local av = "false"
 		if artboard.visible then av = "true" end
 		
@@ -807,21 +801,8 @@ function love.draw()
 		debug_info = " visible:" .. av .. ", drawable:" .. aa .. ", position: " .. at .. ", transparent: " .. ar
 	end
 	
-	if debug_mode == "line" or debug_mode == "mirror" then
-		lg.setColor(1,0,0,0.6)
-		debug_info = " not implemented"
-	end
-	
 	if debug_mode == "grid" then
 		debug_info = " " .. debug_grid .. " x:" .. grid_x .. " y:" .. grid_y .. " w:" .. grid_w ..  " h:" .. grid_h
-	end
-	
-	if debug_mode == "polygon" then
-		polygon.kind = "polygon"
-	end
-	
-	if debug_mode == "ellipse" then
-		polygon.kind = "ellipse"
 	end
 	
 	lg.print("Debug mode: " .. debug_mode .. debug_info, 94, screen_height - 50)

@@ -83,6 +83,9 @@ ui.toolbar = {}
 ui.toolbar_clicked = -1
 ui.toolbar_undo = nil
 ui.toolbar_redo = nil
+ui.toolbar_artboard = nil
+ui.toolbar_polygon = nil
+ui.toolbar_ellipse = nil
 
 ui.mouse_x = -1
 ui.mouse_y = -1
@@ -114,9 +117,9 @@ function ui.init()
 	ui.addTool("Zoom",          icon_zoom,     ".zoom")
 	ui.addTool("Color Grabber", icon_pick,     ".pick")
 	ui.addToolBreak()
-	ui.addTool("Polygon",       icon_triangle, ".tri")
-	ui.addTool("Ellipse",       icon_circle,   ".circ")
-	ui.addTool("Free Draw",     icon_draw,     ".artb")
+	ui.toolbar_polygon  = ui.addTool("Polygon",       icon_triangle, ".tri")
+	ui.toolbar_ellipse  = ui.addTool("Ellipse",       icon_circle,   ".circ")
+	ui.toolbar_artboard = ui.addTool("Free Draw",     icon_draw,     ".artb")
 	ui.addToolBreak()
 	ui.toolbar_undo = ui.addTool("Undo",          icon_undo,     ".undo")
 	ui.toolbar_redo = ui.addTool("Redo",          icon_redo,     ".redo")
@@ -1144,6 +1147,34 @@ function ui.update(dt)
 		ui.toolbar[ui.toolbar_redo].active = true
 	end
 	
+	if document_w == 0 then
+		-- local i
+		-- for i = 1, #ui.toolbar do
+			-- ui.toolbar[i].active = false
+		-- end
+		ui.toolbar[ui.toolbar_polygon].active = false
+		ui.toolbar[ui.toolbar_ellipse].active = false
+		ui.toolbar[ui.toolbar_artboard].active = false
+	else
+	
+		if artboard.active == false then
+			if polygon.kind == "polygon" then
+				ui.toolbar[ui.toolbar_polygon].active = false
+				ui.toolbar[ui.toolbar_ellipse].active = true
+				ui.toolbar[ui.toolbar_artboard].active = true
+			else
+				ui.toolbar[ui.toolbar_polygon].active = true
+				ui.toolbar[ui.toolbar_ellipse].active = false
+				ui.toolbar[ui.toolbar_artboard].active = true
+			end
+		else
+			ui.toolbar[ui.toolbar_polygon].active = true
+			ui.toolbar[ui.toolbar_ellipse].active = true
+			ui.toolbar[ui.toolbar_artboard].active = false
+		end
+	
+	end
+	
 	-- Check toolbar collision
 	if (mouse_switch == _PRESS) and ((mx <= 64) or (my <= 54)) and (not ui_active) then
 		
@@ -1198,11 +1229,25 @@ function ui.update(dt)
 				elseif tool.ref == ".pick" then
 					print("nose picker")
 				elseif tool.ref == ".tri" then
-					print("triangle")
+					
+					if ui.toolbar[ui.toolbar_polygon].active then
+						artboard.active = false
+						polygon.kind = "polygon"
+					end
+					
 				elseif tool.ref == ".circ" then
-					print("circle")
+					
+					if ui.toolbar[ui.toolbar_ellipse].active then
+						artboard.active = false
+						polygon.kind = "ellipse"
+					end
+					
 				elseif tool.ref == ".artb" then
-					print("draw somethin")
+					
+					if ui.toolbar[ui.toolbar_artboard].active then
+						artboard.active = true
+					end
+					
 				elseif tool.ref == ".undo" then
 					
 					if artboard.active == false then
@@ -1839,7 +1884,7 @@ function ui.draw()
 	local col_box, col_inactive, col_line_dark, col_line_light = c_box, c_highlight_inactive, c_line_dark, c_line_light
 	local tex_btn, tex_slide_1, tex_slide_2, tex_slide_3, tex_gradient = spr_slider_button, spr_slider_1, spr_slider_2, spr_slider_3, grad_slider
 	
-	if debug_mode == "artboard" then
+	if artboard.active then
 	
 	col_box, col_inactive, col_line_dark, col_line_light = c_art_box, c_art_inactive, c_art_line_dark, c_art_line_light
 	tex_btn, tex_slide_1, tex_slide_2, tex_slide_3, tex_gradient = art_slider_button, art_slider_1, art_slider_2, art_slider_3, art_grad_slider
@@ -2202,7 +2247,7 @@ function ui.draw()
 			if ui.toolbar[i].active == false then
 				btn_state = BTN_GRAY
 				
-				if debug_mode == "artboard" then
+				if artboard.active then
 					btn_state = BTN_PINK
 				end
 				
@@ -2243,6 +2288,27 @@ function ui.draw()
 			
 		end
 	end
+	
+	-- Draw active toolbar shortcuts
+	local ix, iy
+	ix = 8
+	iy = 27
+	
+	lg.setColor(c_outline_dark)
+	lg.rectangle("fill", ix + 24, iy - 1, 1, 26)
+	lg.setColor(c_highlight_inactive)
+	lg.rectangle("fill", ix + 25, iy - 1, 1, 26)
+	lg.setColor(c_white)
+	
+	if artboard.active then
+		lg.draw(ui.toolbar[ui.toolbar_artboard].icon, ix - 2, iy)
+	elseif polygon.kind == "polygon" then
+		lg.draw(ui.toolbar[ui.toolbar_polygon].icon, ix - 2, iy + 1)
+	else
+		lg.draw(ui.toolbar[ui.toolbar_ellipse].icon, ix - 3, iy)
+	end
+	
+	lg.draw(ui.toolbar[4].icon, ix + 27, iy)
 	
 	-- Draw preview window
 	if ui.preview_active then
