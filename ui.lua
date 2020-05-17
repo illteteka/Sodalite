@@ -86,11 +86,13 @@ ui.toolbar_redo = nil
 ui.toolbar_artboard = nil
 ui.toolbar_polygon = nil
 ui.toolbar_ellipse = nil
+ui.toolbar_preview = nil
 
 ui.primary_panel = {}
 ui.primary_textbox = -1
 ui.primary_text_orig = ""
 ui.secondary_panel = {}
+ui.panel_clicked = -1
 
 ui.mouse_x = -1
 ui.mouse_y = -1
@@ -121,6 +123,7 @@ function ui.init()
 	ui.addTool("Grid",          icon_grid,     ".grid")
 	ui.addTool("Zoom",          icon_zoom,     ".zoom")
 	ui.addTool("Color Grabber", icon_pick,     ".pick")
+	ui.toolbar_preview = ui.addTool("Preview",       icon_look,     ".prev")
 	ui.addToolBreak()
 	ui.toolbar_polygon  = ui.addTool("Polygon",       icon_triangle, ".tri")
 	ui.toolbar_ellipse  = ui.addTool("Ellipse",       icon_circle,   ".circ")
@@ -256,6 +259,7 @@ function ui.addPanel(panel, id, name, textbox, default, min_entry, max_entry)
 		item.active = false
 	else
 		item.icon = name
+		item.active = true
 	end
 	
 	item.is_textbox = textbox
@@ -297,6 +301,11 @@ function ui.panelArtboard()
 
 	ui.primary_panel = nil
 	ui.primary_panel = {}
+	ui.primary_panel.name = "Free draw:"
+	
+	ui.addPanel(ui.primary_panel, 'art.brush',       'Brush size', true, artboard.brush_size, 1, math.max(document_w, document_h))
+	ui.addPanel(ui.primary_panel, 'art.opacity', 'Canvas opacity', true, artboard.opacity * 100, 0, 100)
+	ui.addPanel(ui.primary_panel, 'art.position', icon_art_above, false)
 
 end
 
@@ -482,7 +491,7 @@ function ui.popupLoseFocus(kind)
 					tm.store(TM_ELLIPSE_SEG, old_seg, myshape.segments)
 					tm.step()
 					polygon.segments = tonumber(tbox.value)
-				else -- angle
+				elseif tbox.id == "ellipse.ang" then
 					local old_ang = myshape._angle
 					myshape._angle = tonumber(tbox.value)
 					tm.store(TM_ELLIPSE_ANGLE, old_ang, myshape._angle)
@@ -494,12 +503,24 @@ function ui.popupLoseFocus(kind)
 			
 				if tbox.id == "ellipse.seg" then
 					polygon.segments = tonumber(tbox.value)
-				else -- angle
+				elseif tbox.id == "ellipse.ang" then
 					polygon._angle = tonumber(tbox.value)
 				end
 			
 			end
 			
+		end
+		
+		if tbox.id == "art.brush" or tbox.id == "art.opacity" then
+		
+			if tbox.id == "art.brush" then
+				artboard.brush_size = tonumber(tbox.value)
+			end
+			
+			if tbox.id == "art.opacity" then
+				artboard.opacity = tonumber(tbox.value)/100
+			end
+		
 		end
 		
 		ui.textbox_selection_origin = ""
@@ -1154,6 +1175,11 @@ function ui.update(dt)
 						skip_tm = true
 					end
 					
+					if artboard.active == false and polygon.data[tm.polygon_loc] ~= nil and polygon.data[tm.polygon_loc].kind == "ellipse" then
+						polygon.kind = "ellipse"
+						ui.panelEllipse()
+					end
+					
 					-- To reduce undo/redo ram usage, change previous swap to new layer instead of making another swap
 					if (not skip_tm) and (_tm_copy.action == TM_PICK_LAYER) and (_tm_copy.created_layer == false) and (_tm_copy.trash_layer == false) then
 						_tm_copy.new = tm.polygon_loc
@@ -1283,6 +1309,8 @@ function ui.update(dt)
 		ui.toolbar[ui.toolbar_redo].active = true
 	end
 	
+	ui.toolbar[ui.toolbar_preview].active = not ui.preview_active
+	
 	if document_w == 0 then
 		-- local i
 		-- for i = 1, #ui.toolbar do
@@ -1314,6 +1342,7 @@ function ui.update(dt)
 	-- Check toolbar collision
 	if (mouse_switch == _PRESS) and ((mx <= 64) and (my >= 54)) and (not ui_active) then
 		
+		local add_one_because_top_is_even = 0
 		ui.preview_palette_enabled = false
 		local yy = my - 61
 		
@@ -1331,14 +1360,16 @@ function ui.update(dt)
 			-- Add an offset to offset the distance of the line breaks
 			if second_offset then
 				y_offset = 24
+				add_one_because_top_is_even = 1
 			elseif first_offset then
 				y_offset = 12
+				add_one_because_top_is_even = 1
 			end
 			
 			local aa = math.floor((mx - 8)/24)
 			local bb = math.floor((my - 61 - y_offset)/24)
 			
-			local key = ((bb * 2) + aa + 1)
+			local key = ((bb * 2) + aa + 1) + add_one_because_top_is_even
 			
 			-- Don't crash if clicking a toolbar icon out of bounds
 			local check_success = true
@@ -1348,6 +1379,9 @@ function ui.update(dt)
 			end
 			
 			local tool = ui.toolbar[key]
+			if (tool.ref ~= nil) and (tool.ref == ".prev") then
+				tool.active = true
+			end
 			
 			if (tool.active) and (tool.ref ~= nil) and (check_success) then
 			
@@ -1364,6 +1398,9 @@ function ui.update(dt)
 					print("zoom")
 				elseif tool.ref == ".pick" then
 					print("nose picker")
+				elseif tool.ref == ".prev" then
+					ui.popupLoseFocus("preview")
+					ui.preview_active = not ui.preview_active
 				elseif tool.ref == ".tri" then
 					
 					if ui.toolbar[ui.toolbar_polygon].active then
@@ -1417,58 +1454,96 @@ function ui.update(dt)
 	end
 	
 	-- Update textboxes in toolbar panels
-	if ui.primary_panel[1] ~= nil and ui.primary_panel[1].id == 'ellipse.seg' then
+	if ui.primary_panel[1] ~= nil then
 	
 		if ui.primary_textbox == -1 then -- Update textboxes when inactive
 	
-			local load_seg, load_ang = 0, 0
-			if polygon.data[1] ~= nil and polygon.data[tm.polygon_loc] ~= nil and polygon.data[tm.polygon_loc].kind == "ellipse" then
-				local myshape = polygon.data[tm.polygon_loc]
-				load_seg = myshape.segments
-				load_ang = myshape._angle
-			else
-				load_seg = polygon.segments
-				load_ang = polygon._angle
+			if ui.primary_panel[1].id == 'ellipse.seg' then
+				local load_seg, load_ang = 0, 0
+				if polygon.data[1] ~= nil and polygon.data[tm.polygon_loc] ~= nil and polygon.data[tm.polygon_loc].kind == "ellipse" then
+					local myshape = polygon.data[tm.polygon_loc]
+					load_seg = myshape.segments
+					load_ang = myshape._angle
+				else
+					load_seg = polygon.segments
+					load_ang = polygon._angle
+				end
+			
+				ui.primary_panel[1].value = load_seg
+				ui.primary_panel[2].value = load_ang
 			end
-		
-			ui.primary_panel[1].value = load_seg
-			ui.primary_panel[2].value = load_ang
+			
+			if ui.primary_panel[1].id == 'art.brush' then
+				ui.primary_panel[1].value = artboard.brush_size
+				ui.primary_panel[2].value = artboard.opacity * 100
+			end
 		
 		else -- Preview shape while making changes
 		
-			local myshape = polygon.data[tm.polygon_loc]
-			local load_seg, load_ang = myshape.segments, myshape._angle
-			
-			if tonumber(ui.primary_panel[ui.primary_textbox].value) ~= nil and ((hz_dir ~= 0) or (vt_dir ~= 0)) then
-				local this_t = ui.primary_panel[ui.primary_textbox]
-				this_t.value = this_t.value + (hz_key * hz_dir) + (vt_key * vt_dir)
+			if polygon.data[tm.polygon_loc] ~= nil and ui.primary_panel[1].id == 'ellipse.seg' then
+				local myshape = polygon.data[tm.polygon_loc]
+				local load_seg, load_ang = myshape.segments, myshape._angle
 				
-				if this_t.id == 'ellipse.ang' and this_t.value >= 360 then
-					this_t.value = this_t.value - 360
+				-- Update with arrow keys
+				if tonumber(ui.primary_panel[ui.primary_textbox].value) ~= nil and ((hz_dir ~= 0) or (vt_dir ~= 0)) then
+					local this_t = ui.primary_panel[ui.primary_textbox]
+					this_t.value = this_t.value + (hz_key * hz_dir) + (vt_key * vt_dir)
+					
+					if this_t.id == 'ellipse.ang' and this_t.value >= 360 then
+						this_t.value = this_t.value - 360
+					end
+					
+					if this_t.id == 'ellipse.ang' and this_t.value < 0 then
+						this_t.value = this_t.value + 360
+					end
+					
+					this_t.value = math.min(this_t.value, this_t.high)
+					this_t.value = math.max(this_t.value, this_t.low)
 				end
 				
-				if this_t.id == 'ellipse.ang' and this_t.value < 0 then
-					this_t.value = this_t.value + 360
+				if tonumber(ui.primary_panel[1].value) ~= nil then
+					load_seg = ui.primary_panel[1].value
+					load_seg = math.min(load_seg, ui.primary_panel[1].high)
+					load_seg = math.max(load_seg, ui.primary_panel[1].low)
 				end
 				
-				this_t.value = math.min(this_t.value, this_t.high)
-				this_t.value = math.max(this_t.value, this_t.low)
+				if tonumber(ui.primary_panel[2].value) ~= nil then
+					load_ang = ui.primary_panel[2].value
+					load_ang = math.min(load_ang, ui.primary_panel[2].high)
+					load_ang = math.max(load_ang, ui.primary_panel[2].low)
+				end
+				
+				myshape.segments = load_seg
+				myshape._angle = load_ang
 			end
 			
-			if tonumber(ui.primary_panel[1].value) ~= nil then
-				load_seg = ui.primary_panel[1].value
-				load_seg = math.min(load_seg, ui.primary_panel[1].high)
-				load_seg = math.max(load_seg, ui.primary_panel[1].low)
+			if ui.primary_panel[1].id == 'art.brush' then
+				local load_brush, load_opac = artboard.brush_size, artboard.opacity * 100
+				
+				-- Update with arrow keys
+				if tonumber(ui.primary_panel[ui.primary_textbox].value) ~= nil and ((hz_dir ~= 0) or (vt_dir ~= 0)) then
+					local this_t = ui.primary_panel[ui.primary_textbox]
+					this_t.value = this_t.value + (hz_key * hz_dir) + (vt_key * vt_dir)
+					
+					this_t.value = math.min(this_t.value, this_t.high)
+					this_t.value = math.max(this_t.value, this_t.low)
+				end
+				
+				if tonumber(ui.primary_panel[1].value) ~= nil then
+					load_brush = ui.primary_panel[1].value
+					load_brush = math.min(load_brush, ui.primary_panel[1].high)
+					load_brush = math.max(load_brush, ui.primary_panel[1].low)
+				end
+				
+				if tonumber(ui.primary_panel[2].value) ~= nil then
+					load_opac = ui.primary_panel[2].value
+					load_opac = math.min(load_opac, ui.primary_panel[2].high)
+					load_opac = math.max(load_opac, ui.primary_panel[2].low)
+				end
+				
+				artboard.brush_size = load_brush
+				artboard.opacity = load_opac / 100
 			end
-			
-			if tonumber(ui.primary_panel[2].value) ~= nil then
-				load_ang = ui.primary_panel[2].value
-				load_ang = math.min(load_ang, ui.primary_panel[2].high)
-				load_ang = math.max(load_ang, ui.primary_panel[2].low)
-			end
-			
-			myshape.segments = load_seg
-			myshape._angle = load_ang
 		
 		end
 		
@@ -1482,6 +1557,7 @@ function ui.update(dt)
 		panel_x = panel_x + font:getWidth(ui.primary_panel.name) + 12
 		
 		local hit_tbox = -1
+		local hit_button = -1
 		
 		local i = 1
 		for i = 1, #ui.primary_panel do
@@ -1519,6 +1595,23 @@ function ui.update(dt)
 			
 			else
 			
+				if (mouse_switch == _PRESS and (mx >= panel_x) and (mx <= panel_x + 23) and (my >= 27) and (my <= 27 + 23)) then
+					ui.panel_clicked = i
+					hit_button = i
+					
+					if ui.primary_panel[i].id == "art.position" then
+						if ui.primary_panel[i].icon == icon_art_above then
+							artboard.draw_top = false
+							ui.primary_panel[i].icon = icon_art_below
+						else
+							artboard.draw_top = true
+							ui.primary_panel[i].icon = icon_art_above
+						end
+					end
+				end
+				
+				panel_x = panel_x + 24 + 12
+			
 			end
 		
 		end
@@ -1527,6 +1620,12 @@ function ui.update(dt)
 			if ui.primary_textbox ~= -1 and hit_tbox == -1 then
 				ui.popupLoseFocus("toolbar")
 				ui_active = true
+			end
+		end
+		
+		if (mouse_switch == _RELEASE) then
+			if ui.panel_clicked ~= -1 and hit_button == -1 then
+				ui.panel_clicked = -1
 			end
 		end
 		
@@ -2497,6 +2596,7 @@ function ui.draw()
 	-- Draw toolbar items
 	local i
 	local h, xx = 0, 0
+	local even_count = 0
 	for i = 1, #ui.toolbar do
 		if ui.toolbar[i]._break == nil then
 		
@@ -2532,9 +2632,13 @@ function ui.draw()
 			
 			xx = xx + 1
 			if xx == 2 then xx = 0 h = h + 24 end
+			even_count = even_count + 1
 			
 		else
 		
+			if (even_count % 2 == 0) then
+				h = h - 24
+			end
 			h = h + 36
 		
 			lg.setColor(col_line_dark)
@@ -2555,7 +2659,7 @@ function ui.draw()
 	
 	lg.setColor(c_outline_dark)
 	lg.rectangle("fill", ix + 24, iy - 1, 1, 26)
-	lg.setColor(c_highlight_inactive)
+	lg.setColor(col_inactive)
 	lg.rectangle("fill", ix + 25, iy - 1, 1, 26)
 	lg.setColor(c_white)
 	
@@ -2598,23 +2702,59 @@ function ui.draw()
 					lg.setLineWidth(2)
 				end
 
+				local text_ending = ""
+				if this_item.id == "art.opacity" then
+					text_ending = "%"
+				end
+				
 				local ix, iy = panel_x, 3
 				lg.setColor(c_off_white)
 				lg.rectangle("fill", ix - 5, iy + 25, 46, 20)
 				lg.setColor(col)
 				lg.rectangle("line", ix - 5, iy + 25, 46, 20)
 				lg.setColor(c_black)
-				lg.print(this_item.value, ix, iy + 26)
+				lg.print(this_item.value .. text_ending, ix, iy + 26)
 				panel_x = panel_x + 46 + 6
 
 				lg.setLineWidth(1)
 
 				if ui.input_cursor_visible and this_selected then
-					local lxx, lyy = ix + font:getWidth(ui.primary_panel[i].value) + 3, iy + 25 + 3
+					local lxx, lyy = ix + font:getWidth(ui.primary_panel[i].value .. text_ending) + 3, iy + 25 + 3
 					lg.line(lxx, lyy, lxx, lyy + 14)
 				end
 			
 			else
+			
+				local this_item = ui.primary_panel[i]
+				local btn_state = BTN_DEFAULT
+				if this_item.active == false then
+					btn_state = BTN_GRAY
+					
+					if artboard.active then
+						btn_state = BTN_PINK
+					end
+					
+				else
+				
+					local mouse_hover_tool = false
+					mouse_hover_tool = ((mx >= panel_x) and (mx <= panel_x + 23) and (my >= 27) and (my <= 27 + 23))
+					
+					if mouse_hover_tool and (ui.panel_clicked == -1) then
+						btn_state = BTN_HIGHLIGHT_ON
+					end
+					
+					if (mouse_switch ~= _OFF) and (ui.panel_clicked == i) then
+						btn_state = BTN_HIGHLIGHT_OFF
+					end
+				
+				end
+				
+				ui.drawButtonOutline(btn_state, panel_x, 27, 24, 24)
+				
+				lg.setColor(c_white)
+				lg.draw(this_item.icon, panel_x, 27)
+				
+				panel_x = panel_x + 24 + 12
 			
 			end
 		
@@ -2647,11 +2787,8 @@ function ui.draw()
 		
 		camera_zoom = ui.preview_zoom
 		
-		if artboard.draw_top and artboard.visible and artboard.canvas ~= nil and ui.preview_artboard_enabled then
-			local artcol = c_white
-			if artboard.transparent then
-				artcol = {1, 1, 1, 0.5}
-			end
+		if artboard.draw_top and artboard.canvas ~= nil and ui.preview_artboard_enabled then
+			local artcol = {1, 1, 1, artboard.opacity}
 			
 			lg.setColor(artcol)
 			lg.draw(artboard.canvas, 0, 0, 0, ui.preview_zoom)
@@ -2659,11 +2796,8 @@ function ui.draw()
 		
 		polygon.draw()
 		
-		if not artboard.draw_top and artboard.visible and artboard.canvas ~= nil and ui.preview_artboard_enabled then
-			local artcol = c_white
-			if artboard.transparent then
-				artcol = {1, 1, 1, 0.5}
-			end
+		if not artboard.draw_top and artboard.canvas ~= nil and ui.preview_artboard_enabled then
+			local artcol = {1, 1, 1, artboard.opacity}
 			
 			lg.setColor(artcol)
 			lg.draw(artboard.canvas, 0, 0, 0, ui.preview_zoom)

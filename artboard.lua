@@ -3,10 +3,9 @@ local artboard = {}
 artboard.w = 0
 artboard.h = 0
 artboard.canvas = nil
-artboard.visible = true
 artboard.active = false
 artboard.draw_top = false
-artboard.transparent = false
+artboard.opacity = 1
 artboard.brush_size = 1
 artboard.edited = false
 
@@ -42,6 +41,7 @@ function artboard.init()
 	artboard.step_location = 0
 	artboard.length = 0
 	artboard.offset = 0
+	artboard.opacity = 1
 
 	-- Reset canvas and collect garbage
 	if artboard.canvas ~= nil then

@@ -238,6 +238,9 @@ function love.load()
 	icon_reset = lg.newImage("textures/icon_reset.png")
 	icon_fit = lg.newImage("textures/icon_fit.png")
 	icon_close = lg.newImage("textures/icon_close.png")
+	icon_look = lg.newImage("textures/icon_look.png")
+	icon_art_above = lg.newImage("textures/icon_art_above.png")
+	icon_art_below = lg.newImage("textures/icon_art_below.png")
 	
 	cursor_typing = love.mouse.getSystemCursor("ibeam")
 	cursor_size_h = love.mouse.getSystemCursor("sizewe")
@@ -556,14 +559,14 @@ function love.update(dt)
 		
 			if artboard_is_drawing then
 				if mouse_switch == _ON then
-					if artboard.visible and artboard.canvas ~= nil then
+					if artboard.canvas ~= nil then
 						ui_off_mouse_down = true
 						artboard.add(mx - math.floor(camera_x), my - math.floor(camera_y), mouse_x_previous - math.floor(camera_x), mouse_y_previous - math.floor(camera_y))
 					end
 				end
 				
 				if rmb_switch == _ON then
-					if artboard.visible and artboard.canvas ~= nil then
+					if artboard.canvas ~= nil then
 						ui_off_mouse_down = true
 						artboard.add(mx - math.floor(camera_x), my - math.floor(camera_y), mouse_x_previous - math.floor(camera_x), mouse_y_previous - math.floor(camera_y), true)
 					end
@@ -625,13 +628,8 @@ function love.update(dt)
 	
 		if o_key == _PRESS then debug_mode = "grid" end
 		if p_key == _PRESS then debug_mode = "zoom" end
-		if e_key == _PRESS then debug_mode = "preview" ui.popupLoseFocus("preview") ui.preview_active = not ui.preview_active end
 		
 		if artboard.active then
-		
-			--if down_key == _PRESS then artboard.visible = not artboard.visible end
-			--if left_key == _PRESS then artboard.draw_top = not artboard.draw_top end
-			--if right_key == _PRESS then artboard.transparent = not artboard.transparent end
 			
 			if artboard.active then
 				palette.activeIsEditable = false
@@ -729,12 +727,8 @@ function love.draw()
 	
 	if document_w ~= 0 then
 	
-		if artboard.draw_top and artboard.visible and artboard.canvas ~= nil then
-			local artcol = c_white
-			if artboard.transparent then
-				artcol = {1, 1, 1, 0.5}
-			end
-			
+		if artboard.draw_top and artboard.canvas ~= nil then
+			local artcol = {1, 1, 1, artboard.opacity}
 			lg.setColor(artcol)
 			lg.draw(artboard.canvas, 0, 0, 0, camera_zoom)
 		end
@@ -844,11 +838,8 @@ function love.draw()
 		
 	end
 	
-	if not artboard.draw_top and artboard.visible and artboard.canvas ~= nil then
-		local artcol = c_white
-		if artboard.transparent then
-			artcol = {1, 1, 1, 0.5}
-		end
+	if not artboard.draw_top and artboard.canvas ~= nil then
+		local artcol = {1, 1, 1, artboard.opacity}
 		
 		lg.setColor(artcol)
 		lg.draw(artboard.canvas, 0, 0, 0, camera_zoom)
@@ -862,22 +853,6 @@ function love.draw()
 	
 	lg.setColor(1,1,1,0.6)
 	local debug_info = ""
-	
-	if artboard.active then
-		local av = "false"
-		if artboard.visible then av = "true" end
-		
-		local aa = "false"
-		if artboard.active then aa = "true" end
-		
-		local at = "bottom"
-		if artboard.draw_top then at = "top" end
-		
-		local ar = "no"
-		if artboard.transparent then ar = "yes" end
-		
-		debug_info = " visible:" .. av .. ", drawable:" .. aa .. ", position: " .. at .. ", transparent: " .. ar
-	end
 	
 	if debug_mode == "grid" then
 		debug_info = " " .. debug_grid .. " x:" .. grid_x .. " y:" .. grid_y .. " w:" .. grid_w ..  " h:" .. grid_h
