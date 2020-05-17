@@ -87,6 +87,11 @@ ui.toolbar_artboard = nil
 ui.toolbar_polygon = nil
 ui.toolbar_ellipse = nil
 
+ui.primary_panel = {}
+ui.primary_textbox = -1
+ui.primary_text_orig = ""
+ui.secondary_panel = {}
+
 ui.mouse_x = -1
 ui.mouse_y = -1
 ui.mouse_x_previous = -1
@@ -237,6 +242,61 @@ function ui.addPS(name)
 	item.value = "0"
 	
 	table.insert(ui.palette, item)
+
+end
+
+function ui.addPanel(panel, id, name, textbox, default, min_entry, max_entry)
+
+	local item = {}
+	if textbox then
+		item.name = name
+		item.value = default
+		item.low = min_entry
+		item.high = max_entry
+		item.active = false
+	else
+		item.icon = name
+	end
+	
+	item.is_textbox = textbox
+	item.id = id
+	
+	table.insert(panel, item)
+
+end
+
+function ui.panelPolygon()
+
+	ui.primary_panel = nil
+	ui.primary_panel = {}
+
+end
+
+function ui.panelEllipse()
+
+	ui.primary_panel = nil
+	ui.primary_panel = {}
+	ui.primary_panel.name = "Ellipse:"
+	
+	local load_seg, load_ang = 0, 0
+	if polygon.data[1] ~= nil and polygon.data[tm.polygon_loc] ~= nil and polygon.data[tm.polygon_loc].kind == "ellipse" then
+		local myshape = polygon.data[tm.polygon_loc]
+		load_seg = myshape.segments
+		load_ang = myshape._angle
+	else
+		load_seg = polygon.segments
+		load_ang = polygon._angle
+	end
+	
+	ui.addPanel(ui.primary_panel, 'ellipse.seg', 'Segments', true, load_seg, 3, 128)
+	ui.addPanel(ui.primary_panel, 'ellipse.ang', 'Rotation', true, load_ang, 0, 359)
+
+end
+
+function ui.panelArtboard()
+
+	ui.primary_panel = nil
+	ui.primary_panel = {}
 
 end
 
@@ -395,6 +455,57 @@ function ui.popupLoseFocus(kind)
 		ui.textbox_selection_origin = ""
 		ui.preview_textbox_locked = true
 	
+	elseif ui.textbox_selection_origin == "toolbar" then
+	
+		local tbox = ui.primary_panel[ui.primary_textbox]
+	
+		if tbox.value == "" then
+			tbox.value = ui.primary_text_orig
+		end
+		
+		if tonumber(tbox.value) < tbox.low then
+			tbox.value = tbox.low
+		end
+		
+		if tonumber(tbox.value) > tbox.high then
+			tbox.value = tbox.high
+		end
+		
+		if tbox.id == "ellipse.seg" or tbox.id == "ellipse.ang" then
+			
+			if polygon.data[1] ~= nil and polygon.data[tm.polygon_loc] ~= nil and polygon.data[tm.polygon_loc].kind == "ellipse" then
+				local myshape = polygon.data[tm.polygon_loc]
+				
+				if tbox.id == "ellipse.seg" then
+					local old_seg = myshape.segments
+					myshape.segments = tonumber(tbox.value)
+					tm.store(TM_ELLIPSE_SEG, old_seg, myshape.segments)
+					tm.step()
+					polygon.segments = tonumber(tbox.value)
+				else -- angle
+					local old_ang = myshape._angle
+					myshape._angle = tonumber(tbox.value)
+					tm.store(TM_ELLIPSE_ANGLE, old_ang, myshape._angle)
+					tm.step()
+					polygon._angle = tonumber(tbox.value)
+				end
+				
+			else
+			
+				if tbox.id == "ellipse.seg" then
+					polygon.segments = tonumber(tbox.value)
+				else -- angle
+					polygon._angle = tonumber(tbox.value)
+				end
+			
+			end
+			
+		end
+		
+		ui.textbox_selection_origin = ""
+		ui.primary_textbox = -1
+		scrub_active = false
+	
 	end
 	
 end
@@ -457,6 +568,31 @@ function ui.keyboardHit(key)
 				ui.preview_textbox = string.sub(ui.preview_textbox, 0, string.len(ui.preview_textbox) - 1)
 			elseif (key == "return") then
 				ui.popupLoseFocus("preview")
+				ui.keyboard_last = ""
+				ui.keyboard_test = ""
+			end
+		end
+	
+	elseif ui.textbox_selection_origin == "toolbar" then
+	
+		local tbox = ui.primary_panel[ui.primary_textbox]
+	
+		if string.len(key) == 1 then
+			
+			if ui.primary_textbox ~= -1 then
+			
+				local allowed_keys = (tonumber(key) ~= nil)
+				if allowed_keys and string.len(tbox.value) < 5 then
+					tbox.value = tbox.value .. key					
+				end
+				
+			end
+			
+		else
+			if (key == "backspace") then
+				tbox.value = string.sub(tbox.value, 0, string.len(tbox.value) - 1)
+			elseif (key == "return") then
+				ui.popupLoseFocus("toolbar")
 				ui.keyboard_last = ""
 				ui.keyboard_test = ""
 			end
@@ -1176,7 +1312,7 @@ function ui.update(dt)
 	end
 	
 	-- Check toolbar collision
-	if (mouse_switch == _PRESS) and ((mx <= 64) or (my <= 54)) and (not ui_active) then
+	if (mouse_switch == _PRESS) and ((mx <= 64) and (my >= 54)) and (not ui_active) then
 		
 		ui.preview_palette_enabled = false
 		local yy = my - 61
@@ -1233,6 +1369,7 @@ function ui.update(dt)
 					if ui.toolbar[ui.toolbar_polygon].active then
 						artboard.active = false
 						polygon.kind = "polygon"
+						ui.panelPolygon()
 					end
 					
 				elseif tool.ref == ".circ" then
@@ -1240,12 +1377,14 @@ function ui.update(dt)
 					if ui.toolbar[ui.toolbar_ellipse].active then
 						artboard.active = false
 						polygon.kind = "ellipse"
+						ui.panelEllipse()
 					end
 					
 				elseif tool.ref == ".artb" then
 					
 					if ui.toolbar[ui.toolbar_artboard].active then
 						artboard.active = true
+						ui.panelArtboard()
 					end
 					
 				elseif tool.ref == ".undo" then
@@ -1275,6 +1414,122 @@ function ui.update(dt)
 	
 	if (mouse_switch == _RELEASE) and (ui.toolbar_clicked ~= -1) then
 		ui.toolbar_clicked = -1
+	end
+	
+	-- Update textboxes in toolbar panels
+	if ui.primary_panel[1] ~= nil and ui.primary_panel[1].id == 'ellipse.seg' then
+	
+		if ui.primary_textbox == -1 then -- Update textboxes when inactive
+	
+			local load_seg, load_ang = 0, 0
+			if polygon.data[1] ~= nil and polygon.data[tm.polygon_loc] ~= nil and polygon.data[tm.polygon_loc].kind == "ellipse" then
+				local myshape = polygon.data[tm.polygon_loc]
+				load_seg = myshape.segments
+				load_ang = myshape._angle
+			else
+				load_seg = polygon.segments
+				load_ang = polygon._angle
+			end
+		
+			ui.primary_panel[1].value = load_seg
+			ui.primary_panel[2].value = load_ang
+		
+		else -- Preview shape while making changes
+		
+			local myshape = polygon.data[tm.polygon_loc]
+			local load_seg, load_ang = myshape.segments, myshape._angle
+			
+			if tonumber(ui.primary_panel[ui.primary_textbox].value) ~= nil and ((hz_dir ~= 0) or (vt_dir ~= 0)) then
+				local this_t = ui.primary_panel[ui.primary_textbox]
+				this_t.value = this_t.value + (hz_key * hz_dir) + (vt_key * vt_dir)
+				
+				if this_t.id == 'ellipse.ang' and this_t.value >= 360 then
+					this_t.value = this_t.value - 360
+				end
+				
+				if this_t.id == 'ellipse.ang' and this_t.value < 0 then
+					this_t.value = this_t.value + 360
+				end
+				
+				this_t.value = math.min(this_t.value, this_t.high)
+				this_t.value = math.max(this_t.value, this_t.low)
+			end
+			
+			if tonumber(ui.primary_panel[1].value) ~= nil then
+				load_seg = ui.primary_panel[1].value
+				load_seg = math.min(load_seg, ui.primary_panel[1].high)
+				load_seg = math.max(load_seg, ui.primary_panel[1].low)
+			end
+			
+			if tonumber(ui.primary_panel[2].value) ~= nil then
+				load_ang = ui.primary_panel[2].value
+				load_ang = math.min(load_ang, ui.primary_panel[2].high)
+				load_ang = math.max(load_ang, ui.primary_panel[2].low)
+			end
+			
+			myshape.segments = load_seg
+			myshape._angle = load_ang
+		
+		end
+		
+	end
+	
+	-- Interaction for toolbar panels
+	local panel_x = 70 + 4
+	
+	if ui.primary_panel[1] ~= nil then
+		
+		panel_x = panel_x + font:getWidth(ui.primary_panel.name) + 12
+		
+		local hit_tbox = -1
+		
+		local i = 1
+		for i = 1, #ui.primary_panel do
+		
+			local this_item = ui.primary_panel[i]
+			if this_item.is_textbox then
+			
+				-- Title of element
+				panel_x = panel_x + font:getWidth(this_item.name) + 12
+				
+				-- Textbox of element
+
+				local ix, iy = panel_x, 3
+				
+				if (mouse_switch == _PRESS) then
+					if (mx >= ix - 5) and (mx <= ix + 41) and (my >= iy + 25) and (my <= iy + 45) then
+						
+						if ui.primary_textbox ~= -1 then
+							ui.popupLoseFocus("toolbar")
+						end
+						
+						scrub_active = true
+						
+						ui.primary_textbox = i
+						ui.primary_text_orig = ui.primary_panel[i].value
+						
+						ui.active_textbox = "toolbar"
+						ui.textbox_selection_origin = "toolbar"
+						
+						hit_tbox = i
+					end
+				end
+				
+				panel_x = panel_x + 46 + 6
+			
+			else
+			
+			end
+		
+		end
+		
+		if (mouse_switch == _PRESS) then
+			if ui.primary_textbox ~= -1 and hit_tbox == -1 then
+				ui.popupLoseFocus("toolbar")
+				ui_active = true
+			end
+		end
+		
 	end
 	
 	-- Interaction for preview window
@@ -1761,6 +2016,10 @@ function ui.update(dt)
 			ui_active = true
 		end
 		
+	end
+	
+	if mouse_switch == _PRESS and my <= 58 then
+		ui_active = true
 	end
 	
 	ui.popup_enter = false
@@ -2310,6 +2569,59 @@ function ui.draw()
 	
 	lg.draw(ui.toolbar[4].icon, ix + 27, iy)
 	
+	-- Draw toolbar panels
+	
+	local panel_x = 70 + 4
+	
+	if ui.primary_panel[1] ~= nil then
+		
+		lg.setColor(c_black)
+		lg.print(ui.primary_panel.name, panel_x, 29)
+		panel_x = panel_x + font:getWidth(ui.primary_panel.name) + 12
+		
+		local i = 1
+		for i = 1, #ui.primary_panel do
+		
+			local this_item = ui.primary_panel[i]
+			if this_item.is_textbox then
+			
+				-- Title of element
+				lg.setColor(c_black)
+				lg.print(this_item.name, panel_x, 29)
+				panel_x = panel_x + font:getWidth(this_item.name) + 12
+				
+				-- Textbox of element
+				local col = col_inactive
+				local this_selected = ui.primary_textbox == i
+				if this_selected then
+					col = c_highlight_active
+					lg.setLineWidth(2)
+				end
+
+				local ix, iy = panel_x, 3
+				lg.setColor(c_off_white)
+				lg.rectangle("fill", ix - 5, iy + 25, 46, 20)
+				lg.setColor(col)
+				lg.rectangle("line", ix - 5, iy + 25, 46, 20)
+				lg.setColor(c_black)
+				lg.print(this_item.value, ix, iy + 26)
+				panel_x = panel_x + 46 + 6
+
+				lg.setLineWidth(1)
+
+				if ui.input_cursor_visible and this_selected then
+					local lxx, lyy = ix + font:getWidth(ui.primary_panel[i].value) + 3, iy + 25 + 3
+					lg.line(lxx, lyy, lxx, lyy + 14)
+				end
+			
+			else
+			
+			end
+		
+		end
+		
+	end
+	
 	-- Draw preview window
 	if ui.preview_active then
 	
@@ -2377,8 +2689,8 @@ function ui.draw()
 		lg.setColor(col)
 		lg.rectangle("line", ix - 5, iy + 25, 46, 20)
 		lg.setColor(c_black)
-		lg.print(ui.preview_textbox_mode, ix - font:getWidth(ui.preview_textbox_mode) - 12, iy + 25)
-		lg.print(ui.preview_textbox, ix, iy + 25)
+		lg.print(ui.preview_textbox_mode, ix - font:getWidth(ui.preview_textbox_mode) - 12, iy + 26)
+		lg.print(ui.preview_textbox, ix, iy + 26)
 		
 		lg.setLineWidth(1)
 		

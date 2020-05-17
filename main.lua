@@ -76,6 +76,13 @@ mouse_y_previous = -1
 mouse_wheel_x = 0
 mouse_wheel_y = 0
 
+scrub_timer = 0
+scrub_active = false
+hz_key = 0
+vt_key = 0
+hz_dir = 0
+vt_dir = 0
+
 ui_off_mouse_down = false
 ui_on_mouse_up = false
 
@@ -143,6 +150,10 @@ function resetCamera()
 end
 
 function editorUndo()
+	if ui.primary_textbox ~= -1 then
+		ui.popupLoseFocus("toolbar")
+	end
+
 	vertex_selection = {}
 	palette.activeIsEditable = false
 	local repeat_undo = polygon.undo()
@@ -153,6 +164,10 @@ function editorUndo()
 end
 
 function editorRedo()
+	if ui.primary_textbox ~= -1 then
+		ui.popupLoseFocus("toolbar")
+	end
+
 	vertex_selection = {}
 	palette.activeIsEditable = false
 	local repeat_redo = polygon.redo()
@@ -335,6 +350,89 @@ function love.update(dt)
 	if two_button == _PRESS then print_r(tm.data) end
 	
 	-- end debug block
+	
+	if scrub_active then
+	
+		-- Update horizontal scrubbing
+
+		if (left_key == _PRESS) or ((right_key == _RELEASE) and (left_key == _ON)) then
+			hz_dir = -1
+		end
+
+		if (right_key == _PRESS) or ((left_key == _RELEASE) and (right_key == _ON)) then
+			hz_dir = 1
+		end
+
+		if (left_key == _OFF) and (right_key == _OFF) then
+			hz_dir = 0
+		end
+
+		-- Update vertical scrubbing
+
+		if (up_key == _PRESS) or ((down_key == _RELEASE) and (up_key == _ON)) then
+			vt_dir = 1
+		end
+
+		if (down_key == _PRESS) or ((up_key == _RELEASE) and (down_key == _ON)) then
+			vt_dir = -1
+		end
+
+		if (up_key == _OFF) and (down_key == _OFF) then
+			vt_dir = 0
+		end
+		
+		-- Update scrub
+		
+		if hz_dir ~= 0 or vt_dir ~= 0 then
+		
+			scrub_timer = scrub_timer + (dt * 60)
+			
+			-- Always move on key trigger event
+			if (up_key == _PRESS) or (down_key == _PRESS) or (left_key == _PRESS) or (right_key == _PRESS) then
+				if hz_dir ~= 0 then
+					hz_key = 1
+				end
+				
+				if vt_dir ~= 0 then
+					vt_key = 1
+				end
+			else
+			
+				local floor_timer = math.floor(scrub_timer)
+				if (floor_timer > 25) then
+				
+					if hz_dir ~= 0 then
+						hz_key = 1
+					else
+						hz_key = 0
+					end
+					
+					if vt_dir ~= 0 then
+						vt_key = 1
+					else
+						vt_key = 0
+					end
+					
+					scrub_timer = 24.5
+				
+				else
+					hz_key = 0
+					vt_key = 0
+				end
+			
+			end
+		
+		elseif hz_dir == 0 or vt_dir == 0 then
+			scrub_timer = 0
+		end
+		
+	else
+		scrub_timer = 0
+		hz_key = 0
+		vt_key = 0
+		hz_dir = 0
+		vt_dir = 0
+	end
 	
 	-- Camera movement
 	local camera_spd = 4 / camera_zoom
@@ -531,9 +629,9 @@ function love.update(dt)
 		
 		if artboard.active then
 		
-			if down_key == _PRESS then artboard.visible = not artboard.visible end
-			if left_key == _PRESS then artboard.draw_top = not artboard.draw_top end
-			if right_key == _PRESS then artboard.transparent = not artboard.transparent end
+			--if down_key == _PRESS then artboard.visible = not artboard.visible end
+			--if left_key == _PRESS then artboard.draw_top = not artboard.draw_top end
+			--if right_key == _PRESS then artboard.transparent = not artboard.transparent end
 			
 			if artboard.active then
 				palette.activeIsEditable = false
@@ -545,57 +643,37 @@ function love.update(dt)
 		
 		end
 		
-		if debug_mode == "zoom" then
-			if up_key == _ON then
-				updateCamera(screen_width, screen_height, camera_zoom, camera_zoom + (0.01 * 60 * dt))
-			end
+		-- if debug_mode == "zoom" then
+			-- if up_key == _ON then
+				-- updateCamera(screen_width, screen_height, camera_zoom, camera_zoom + (0.01 * 60 * dt))
+			-- end
 			
-			if down_key == _ON then
-				updateCamera(screen_width, screen_height, camera_zoom, camera_zoom - (0.01 * 60 * dt))
-			end
-		end
+			-- if down_key == _ON then
+				-- updateCamera(screen_width, screen_height, camera_zoom, camera_zoom - (0.01 * 60 * dt))
+			-- end
+		-- end
 		
-		if debug_mode == "grid" then
-			if debug_grid == "shift" then
-			if up_key == _ON then grid_y = grid_y - 1 end
-			if down_key == _ON then grid_y = grid_y + 1 end
-			if left_key == _ON then grid_x = grid_x - 1 end
-			if right_key == _ON then grid_x = grid_x + 1 end
-			end
+		-- if debug_mode == "grid" then
+			-- if debug_grid == "shift" then
+			-- if up_key == _ON then grid_y = grid_y - 1 end
+			-- if down_key == _ON then grid_y = grid_y + 1 end
+			-- if left_key == _ON then grid_x = grid_x - 1 end
+			-- if right_key == _ON then grid_x = grid_x + 1 end
+			-- end
 			
-			if debug_grid == "resize" then
-			if up_key == _PRESS then grid_h = grid_h - 1 end
-			if down_key == _PRESS then grid_h = grid_h + 1 end
-			if left_key == _PRESS then grid_w = grid_w - 1 end
-			if right_key == _PRESS then grid_w = grid_w + 1 end
-			end
+			-- if debug_grid == "resize" then
+			-- if up_key == _PRESS then grid_h = grid_h - 1 end
+			-- if down_key == _PRESS then grid_h = grid_h + 1 end
+			-- if left_key == _PRESS then grid_w = grid_w - 1 end
+			-- if right_key == _PRESS then grid_w = grid_w + 1 end
+			-- end
 			
-			if comma_key == _PRESS then debug_grid = "shift" end
-			if period_key == _PRESS then debug_grid = "resize" end
+			-- if comma_key == _PRESS then debug_grid = "shift" end
+			-- if period_key == _PRESS then debug_grid = "resize" end
 			
-			grid_w = math.max(grid_w, 2)
-			grid_h = math.max(grid_h, 2)
-		end
-		
-		if debug_mode == "ellipse" then
-		
-			if polygon.data[1] ~= nil and polygon.data[tm.polygon_loc] ~= nil and polygon.data[tm.polygon_loc].kind == "ellipse" then
-				local myshape = polygon.data[tm.polygon_loc]
-				local old_seg = myshape.segments
-				if up_key == _PRESS then myshape.segments = myshape.segments + 1   myshape.segments = math.max(myshape.segments, 3) tm.store(TM_ELLIPSE_SEG, old_seg, myshape.segments) tm.step() end
-				if down_key == _PRESS then myshape.segments = myshape.segments - 1 myshape.segments = math.max(myshape.segments, 3) tm.store(TM_ELLIPSE_SEG, old_seg, myshape.segments) tm.step() end
-				if left_key == _PRESS then myshape._angle = myshape._angle - 1     tm.store(TM_ELLIPSE_ANGLE, myshape._angle + 1,   myshape._angle) tm.step() end
-				if right_key == _PRESS then myshape._angle = myshape._angle + 1    tm.store(TM_ELLIPSE_ANGLE, myshape._angle - 1,   myshape._angle) tm.step() end
-			else
-				if up_key == _PRESS then polygon.segments = polygon.segments + 1 end
-				if down_key == _PRESS then polygon.segments = polygon.segments - 1 end
-				if left_key == _PRESS then polygon._angle = polygon._angle - 1 end
-				if right_key == _PRESS then polygon._angle = polygon._angle + 1 end
-				
-				polygon.segments = math.max(polygon.segments, 3)
-			end
-		
-		end
+			-- grid_w = math.max(grid_w, 2)
+			-- grid_h = math.max(grid_h, 2)
+		-- end
 	
 	end
 	
@@ -622,7 +700,7 @@ function love.update(dt)
 	
 	end
 	
-	if camera_moved and up_key == _OFF and down_key == _OFF and w_key == _OFF and s_key == _OFF and a_key == _OFF and d_key == _OFF then
+	if camera_moved and w_key == _OFF and s_key == _OFF and a_key == _OFF and d_key == _OFF then
 		camera_x = math.floor(camera_x)
 		camera_y = math.floor(camera_y)
 		camera_moved = false
@@ -756,7 +834,7 @@ function love.draw()
 			local tx, ty = clone.raw[j].x, clone.raw[j].y
 			local sc = camera_zoom
 			
-			if (#clone.raw < 3 and clone.kind == "polygon") or (lume.distance(mx - math.floor(camera_x), my - math.floor(camera_y), tx, ty) < vertex_radius) then
+			if (#clone.raw < 3) or (lume.distance(mx - math.floor(camera_x), my - math.floor(camera_y), tx, ty) < vertex_radius) then
 				lg.draw(spr_vertex, math.floor(tx * sc) - 5, math.floor(ty * sc) - 5)
 			end
 			
