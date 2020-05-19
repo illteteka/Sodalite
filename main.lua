@@ -481,17 +481,18 @@ function love.update(dt)
 				polygon.new(tm.polygon_loc, new_col, polygon.kind, true)
 			end
 			
-			if debug_mode ~= "grid" then
-				selection_mouse_x = mx - math.floor(camera_x)
-				selection_mouse_y = my - math.floor(camera_y)
-			else
-				selection_mouse_x = ((math.floor((mx - camera_x) / grid_w) * grid_w) + (grid_x % grid_w))
-				selection_mouse_y = ((math.floor((my - camera_y) / grid_h) * grid_h) + (grid_y % grid_h))
+			selection_mouse_x = mx - math.floor(camera_x)
+			selection_mouse_y = my - math.floor(camera_y)
+			
+			local gx, gy = selection_mouse_x, selection_mouse_y
+			if ui.toolbar[ui.toolbar_grid].active == false then
+				gx = ((math.floor((mx - camera_x) / grid_w) * grid_w) + (grid_x % grid_w) + math.floor(camera_x))
+				gy = ((math.floor((my - camera_y) / grid_h) * grid_h) + (grid_y % grid_h) + math.floor(camera_y))
 			end
 			
 			-- Test if we are placing a vertex or moving a vertex
 			if vertex_selection[1] == nil then -- If selection is empty
-			polygon.calcVertex(selection_mouse_x, selection_mouse_y, tm.polygon_loc, true)
+			polygon.calcVertex(selection_mouse_x, selection_mouse_y, tm.polygon_loc, true, ui.toolbar[ui.toolbar_grid].active == false, gx, gy)
 			end
 		
 		end
@@ -505,12 +506,12 @@ function love.update(dt)
 			for i = 1, #vertex_selection do
 			
 				local cx, cy
-				if debug_mode ~= "grid" then
+				if ui.toolbar[ui.toolbar_grid].active then
 					cx = mx
 					cy = my
 				else
-					cx = ((math.floor((mx - camera_x) / grid_w) * grid_w) + (grid_x % grid_w) + math.floor(camera_x))
-					cy = ((math.floor((my - camera_y) / grid_h) * grid_h) + (grid_y % grid_h) + math.floor(camera_y))
+					cx = ((math.floor((mx) / grid_w) * grid_w) + (grid_x % grid_w))
+					cy = ((math.floor((my) / grid_h) * grid_h) + (grid_y % grid_h))
 				end
 			
 				-- Move verices by offset of selection_mouse_*
@@ -822,6 +823,7 @@ function love.draw()
 		while j <= #clone.raw do
 			
 			local vertex_radius = 100 / camera_zoom
+			
 			local tx, ty = clone.raw[j].x, clone.raw[j].y
 			local sc = camera_zoom
 			

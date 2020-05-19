@@ -92,8 +92,12 @@ ui.toolbar_grid = nil
 ui.primary_panel = {}
 ui.primary_textbox = -1
 ui.primary_text_orig = ""
+ui.primary_clicked = -1
+
 ui.secondary_panel = {}
-ui.panel_clicked = -1
+ui.secondary_textbox = -1
+ui.secondary_text_orig = ""
+ui.secondary_clicked = -1
 
 ui.mouse_x = -1
 ui.mouse_y = -1
@@ -549,6 +553,26 @@ function ui.popupLoseFocus(kind)
 		ui.primary_textbox = -1
 		scrub_active = false
 	
+	elseif ui.textbox_selection_origin == "toolbar2" then
+	
+		local tbox = ui.secondary_panel[ui.secondary_textbox]
+	
+		if tbox.value == "" then
+			tbox.value = ui.secondary_text_orig
+		end
+		
+		if tonumber(tbox.value) < tbox.low then
+			tbox.value = tbox.low
+		end
+		
+		if tonumber(tbox.value) > tbox.high then
+			tbox.value = tbox.high
+		end
+		
+		ui.textbox_selection_origin = ""
+		ui.secondary_textbox = -1
+		scrub_active = false
+	
 	end
 	
 end
@@ -636,6 +660,31 @@ function ui.keyboardHit(key)
 				tbox.value = string.sub(tbox.value, 0, string.len(tbox.value) - 1)
 			elseif (key == "return") then
 				ui.popupLoseFocus("toolbar")
+				ui.keyboard_last = ""
+				ui.keyboard_test = ""
+			end
+		end
+	
+	elseif ui.textbox_selection_origin == "toolbar2" then
+	
+		local tbox = ui.secondary_panel[ui.secondary_textbox]
+	
+		if string.len(key) == 1 then
+			
+			if ui.secondary_textbox ~= -1 then
+			
+				local allowed_keys = (tonumber(key) ~= nil)
+				if allowed_keys and string.len(tbox.value) < 5 then
+					tbox.value = tbox.value .. key					
+				end
+				
+			end
+			
+		else
+			if (key == "backspace") then
+				tbox.value = string.sub(tbox.value, 0, string.len(tbox.value) - 1)
+			elseif (key == "return") then
+				ui.popupLoseFocus("toolbar2")
 				ui.keyboard_last = ""
 				ui.keyboard_test = ""
 			end
@@ -1348,6 +1397,7 @@ function ui.update(dt)
 		ui.toolbar[ui.toolbar_polygon].active = false
 		ui.toolbar[ui.toolbar_ellipse].active = false
 		ui.toolbar[ui.toolbar_artboard].active = false
+		ui.toolbar[ui.toolbar_grid].active = false
 	else
 	
 		if artboard.active == false then
@@ -1365,9 +1415,6 @@ function ui.update(dt)
 			ui.toolbar[ui.toolbar_ellipse].active = true
 			ui.toolbar[ui.toolbar_artboard].active = false
 		end
-		
-		ui.toolbar[ui.toolbar_grid].active = false
-	
 	end
 	
 	-- Check toolbar collision
@@ -1622,6 +1669,10 @@ function ui.update(dt)
 				if (mouse_switch == _PRESS) then
 					if (mx >= ix - 5) and (mx <= ix + 41) and (my >= iy + 25) and (my <= iy + 45) then
 						
+						if ui.secondary_textbox ~= -1 then
+							ui.popupLoseFocus("toolbar2")
+						end
+						
 						if ui.primary_textbox ~= -1 then
 							ui.popupLoseFocus("toolbar")
 						end
@@ -1643,7 +1694,7 @@ function ui.update(dt)
 			else
 			
 				if (mouse_switch == _PRESS and (mx >= panel_x) and (mx <= panel_x + 23) and (my >= 27) and (my <= 27 + 23)) then
-					ui.panel_clicked = i
+					ui.primary_clicked = i
 					hit_button = i
 					
 					if ui.primary_panel[i].id == "art.position" then
@@ -1671,8 +1722,86 @@ function ui.update(dt)
 		end
 		
 		if (mouse_switch == _RELEASE) then
-			if ui.panel_clicked ~= -1 and hit_button == -1 then
-				ui.panel_clicked = -1
+			if ui.primary_clicked ~= -1 and hit_button == -1 then
+				ui.primary_clicked = -1
+			end
+		end
+		
+	end
+	
+	if ui.secondary_panel[1] ~= nil then
+		
+		-- Add line divider
+		if ui.primary_panel[1] ~= nil then
+			panel_x = panel_x + 12
+		end
+		
+		panel_x = panel_x + font:getWidth(ui.secondary_panel.name) + 12
+		
+		local hit_tbox = -1
+		local hit_button = -1
+		
+		local i = 1
+		for i = 1, #ui.secondary_panel do
+		
+			local this_item = ui.secondary_panel[i]
+			if this_item.is_textbox then
+			
+				-- Title of element
+				panel_x = panel_x + font:getWidth(this_item.name) + 12
+				
+				-- Textbox of element
+
+				local ix, iy = panel_x, 3
+				
+				if (mouse_switch == _PRESS) then
+					if (mx >= ix - 5) and (mx <= ix + 41) and (my >= iy + 25) and (my <= iy + 45) then
+						
+						if ui.primary_textbox ~= -1 then
+							ui.popupLoseFocus("toolbar")
+						end
+						
+						if ui.secondary_textbox ~= -1 then
+							ui.popupLoseFocus("toolbar2")
+						end
+						
+						scrub_active = true
+						
+						ui.secondary_textbox = i
+						ui.secondary_text_orig = ui.secondary_panel[i].value
+						
+						ui.active_textbox = "toolbar2"
+						ui.textbox_selection_origin = "toolbar2"
+						
+						hit_tbox = i
+					end
+				end
+				
+				panel_x = panel_x + 46 + 6
+			
+			else
+			
+				if (mouse_switch == _PRESS and (mx >= panel_x) and (mx <= panel_x + 23) and (my >= 27) and (my <= 27 + 23)) then
+					ui.secondary_clicked = i
+					hit_button = i
+				end
+				
+				panel_x = panel_x + 24 + 12
+			
+			end
+		
+		end
+		
+		if (mouse_switch == _PRESS) then
+			if ui.secondary_textbox ~= -1 and hit_tbox == -1 then
+				ui.popupLoseFocus("toolbar2")
+				ui_active = true
+			end
+		end
+		
+		if (mouse_switch == _RELEASE) then
+			if ui.secondary_clicked ~= -1 and hit_button == -1 then
+				ui.secondary_clicked = -1
 			end
 		end
 		
@@ -2220,11 +2349,11 @@ function ui.drawButtonOutline(state, x, y, w, h)
 	elseif (state == BTN_GRAY) then
 		c_top = c_btn_gray_top
 		c_mid = c_btn_gray_mid
-		c_bot = c_outline_light
+		c_bot = c_btn_gray
 	elseif (state == BTN_PINK) then
 		c_top = c_btn_pink_top
 		c_mid = c_btn_pink_mid
-		c_bot = c_outline_light
+		c_bot = c_btn_gray
 	elseif (state == BTN_HIGHLIGHT_ON) then
 		c_top = c_btn_high_top
 		c_mid = c_highlight_active
@@ -2786,11 +2915,106 @@ function ui.draw()
 					local mouse_hover_tool = false
 					mouse_hover_tool = ((mx >= panel_x) and (mx <= panel_x + 23) and (my >= 27) and (my <= 27 + 23))
 					
-					if mouse_hover_tool and (ui.panel_clicked == -1) then
+					if mouse_hover_tool and (ui.primary_clicked == -1) then
 						btn_state = BTN_HIGHLIGHT_ON
 					end
 					
-					if (mouse_switch ~= _OFF) and (ui.panel_clicked == i) then
+					if (mouse_switch ~= _OFF) and (ui.primary_clicked == i) then
+						btn_state = BTN_HIGHLIGHT_OFF
+					end
+				
+				end
+				
+				ui.drawButtonOutline(btn_state, panel_x, 27, 24, 24)
+				
+				lg.setColor(c_white)
+				lg.draw(this_item.icon, panel_x, 27)
+				
+				panel_x = panel_x + 24 + 12
+			
+			end
+		
+		end
+		
+	end
+	
+	if ui.secondary_panel[1] ~= nil then
+		
+		-- Add line divider
+		if ui.primary_panel[1] ~= nil then
+			lg.setColor(c_outline_dark)
+			lg.rectangle("fill", panel_x, 26, 1, 26)
+			lg.setColor(col_inactive)
+			lg.rectangle("fill", panel_x + 1, 26, 1, 26)
+			lg.setColor(c_white)
+			panel_x = panel_x + 12
+		end
+		
+		lg.setColor(c_black)
+		lg.print(ui.secondary_panel.name, panel_x, 29)
+		panel_x = panel_x + font:getWidth(ui.secondary_panel.name) + 12
+		
+		local i = 1
+		for i = 1, #ui.secondary_panel do
+		
+			local this_item = ui.secondary_panel[i]
+			if this_item.is_textbox then
+			
+				-- Title of element
+				lg.setColor(c_black)
+				lg.print(this_item.name, panel_x, 29)
+				panel_x = panel_x + font:getWidth(this_item.name) + 12
+				
+				-- Textbox of element
+				local col = col_inactive
+				local this_selected = ui.secondary_textbox == i
+				if this_selected then
+					col = c_highlight_active
+					lg.setLineWidth(2)
+				end
+
+				local text_ending = ""
+				if this_item.id == "art.opacity" then
+					text_ending = "%"
+				end
+				
+				local ix, iy = panel_x, 3
+				lg.setColor(c_off_white)
+				lg.rectangle("fill", ix - 5, iy + 25, 46, 20)
+				lg.setColor(col)
+				lg.rectangle("line", ix - 5, iy + 25, 46, 20)
+				lg.setColor(c_black)
+				lg.print(this_item.value .. text_ending, ix, iy + 26)
+				panel_x = panel_x + 46 + 6
+
+				lg.setLineWidth(1)
+
+				if ui.input_cursor_visible and this_selected then
+					local lxx, lyy = ix + font:getWidth(ui.secondary_panel[i].value .. text_ending) + 3, iy + 25 + 3
+					lg.line(lxx, lyy, lxx, lyy + 14)
+				end
+			
+			else
+			
+				local this_item = ui.secondary_panel[i]
+				local btn_state = BTN_DEFAULT
+				if this_item.active == false then
+					btn_state = BTN_GRAY
+					
+					if artboard.active then
+						btn_state = BTN_PINK
+					end
+					
+				else
+				
+					local mouse_hover_tool = false
+					mouse_hover_tool = ((mx >= panel_x) and (mx <= panel_x + 23) and (my >= 27) and (my <= 27 + 23))
+					
+					if mouse_hover_tool and (ui.secondary_clicked == -1) then
+						btn_state = BTN_HIGHLIGHT_ON
+					end
+					
+					if (mouse_switch ~= _OFF) and (ui.secondary_clicked == i) then
 						btn_state = BTN_HIGHLIGHT_OFF
 					end
 				

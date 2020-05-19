@@ -28,6 +28,7 @@ c_btn_pink_top = {161/255, 126/255, 156/255, 1}
 c_btn_pink_mid = {193/255, 153/255, 187/255, 1}
 c_btn_high_top = {223/255, 203/255, 251/255, 1}
 c_btn_high_bot = {107/255, 60/255, 172/255, 1}
+c_btn_gray     = {194/255, 197/255, 202/255, 1}
 
 palette.lines = c_white
 palette.select  = c_white

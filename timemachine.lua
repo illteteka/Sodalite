@@ -54,6 +54,8 @@ function tm.store(action, a, b, c, d, e)
 			moment.x = a
 			moment.y = b
 			moment.sequence = c
+			moment.grid = not ui.toolbar[ui.toolbar_grid].active
+			moment.gx, moment.gy = tm.repairGrid(a, b)
 		
 		elseif (action == TM_DEL_LINE) then
 		
@@ -70,6 +72,9 @@ function tm.store(action, a, b, c, d, e)
 			moment.y = c
 			moment.ox = d
 			moment.oy = e
+			moment.grid = not ui.toolbar[ui.toolbar_grid].active
+			moment.gx, moment.gy = tm.repairGrid(b, c)
+			moment.gox, moment.goy = tm.repairGrid(d, e)
 		
 		elseif (action == TM_CHANGE_COLOR) then
 		
@@ -119,6 +124,16 @@ function tm.store(action, a, b, c, d, e)
 		table.insert(tm.data[tm.location], moment)
 	end
 
+end
+
+function tm.repairGrid(a, b)
+	if ui.toolbar[ui.toolbar_grid].active == false then
+		a = a + math.floor(camera_x)
+		b = b + math.floor(camera_y)
+		a = ((math.floor((mx - camera_x) / grid_w) * grid_w) + (grid_x % grid_w) + math.floor(camera_x))
+		b = ((math.floor((my - camera_y) / grid_h) * grid_h) + (grid_y % grid_h) + math.floor(camera_y))
+	end
+	return a, b
 end
 
 function tm.step()
