@@ -481,7 +481,7 @@ function love.update(dt)
 				polygon.new(tm.polygon_loc, new_col, polygon.kind, true)
 			end
 			
-			if debug_mode ~= "grid" then
+			if ui.toolbar[ui.toolbar_grid].active then
 				selection_mouse_x = mx - math.floor(camera_x)
 				selection_mouse_y = my - math.floor(camera_y)
 			else
@@ -505,17 +505,17 @@ function love.update(dt)
 			for i = 1, #vertex_selection do
 			
 				local cx, cy
-				if debug_mode ~= "grid" then
-					cx = mx
-					cy = my
+				if ui.toolbar[ui.toolbar_grid].active then
+					cx = mx - math.floor(camera_x)
+					cy = my - math.floor(camera_y)
 				else
-					cx = ((math.floor((mx - camera_x) / grid_w) * grid_w) + (grid_x % grid_w) + math.floor(camera_x))
-					cy = ((math.floor((my - camera_y) / grid_h) * grid_h) + (grid_y % grid_h) + math.floor(camera_y))
+					cx = ((math.floor((mx - camera_x) / grid_w) * grid_w) + (grid_x % grid_w))
+					cy = ((math.floor((my - camera_y) / grid_h) * grid_h) + (grid_y % grid_h))
 				end
 			
 				-- Move verices by offset of selection_mouse_*
 				local pp = polygon.data[tm.polygon_loc].raw[vertex_selection[i].index]
-				pp.x, pp.y = vertex_selection[i].x + (cx - selection_mouse_x - math.floor(camera_x)), vertex_selection[i].y + (cy - selection_mouse_y - math.floor(camera_y))
+				pp.x, pp.y = cx, cy
 			
 			end
 		

@@ -54,6 +54,7 @@ function tm.store(action, a, b, c, d, e)
 			moment.x = a
 			moment.y = b
 			moment.sequence = c
+			moment.old_line = d
 		
 		elseif (action == TM_DEL_LINE) then
 		

@@ -36,40 +36,36 @@ function polygon.calcVertex(x, y, loc, use_tm)
 	local point_selected = -1
 	
 	-- Test if user clicked on a vertex
-	if use_tm then
-	
-		local i = 1
-		while i <= #polygon.data[tm.polygon_loc].raw do
+	local i = 1
+	while i <= #polygon.data[tm.polygon_loc].raw do
+		
+		local vertex_radius = 10
+		
+		-- Scale selection radius if the camera is scaled
+		if camera_zoom > 1 then
+			vertex_radius = math.max(vertex_radius / camera_zoom, 1)
+		elseif camera_zoom < 1 then
+			vertex_radius = (vertex_radius / camera_zoom)
+		end
+		
+		local vx, vy = polygon.data[tm.polygon_loc].raw[i].x, polygon.data[tm.polygon_loc].raw[i].y
+		
+		-- If check was successful
+		if (lume.distance(x, y, vx, vy) < vertex_radius) then
+			point_selected = i
+			i = #polygon.data[tm.polygon_loc].raw + 1
 			
-			local vertex_radius = 10
-			
-			-- Scale selection radius if the camera is scaled
-			if camera_zoom > 1 then
-				vertex_radius = math.max(vertex_radius / camera_zoom, 1)
-			elseif camera_zoom < 1 then
-				vertex_radius = (vertex_radius / camera_zoom)
-			end
-			
-			local vx, vy = polygon.data[tm.polygon_loc].raw[i].x, polygon.data[tm.polygon_loc].raw[i].y
-			
-			-- If check was successful
-			if (lume.distance(x, y, vx, vy) < vertex_radius) then
-				point_selected = i
-				i = #polygon.data[tm.polygon_loc].raw + 1
-				
-				-- Add vertex to selection group
-				local moved_point = {}
-				moved_point.index = point_selected
-				moved_point.x = x
-				moved_point.y = y
-				table.insert(vertex_selection, moved_point)
-				
-			end
-			
-			i = i + 1
+			-- Add vertex to selection group
+			local moved_point = {}
+			moved_point.index = point_selected
+			moved_point.x = vx
+			moved_point.y = vy
+			table.insert(vertex_selection, moved_point)
 			
 		end
-	
+		
+		i = i + 1
+		
 	end
 
 	-- Stop ellipses from having more than 2 vertices
@@ -137,7 +133,7 @@ function polygon.addVertex(x, y, loc, old_line, use_tm)
 	-- The first 3 vertices are stored in specific locations
 	if #copy.raw == 1 then
 		-- Time machine functions record vertex position, allows users to undo
-		tm.store(TM_ADD_VERTEX, x, y, 1)
+		tm.store(TM_ADD_VERTEX, x, y, 1, -1)
 		
 		if copy.kind == "ellipse" then
 			copy.segments = polygon.segments
@@ -152,7 +148,7 @@ function polygon.addVertex(x, y, loc, old_line, use_tm)
 			table.insert(copy.cache, {1, 2})
 		end
 		
-		tm.store(TM_ADD_VERTEX, x, y, 2)
+		tm.store(TM_ADD_VERTEX, x, y, 2, -1)
 	elseif #copy.raw == 3 then
 		-- Link line 3 to line 1
 		copy.raw[1].vb = 3
@@ -162,7 +158,7 @@ function polygon.addVertex(x, y, loc, old_line, use_tm)
 		copy.raw[3].va = 2
 		table.insert(copy.cache, {3, 2})
 		
-		tm.store(TM_ADD_VERTEX, x, y, 3)
+		tm.store(TM_ADD_VERTEX, x, y, 3, -1)
 	else
 		-- Create a new triangle using points: va, vb, and the cursor position
 		
@@ -179,7 +175,7 @@ function polygon.addVertex(x, y, loc, old_line, use_tm)
 		table.insert(copy.cache, {#copy.raw, old_a})
 		table.insert(copy.cache, {#copy.raw, old_b})
 		
-		tm.store(TM_ADD_VERTEX, x, y, 4)
+		tm.store(TM_ADD_VERTEX, x, y, 4, old_line)
 		tm.store(TM_DEL_LINE,   old_line, old_a, old_b)
 	end
 	
@@ -224,10 +220,9 @@ function polygon.redo()
 			palette.updateAccentColor()
 			
 		elseif moment[1].action == TM_ADD_VERTEX then
-			polygon.calcVertex(moment[1].x, moment[1].y, tm.polygon_loc, false)
+		
+			polygon.addVertex(move_moment.x, move_moment.y, tm.polygon_loc, moment[1].old_line, false)
 			
-			local pp = polygon.data[tm.polygon_loc].raw[move_moment.index]
-			pp.x, pp.y = move_moment.x, move_moment.y
 		elseif moment[1].action == TM_MOVE_VERTEX then
 		
 			local i
@@ -325,11 +320,10 @@ function polygon.undo()
 		
 			local i
 			for i = 1, #moment do
-			
-				local copy = polygon.data[tm.polygon_loc]
-				local pp = copy.raw[moment[i].index]
+
+				local pp = polygon.data[tm.polygon_loc].raw[moment[i].index]
 				pp.x, pp.y = moment[i].ox, moment[i].oy
-			
+
 			end
 		
 		elseif moment[1].action == TM_CHANGE_COLOR then
