@@ -392,6 +392,128 @@ function polygon.rotateY(x, y, px, py, c, s)
 	return (s * (x - px) - c * (y - py) + py)
 end
 
+function polygon.point_triangle(mx, my, ax, ay, bx, by, cx, cy)
+	offset_mx = mx - ax
+	offset_my = my - ay
+	
+	ab = ((bx - ax)*offset_my-(by-ay)*offset_mx) > 0
+	
+	local first_check  = ((cx - ax)*offset_my-(cy-ay)*offset_mx > 0 == ab)
+	local second_check = ((cx-bx)*(my-by)-(cy-by)*(mx-bx) > 0 ~= ab)
+	
+	return not (first_check or second_check)
+end
+
+function polygon.click(mx, my)
+
+	local triangle_hit = false
+	local layer_hit = -1
+	
+	local i = 1
+	
+	while i <= #ui.layer do
+		
+		if polygon.data[ui.layer[i].count] ~= nil and ui.layer[i].visible then
+			
+			local clone = polygon.data[ui.layer[i].count]
+			
+			-- Draw the shape
+			if clone.kind == "polygon" then
+			
+				local j = 1
+				while j <= #clone.raw do
+				
+					-- Draw triangle if the vertex[i] contains references to two other vertices (va and vb)
+					if clone.raw[j].vb ~= nil then
+						
+						local a_loc, b_loc = clone.raw[j].va, clone.raw[j].vb
+						local aa, bb, cc = clone.raw[j], clone.raw[a_loc], clone.raw[b_loc]
+						triangle_hit = polygon.point_triangle(mx, my, aa.x, aa.y, bb.x, bb.y, cc.x, cc.y)
+						
+						if triangle_hit then
+							layer_hit = i
+							i = #ui.layer + 1
+							j = #clone.raw + 1
+						end
+						
+					end
+					
+					j = j + 1
+				
+				end
+			
+			elseif clone.kind == "ellipse" then
+			
+				if #clone.raw > 1 then
+				
+					-- Load points from raw
+					local aa, bb = clone.raw[1], clone.raw[2]
+					local cx, cy, cw, ch
+					
+					-- Calculate w/h
+					cw = math.abs(aa.x - bb.x) / 2
+					ch = math.abs(aa.y - bb.y) / 2
+					
+					-- Make x/y the points closest to the north west
+					if bb.x < aa.x then cx = bb.x else cx = aa.x end
+					if bb.y < aa.y then cy = bb.y else cy = aa.y end
+					
+					cx = cx + cw
+					cy = cy + ch
+					
+					local cseg, cang = clone.segments, clone._angle
+					
+					-- Ellipse vars
+					local v, k = 0, 0
+					local cinc = (360 / cseg)
+					local _rad, _cos, _sin = math.rad, math.cos, math.sin
+					
+					while k < cseg do
+		
+						local cx2, cy2, cx3, cy3, cxx2, cyy2, cxx3, cyy3
+						cx2 = polygon.lengthdir_x(cw, _rad(v))
+						cy2 = polygon.lengthdir_y(ch, _rad(v))
+						cx3 = polygon.lengthdir_x(cw, _rad(v + cinc))
+						cy3 = polygon.lengthdir_y(ch, _rad(v + cinc))
+						
+						if (cang % 360 ~= 0) then
+							local cang2 = _rad(-cang)
+							local cc, ss = _cos(cang2), _sin(cang2)
+							cxx2 = polygon.rotateX(cx2, cy2, 0, 0, cc, ss)
+							cyy2 = polygon.rotateY(cx2, cy2, 0, 0, cc, ss)
+							cxx3 = polygon.rotateX(cx3, cy3, 0, 0, cc, ss)
+							cyy3 = polygon.rotateY(cx3, cy3, 0, 0, cc, ss)
+						else -- Do less math if not rotating
+							cxx2, cyy2, cxx3, cyy3 = cx2, cy2, cx3, cy3
+						end
+						
+						triangle_hit = polygon.point_triangle(mx, my, cx, cy, (cx + cxx2), (cy + cyy2), (cx + cxx3), (cy + cyy3))
+						if triangle_hit then
+							layer_hit = i
+							i = #ui.layer + 1
+							k = cseg + 1
+						end
+						
+						v = v + cinc
+						k = k + 1
+					
+					end
+				
+				end
+			
+			end
+		end
+		
+		-- End of drawing the shape
+		
+		i = i + 1
+	end
+	
+	print(layer_hit)
+	return layer_hit
+
+end
+
 function polygon.draw()
 
 	local i = 1

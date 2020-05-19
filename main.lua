@@ -55,6 +55,7 @@ camera_moved = false
 camera_x = 0
 camera_y = 0
 camera_zoom = 1
+camera_round = 0
 
 selection_mouse_x = 0
 selection_mouse_y = 0
@@ -140,6 +141,7 @@ function updateCamera(w, h, zo, zn)
 	camera_y = (((screen_height - document_h * zn) / 2) / zn) + (54 / 2 / zn) + ym
 	
 	-- math.floor camera once you're done scaling/resizing
+	camera_round = 2
 	camera_moved = true
 	
 end
@@ -641,15 +643,23 @@ function love.update(dt)
 		
 		end
 		
-		-- if debug_mode == "zoom" then
-			-- if up_key == _ON then
-				-- updateCamera(screen_width, screen_height, camera_zoom, camera_zoom + (0.01 * 60 * dt))
-			-- end
+		if t_key == _ON then
+		
+			if mouse_switch == _PRESS then
+				polygon.click(mx - math.floor(camera_x), my - math.floor(camera_y))
+			end
+		
+		end
+		
+		if debug_mode == "zoom" then
+			if up_key == _ON then
+				updateCamera(screen_width, screen_height, camera_zoom, camera_zoom + (0.01 * 60 * dt))
+			end
 			
-			-- if down_key == _ON then
-				-- updateCamera(screen_width, screen_height, camera_zoom, camera_zoom - (0.01 * 60 * dt))
-			-- end
-		-- end
+			if down_key == _ON then
+				updateCamera(screen_width, screen_height, camera_zoom, camera_zoom - (0.01 * 60 * dt))
+			end
+		end
 		
 		-- if debug_mode == "grid" then
 			-- if debug_grid == "shift" then
@@ -698,10 +708,18 @@ function love.update(dt)
 	
 	end
 	
-	if camera_moved and w_key == _OFF and s_key == _OFF and a_key == _OFF and d_key == _OFF then
+	if camera_moved and camera_round == 0 and w_key == _OFF and s_key == _OFF and a_key == _OFF and d_key == _OFF then
 		camera_x = math.floor(camera_x)
 		camera_y = math.floor(camera_y)
 		camera_moved = false
+	end
+	
+	if camera_moved and camera_round > 0 then
+		camera_round = camera_round - 1
+		if camera_round == 0 then
+			camera_x = math.floor(camera_x)
+			camera_y = math.floor(camera_y)
+		end
 	end
 	
 	if input.ctrlCombo(space_key) then
