@@ -29,6 +29,9 @@ c_btn_pink_mid = {193/255, 153/255, 187/255, 1}
 c_btn_high_top = {223/255, 203/255, 251/255, 1}
 c_btn_high_bot = {107/255, 60/255, 172/255, 1}
 
+palette.lines = c_white
+palette.select  = c_white
+
 BTN_DEFAULT = 0
 BTN_GRAY = 1
 BTN_PINK = 2
@@ -127,6 +130,7 @@ function palette.loadPalette(location)
 
 		palette.active = palette.colors[palette.slot + 1]
 		palette.updateFromBoxes()
+		palette.updateAccentColor()
 
 	end
 
@@ -156,6 +160,47 @@ function palette.updateFromBoxes()
 	ui.palette[4].value, ui.palette[5].value, ui.palette[6].value = palette.RGB(ui.palette[1].value, ui.palette[2].value, ui.palette[3].value, aa)
 	ui.palette[4].value, ui.palette[5].value, ui.palette[6].value = _floor(ui.palette[4].value), _floor(ui.palette[5].value), _floor(ui.palette[6].value)
 	
+end
+
+function palette.updateAccentColor()
+
+	local qr, qg, qb
+	local o_col = palette.active
+	if polygon.data[1] ~= nil and polygon.data[tm.polygon_loc] ~= nil then --and = polygon.data[tm.polygon_loc].color
+		o_col = polygon.data[tm.polygon_loc].color
+	end
+	
+	qr, qg, qb = o_col[1], o_col[2], o_col[3] -- Copy current color
+	
+	-- Find if color is closer to white or black
+	local mix = (qr + qg + qb)/3
+	
+	local light = 0
+	local mix_strength = 2.5
+	
+	local xr, xg, xb, yr, yg, yb
+	if mix < 0.5 then
+		light = 1
+		mix_strength = 1.5
+	end
+	
+	xr, xg, xb = (qr + light) / mix_strength, (qg + light) / mix_strength, (qb + light) / mix_strength
+
+	xr = math.min(xr, 1)
+	xg = math.min(xg, 1)
+	xb = math.min(xb, 1)
+	
+	mix = (xr + xg + xb)/3
+	
+	if mix < 0.3 and mix > 0.2 then
+		yr, yg, yb = o_col[1], o_col[2], o_col[3]
+	else
+		yr, yg, yb = xr, xg, xb
+	end
+	
+	palette.lines = {xr, xg, xb, 1}
+	palette.select  = {yr, yg, yb, (200/255)}
+
 end
 
 -- Converts HSL to RGB

@@ -26,6 +26,8 @@ function polygon.new(loc, color, kind, use_tm)
 	if use_tm then
 	tm.store(TM_NEW_POLYGON, shape.kind, shape.color)
 	end
+	
+	palette.updateAccentColor()
 
 end
 
@@ -219,6 +221,8 @@ function polygon.redo()
 				polygon.data[tm.polygon_loc]._angle = moment[3]._angle
 			end
 			
+			palette.updateAccentColor()
+			
 		elseif moment[1].action == TM_ADD_VERTEX then
 			polygon.calcVertex(moment[1].x, moment[1].y, tm.polygon_loc, false)
 			
@@ -237,18 +241,24 @@ function polygon.redo()
 		elseif moment[1].action == TM_CHANGE_COLOR then
 		
 			polygon.data[tm.polygon_loc].color = moment[1].new
+			palette.updateAccentColor()
 		
 		elseif moment[1].action == TM_PICK_LAYER then
 		
 			tm.polygon_loc = moment[1].new
 			
 			if moment[1].trash_layer == true then
+			
 				ui.deleteLayer(moment[1].original)
+				tm.polygon_loc = ui.layer[#ui.layer].count
+				
 			elseif moment[1].created_layer == true then
 				ui.addLayer()
 			else
 				repeat_redo = true
 			end
+			
+			palette.updateAccentColor()
 		
 		elseif moment[1].action == TM_MOVE_LAYER then
 		
@@ -325,12 +335,14 @@ function polygon.undo()
 		elseif moment[1].action == TM_CHANGE_COLOR then
 		
 			polygon.data[tm.polygon_loc].color = moment[1].original
+			palette.updateAccentColor()
 		
 		elseif moment[1].action == TM_PICK_LAYER then
 		
 			tm.polygon_loc = moment[1].original
 			
 			if moment[1].trash_layer == true then
+				tm.polygon_loc = moment[1].new
 				table.insert(ui.layer, moment[1].original, ui.layer_trash[#ui.layer_trash])
 				table.remove(ui.layer_trash)
 			elseif moment[1].created_layer == true then
@@ -338,6 +350,8 @@ function polygon.undo()
 			else
 				repeat_undo = true
 			end
+			
+			palette.updateAccentColor()
 		
 		elseif moment[1].action == TM_MOVE_LAYER then
 		
@@ -385,6 +399,34 @@ function polygon.draw()
 	while i <= #ui.layer do
 		
 		if polygon.data[ui.layer[i].count] ~= nil and ui.layer[i].visible then
+		
+			local active_clone = polygon.data[tm.polygon_loc]
+			
+			-- Draw selected vertices
+			local verts_selected = vertex_selection[1] ~= nil and #vertex_selection == 1
+			local mx, my = mouse_x, mouse_y
+			if ui.layer[i].count == tm.polygon_loc and verts_selected then
+			
+				-- Draw spr_vertex_mask on vertex locations
+				
+				lg.setColor(palette.select)
+				
+				local j = 1
+				while j <= #vertex_selection do
+					
+					local vertex_radius = 100 / camera_zoom
+					local copy_vert = vertex_selection[j].index
+					local tx, ty = active_clone.raw[copy_vert].x, active_clone.raw[copy_vert].y
+					local sc = camera_zoom
+					
+					lg.draw(spr_vertex_mask, math.floor(tx * sc) - 9, math.floor(ty * sc) - 9)
+					
+					j = j + 1
+				
+				end
+			
+			end
+			
 			local clone = polygon.data[ui.layer[i].count]
 			
 			lg.setColor(clone.color)
@@ -467,6 +509,7 @@ function polygon.draw()
 			
 			end
 		end
+		
 		-- End of drawing the shape
 		
 		i = i + 1

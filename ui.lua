@@ -963,6 +963,7 @@ function ui.update(dt)
 	if input.ctrlCombo(v_key) and palette.canPaste and palette.copy ~= nil and ui.preview_palette_enabled then
 		palette.colors[palette.slot + 1] = palette.copy
 		palette.active = palette.colors[palette.slot + 1]
+		palette.updateAccentColor()
 		palette.updateFromBoxes()
 		
 		local copy_again = palette.colors[palette.slot + 1]
@@ -1015,6 +1016,7 @@ function ui.update(dt)
 							
 							local copy_col = {palette.active[1], palette.active[2], palette.active[3], palette.active[4]}
 							polygon.data[tm.polygon_loc].color = copy_col
+							palette.updateAccentColor()
 						end
 						
 					else
@@ -1025,6 +1027,7 @@ function ui.update(dt)
 				else
 					palette.active = palette.colors[final_col + 1]
 					palette.updateFromBoxes()
+					palette.updateAccentColor()
 					palette.activeIsEditable = false
 				end
 				
@@ -1066,6 +1069,7 @@ function ui.update(dt)
 		
 		if palette.activeIsEditable and polygon.data[tm.polygon_loc] ~= nil then
 			polygon.data[tm.polygon_loc].color = palette.active
+			palette.updateAccentColor()
 		end
 		
 	elseif mouse_switch == _RELEASE and ui.palette_slider ~= 0 then
@@ -1075,6 +1079,7 @@ function ui.update(dt)
 					
 			local copy_col = {palette.active[1], palette.active[2], palette.active[3], palette.active[4]}
 			polygon.data[tm.polygon_loc].color = copy_col
+			palette.updateAccentColor()
 		end
 	
 		ui.palette_slider = 0
@@ -1118,7 +1123,7 @@ function ui.update(dt)
 				tm.step()
 
 				ui.addLayer()
-				
+				palette.updateAccentColor()
 				ui.lyr_scroll_percent = 0
 			end
 			
@@ -1137,9 +1142,10 @@ function ui.update(dt)
 					
 					if find_layer ~= 0 then
 						ui.deleteLayer(find_layer)
-						tm.polygon_loc = ui.layer[#ui.layer].count
 						tm.store(TM_PICK_LAYER, find_layer, tm.polygon_loc, false, true)
 						tm.step()
+						tm.polygon_loc = ui.layer[#ui.layer].count
+						palette.updateAccentColor()
 						ui.lyr_scroll_percent = 0
 					end
 					
@@ -1165,6 +1171,7 @@ function ui.update(dt)
 					
 					local old_layer = tm.polygon_loc
 					tm.polygon_loc = ui.layer[layer_hit].count
+					palette.updateAccentColor()
 					
 					local _tm_copy, skip_tm
 					

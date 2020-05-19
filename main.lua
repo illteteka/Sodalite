@@ -767,7 +767,7 @@ function love.draw()
 		
 		while i <= #clone do
 		
-			lg.setColor({0,0,0,1})
+			lg.setColor(palette.lines)
 		
 			local first_vert_sel = vertex_selection[1].index
 			
@@ -804,7 +804,7 @@ function love.draw()
 		local i
 		for i = 1, #polygon.data[tm.polygon_loc].cache do
 		
-			lg.setColor({1, 1, 1, 1})
+			lg.setColor(palette.lines)
 			local aa, bb = polygon.data[tm.polygon_loc].cache[i][1], polygon.data[tm.polygon_loc].cache[i][2]
 			local line_a, line_b = polygon.data[tm.polygon_loc].raw[aa], polygon.data[tm.polygon_loc].raw[bb]
 			local sc = camera_zoom
