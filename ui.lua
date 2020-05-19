@@ -87,12 +87,14 @@ ui.toolbar_artboard = nil
 ui.toolbar_polygon = nil
 ui.toolbar_ellipse = nil
 ui.toolbar_preview = nil
+ui.toolbar_grid = nil
 
 ui.primary_panel = {}
 ui.primary_textbox = -1
 ui.primary_text_orig = ""
 ui.secondary_panel = {}
 ui.panel_clicked = -1
+ui.use_second_panel = false
 
 ui.mouse_x = -1
 ui.mouse_y = -1
@@ -120,7 +122,7 @@ function ui.init()
 	-- Add toolbar items
 	ui.addTool("Cursor A",      icon_cursorb,  ".main")
 	ui.addTool("Cursor B",      icon_cursorw,  ".edit")
-	ui.addTool("Grid",          icon_grid,     ".grid")
+	ui.toolbar_grid = ui.addTool("Grid",          icon_grid,     ".grid")
 	ui.addTool("Zoom",          icon_zoom,     ".zoom")
 	ui.addTool("Color Grabber", icon_pick,     ".pick")
 	ui.toolbar_preview = ui.addTool("Preview",       icon_look,     ".prev")
@@ -309,6 +311,27 @@ function ui.panelArtboard()
 
 end
 
+function ui.panelReset()
+
+	ui.secondary_panel = nil
+	ui.secondary_panel = {}
+
+end
+
+function ui.panelGrid()
+
+	ui.secondary_panel = nil
+	ui.secondary_panel = {}
+	ui.secondary_panel.name = "Grid:"
+	
+	ui.addPanel(ui.secondary_panel, 'grid.width',   'Width', true, 32, 2, math.max(document_w, document_h))
+	ui.addPanel(ui.secondary_panel, 'grid.height', 'Height', true, 32, 2, math.max(document_w, document_h))
+	ui.addPanel(ui.secondary_panel, 'grid.x',    'X Offset', true,  0, 0, math.max(document_w, document_h))
+	ui.addPanel(ui.secondary_panel, 'grid.y',    'Y Offset', true,  0, 0, math.max(document_w, document_h))
+	ui.addPanel(ui.secondary_panel, 'grid.snap',   icon_cursorb, false)
+
+end
+
 function ui.addPopup(name, kind, loc)
 
 	local col, row
@@ -466,7 +489,15 @@ function ui.popupLoseFocus(kind)
 	
 	elseif ui.textbox_selection_origin == "toolbar" then
 	
-		local tbox = ui.primary_panel[ui.primary_textbox]
+		local tbox = nil
+		if not ui.use_second_panel then
+			tbox = ui.primary_panel[ui.primary_textbox]
+		else
+			tbox = ui.secondary_panel[ui.primary_textbox]
+		end
+		
+		print("u primary textbox ", ui.primary_textbox)
+		print_r(tbox)
 	
 		if tbox.value == "" then
 			tbox.value = ui.primary_text_orig
@@ -596,7 +627,13 @@ function ui.keyboardHit(key)
 	
 	elseif ui.textbox_selection_origin == "toolbar" then
 	
-		local tbox = ui.primary_panel[ui.primary_textbox]
+		local tbox = nil
+		print(ui.use_second_panel)
+		if not ui.use_second_panel then
+			tbox = ui.primary_panel[ui.primary_textbox]
+		else
+			tbox = ui.secondary_panel[ui.primary_textbox]
+		end
 	
 		if string.len(key) == 1 then
 			
@@ -1326,6 +1363,7 @@ function ui.update(dt)
 		ui.toolbar[ui.toolbar_polygon].active = false
 		ui.toolbar[ui.toolbar_ellipse].active = false
 		ui.toolbar[ui.toolbar_artboard].active = false
+		ui.toolbar[ui.toolbar_grid].active = false
 	else
 	
 		if artboard.active == false then
@@ -1347,7 +1385,7 @@ function ui.update(dt)
 	end
 	
 	-- Check toolbar collision
-	if (mouse_switch == _PRESS) and ((mx <= 64) and (my >= 54)) and (not ui_active) then
+	if (mouse_switch == _PRESS) and ((mx >= 8) and (mx < 56) and (my >= 54)) and (not ui_active) then
 		
 		local add_one_because_top_is_even = 0
 		ui.preview_palette_enabled = false
@@ -1386,11 +1424,12 @@ function ui.update(dt)
 			end
 			
 			local tool = ui.toolbar[key]
+			local ignore_tool_active = (tool.ref == ".grid")
 			if (tool.ref ~= nil) and (tool.ref == ".prev") then
 				tool.active = true
 			end
 			
-			if (tool.active) and (tool.ref ~= nil) and (check_success) then
+			if (tool.active or ignore_tool_active) and (tool.ref ~= nil) and (check_success) then
 			
 				ui.toolbar_clicked = key
 			
@@ -1400,7 +1439,17 @@ function ui.update(dt)
 				elseif tool.ref == ".edit" then
 					print("cursor b")
 				elseif tool.ref == ".grid" then
-					print("grid")
+					
+					if document_w ~= 0 then
+						if ui.toolbar[ui.toolbar_grid].active then
+							ui.panelGrid()
+							ui.toolbar[ui.toolbar_grid].active = false
+						else
+							ui.panelReset()
+							ui.toolbar[ui.toolbar_grid].active = true
+						end
+					end
+					
 				elseif tool.ref == ".zoom" then
 					print("zoom")
 				elseif tool.ref == ".pick" then
@@ -1456,6 +1505,11 @@ function ui.update(dt)
 		ui_active = true
 	end
 	
+	-- Make it so you can't place verts behind the toolbar
+	if (mouse_switch == _PRESS) and (mx <= 64) then
+		ui_active = true
+	end
+	
 	if (mouse_switch == _RELEASE) and (ui.toolbar_clicked ~= -1) then
 		ui.toolbar_clicked = -1
 	end
@@ -1487,69 +1541,73 @@ function ui.update(dt)
 		
 		else -- Preview shape while making changes
 		
-			if polygon.data[tm.polygon_loc] ~= nil and ui.primary_panel[1].id == 'ellipse.seg' then
-				local myshape = polygon.data[tm.polygon_loc]
-				local load_seg, load_ang = myshape.segments, myshape._angle
-				
-				-- Update with arrow keys
-				if tonumber(ui.primary_panel[ui.primary_textbox].value) ~= nil and ((hz_dir ~= 0) or (vt_dir ~= 0)) then
-					local this_t = ui.primary_panel[ui.primary_textbox]
-					this_t.value = this_t.value + (hz_key * hz_dir) + (vt_key * vt_dir)
+			if ui.use_second_panel == false then
+		
+				if polygon.data[tm.polygon_loc] ~= nil and ui.primary_panel[1].id == 'ellipse.seg' then
+					local myshape = polygon.data[tm.polygon_loc]
+					local load_seg, load_ang = myshape.segments, myshape._angle
 					
-					if this_t.id == 'ellipse.ang' and this_t.value >= 360 then
-						this_t.value = this_t.value - 360
+					-- Update with arrow keys
+					if tonumber(ui.primary_panel[ui.primary_textbox].value) ~= nil and ((hz_dir ~= 0) or (vt_dir ~= 0)) then
+						local this_t = ui.primary_panel[ui.primary_textbox]
+						this_t.value = this_t.value + (hz_key * hz_dir) + (vt_key * vt_dir)
+						
+						if this_t.id == 'ellipse.ang' and this_t.value >= 360 then
+							this_t.value = this_t.value - 360
+						end
+						
+						if this_t.id == 'ellipse.ang' and this_t.value < 0 then
+							this_t.value = this_t.value + 360
+						end
+						
+						this_t.value = math.min(this_t.value, this_t.high)
+						this_t.value = math.max(this_t.value, this_t.low)
 					end
 					
-					if this_t.id == 'ellipse.ang' and this_t.value < 0 then
-						this_t.value = this_t.value + 360
+					if tonumber(ui.primary_panel[1].value) ~= nil then
+						load_seg = ui.primary_panel[1].value
+						load_seg = math.min(load_seg, ui.primary_panel[1].high)
+						load_seg = math.max(load_seg, ui.primary_panel[1].low)
 					end
 					
-					this_t.value = math.min(this_t.value, this_t.high)
-					this_t.value = math.max(this_t.value, this_t.low)
+					if tonumber(ui.primary_panel[2].value) ~= nil then
+						load_ang = ui.primary_panel[2].value
+						load_ang = math.min(load_ang, ui.primary_panel[2].high)
+						load_ang = math.max(load_ang, ui.primary_panel[2].low)
+					end
+					
+					myshape.segments = load_seg
+					myshape._angle = load_ang
 				end
 				
-				if tonumber(ui.primary_panel[1].value) ~= nil then
-					load_seg = ui.primary_panel[1].value
-					load_seg = math.min(load_seg, ui.primary_panel[1].high)
-					load_seg = math.max(load_seg, ui.primary_panel[1].low)
+				if ui.primary_panel[1].id == 'art.brush' then
+					local load_brush, load_opac = artboard.brush_size, artboard.opacity * 100
+					
+					-- Update with arrow keys
+					if tonumber(ui.primary_panel[ui.primary_textbox].value) ~= nil and ((hz_dir ~= 0) or (vt_dir ~= 0)) then
+						local this_t = ui.primary_panel[ui.primary_textbox]
+						this_t.value = this_t.value + (hz_key * hz_dir) + (vt_key * vt_dir)
+						
+						this_t.value = math.min(this_t.value, this_t.high)
+						this_t.value = math.max(this_t.value, this_t.low)
+					end
+					
+					if tonumber(ui.primary_panel[1].value) ~= nil then
+						load_brush = ui.primary_panel[1].value
+						load_brush = math.min(load_brush, ui.primary_panel[1].high)
+						load_brush = math.max(load_brush, ui.primary_panel[1].low)
+					end
+					
+					if tonumber(ui.primary_panel[2].value) ~= nil then
+						load_opac = ui.primary_panel[2].value
+						load_opac = math.min(load_opac, ui.primary_panel[2].high)
+						load_opac = math.max(load_opac, ui.primary_panel[2].low)
+					end
+					
+					artboard.brush_size = load_brush
+					artboard.opacity = load_opac / 100
 				end
-				
-				if tonumber(ui.primary_panel[2].value) ~= nil then
-					load_ang = ui.primary_panel[2].value
-					load_ang = math.min(load_ang, ui.primary_panel[2].high)
-					load_ang = math.max(load_ang, ui.primary_panel[2].low)
-				end
-				
-				myshape.segments = load_seg
-				myshape._angle = load_ang
-			end
 			
-			if ui.primary_panel[1].id == 'art.brush' then
-				local load_brush, load_opac = artboard.brush_size, artboard.opacity * 100
-				
-				-- Update with arrow keys
-				if tonumber(ui.primary_panel[ui.primary_textbox].value) ~= nil and ((hz_dir ~= 0) or (vt_dir ~= 0)) then
-					local this_t = ui.primary_panel[ui.primary_textbox]
-					this_t.value = this_t.value + (hz_key * hz_dir) + (vt_key * vt_dir)
-					
-					this_t.value = math.min(this_t.value, this_t.high)
-					this_t.value = math.max(this_t.value, this_t.low)
-				end
-				
-				if tonumber(ui.primary_panel[1].value) ~= nil then
-					load_brush = ui.primary_panel[1].value
-					load_brush = math.min(load_brush, ui.primary_panel[1].high)
-					load_brush = math.max(load_brush, ui.primary_panel[1].low)
-				end
-				
-				if tonumber(ui.primary_panel[2].value) ~= nil then
-					load_opac = ui.primary_panel[2].value
-					load_opac = math.min(load_opac, ui.primary_panel[2].high)
-					load_opac = math.max(load_opac, ui.primary_panel[2].low)
-				end
-				
-				artboard.brush_size = load_brush
-				artboard.opacity = load_opac / 100
 			end
 		
 		end
@@ -1559,83 +1617,97 @@ function ui.update(dt)
 	-- Interaction for toolbar panels
 	local panel_x = 70 + 4
 	
-	if ui.primary_panel[1] ~= nil then
+	local tpanel = nil
+	local panel_count = 1
+	for panel_count = 1, 2 do
 		
-		panel_x = panel_x + font:getWidth(ui.primary_panel.name) + 12
+		if panel_count == 1 then
+			tpanel = ui.primary_panel
+		else
+			tpanel = ui.secondary_panel
+		end
 		
-		local hit_tbox = -1
-		local hit_button = -1
-		
-		local i = 1
-		for i = 1, #ui.primary_panel do
-		
-			local this_item = ui.primary_panel[i]
-			if this_item.is_textbox then
+		if tpanel[1] ~= nil then
 			
-				-- Title of element
-				panel_x = panel_x + font:getWidth(this_item.name) + 12
-				
-				-- Textbox of element
-
-				local ix, iy = panel_x, 3
-				
-				if (mouse_switch == _PRESS) then
-					if (mx >= ix - 5) and (mx <= ix + 41) and (my >= iy + 25) and (my <= iy + 45) then
-						
-						if ui.primary_textbox ~= -1 then
-							ui.popupLoseFocus("toolbar")
-						end
-						
-						scrub_active = true
-						
-						ui.primary_textbox = i
-						ui.primary_text_orig = ui.primary_panel[i].value
-						
-						ui.active_textbox = "toolbar"
-						ui.textbox_selection_origin = "toolbar"
-						
-						hit_tbox = i
-					end
-				end
-				
-				panel_x = panel_x + 46 + 6
+			panel_x = panel_x + font:getWidth(tpanel.name) + 12
 			
-			else
+			local hit_tbox = -1
+			local hit_button = -1
 			
-				if (mouse_switch == _PRESS and (mx >= panel_x) and (mx <= panel_x + 23) and (my >= 27) and (my <= 27 + 23)) then
-					ui.panel_clicked = i
-					hit_button = i
+			local i = 1
+			for i = 1, #tpanel do
+			
+				local this_item = tpanel[i]
+				if this_item.is_textbox then
+				
+					-- Title of element
+					panel_x = panel_x + font:getWidth(this_item.name) + 12
 					
-					if ui.primary_panel[i].id == "art.position" then
-						if ui.primary_panel[i].icon == icon_art_above then
-							artboard.draw_top = false
-							ui.primary_panel[i].icon = icon_art_below
-						else
-							artboard.draw_top = true
-							ui.primary_panel[i].icon = icon_art_above
+					-- Textbox of element
+
+					local ix, iy = panel_x, 3
+					
+					if (mouse_switch == _PRESS) then
+						if (mx >= ix - 5) and (mx <= ix + 41) and (my >= iy + 25) and (my <= iy + 45) then
+							
+							if ui.primary_textbox ~= -1 then
+								ui.popupLoseFocus("toolbar")
+							end
+							
+							ui.use_second_panel = (panel_count == 2)
+							
+							scrub_active = true
+							
+							ui.primary_textbox = i
+							ui.primary_text_orig = tpanel[i].value
+							
+							ui.active_textbox = "toolbar"
+							ui.textbox_selection_origin = "toolbar"
+							
+							hit_tbox = i
 						end
 					end
-				end
+					
+					panel_x = panel_x + 46 + 6
 				
-				panel_x = panel_x + 24 + 12
+				else
+				
+					if (mouse_switch == _PRESS and (mx >= panel_x) and (mx <= panel_x + 23) and (my >= 27) and (my <= 27 + 23)) then
+						ui.panel_clicked = i
+						hit_button = i
+						
+						if tpanel[i].id == "art.position" then
+							if tpanel[i].icon == icon_art_above then
+								artboard.draw_top = false
+								tpanel[i].icon = icon_art_below
+							else
+								artboard.draw_top = true
+								tpanel[i].icon = icon_art_above
+							end
+						end
+					end
+					
+					panel_x = panel_x + 24 + 12
+				
+				end
 			
 			end
-		
-		end
-		
-		if (mouse_switch == _PRESS) then
-			if ui.primary_textbox ~= -1 and hit_tbox == -1 then
-				ui.popupLoseFocus("toolbar")
-				ui_active = true
+			
+			if (mouse_switch == _PRESS) then
+				if ui.primary_textbox ~= -1 and hit_tbox == -1 then
+					ui.use_second_panel = (panel_count == 2)
+					ui.popupLoseFocus("toolbar")
+					ui_active = true
+				end
 			end
-		end
-		
-		if (mouse_switch == _RELEASE) then
-			if ui.panel_clicked ~= -1 and hit_button == -1 then
-				ui.panel_clicked = -1
+			
+			if (mouse_switch == _RELEASE) then
+				if ui.panel_clicked ~= -1 and hit_button == -1 then
+					ui.panel_clicked = -1
+				end
 			end
+			
 		end
-		
 	end
 	
 	-- Interaction for preview window
@@ -2684,87 +2756,106 @@ function ui.draw()
 	
 	local panel_x = 70 + 4
 	
-	if ui.primary_panel[1] ~= nil then
+	local tpanel = nil
+	local panel_count = 1
+	for panel_count = 1, 2 do
 		
-		lg.setColor(c_black)
-		lg.print(ui.primary_panel.name, panel_x, 29)
-		panel_x = panel_x + font:getWidth(ui.primary_panel.name) + 12
-		
-		local i = 1
-		for i = 1, #ui.primary_panel do
-		
-			local this_item = ui.primary_panel[i]
-			if this_item.is_textbox then
+		if panel_count == 1 then
+			tpanel = ui.primary_panel
+		else
+			tpanel = ui.secondary_panel
+		end
+	
+		if tpanel[1] ~= nil then
 			
-				-- Title of element
-				lg.setColor(c_black)
-				lg.print(this_item.name, panel_x, 29)
-				panel_x = panel_x + font:getWidth(this_item.name) + 12
+			lg.setColor(c_black)
+			lg.print(tpanel.name, panel_x, 29)
+			panel_x = panel_x + font:getWidth(tpanel.name) + 12
+			
+			local i = 1
+			for i = 1, #tpanel do
+			
+				local this_item = tpanel[i]
+				if this_item.is_textbox then
 				
-				-- Textbox of element
-				local col = col_inactive
-				local this_selected = ui.primary_textbox == i
-				if this_selected then
-					col = c_highlight_active
-					lg.setLineWidth(2)
-				end
-
-				local text_ending = ""
-				if this_item.id == "art.opacity" then
-					text_ending = "%"
-				end
-				
-				local ix, iy = panel_x, 3
-				lg.setColor(c_off_white)
-				lg.rectangle("fill", ix - 5, iy + 25, 46, 20)
-				lg.setColor(col)
-				lg.rectangle("line", ix - 5, iy + 25, 46, 20)
-				lg.setColor(c_black)
-				lg.print(this_item.value .. text_ending, ix, iy + 26)
-				panel_x = panel_x + 46 + 6
-
-				lg.setLineWidth(1)
-
-				if ui.input_cursor_visible and this_selected then
-					local lxx, lyy = ix + font:getWidth(ui.primary_panel[i].value .. text_ending) + 3, iy + 25 + 3
-					lg.line(lxx, lyy, lxx, lyy + 14)
-				end
-			
-			else
-			
-				local this_item = ui.primary_panel[i]
-				local btn_state = BTN_DEFAULT
-				if this_item.active == false then
-					btn_state = BTN_GRAY
+					-- Title of element
+					lg.setColor(c_black)
+					lg.print(this_item.name, panel_x, 29)
+					panel_x = panel_x + font:getWidth(this_item.name) + 12
 					
-					if artboard.active then
-						btn_state = BTN_PINK
+					-- Textbox of element
+					local col = col_inactive
+					local this_is_me = false
+					if ui.use_second_panel and panel_count == 2 then
+						this_is_me = true
+					elseif not ui.use_second_panel and panel_count == 1 then
+						this_is_me = true
 					end
 					
+					local this_selected = (ui.primary_textbox == i) and this_is_me
+					if this_selected then
+						col = c_highlight_active
+						lg.setLineWidth(2)
+					end
+
+					local text_ending = ""
+					if this_item.id == "art.opacity" then
+						text_ending = "%"
+					end
+					
+					local ix, iy = panel_x, 3
+					lg.setColor(c_off_white)
+					lg.rectangle("fill", ix - 5, iy + 25, 46, 20)
+					lg.setColor(col)
+					lg.rectangle("line", ix - 5, iy + 25, 46, 20)
+					lg.setColor(c_black)
+					lg.print(this_item.value .. text_ending, ix, iy + 26)
+					panel_x = panel_x + 46 + 6
+
+					lg.setLineWidth(1)
+
+					if ui.input_cursor_visible and this_selected then
+						local lxx, lyy = ix + font:getWidth(tpanel[i].value .. text_ending) + 3, iy + 25 + 3
+						lg.line(lxx, lyy, lxx, lyy + 14)
+					end
+				
 				else
 				
-					local mouse_hover_tool = false
-					mouse_hover_tool = ((mx >= panel_x) and (mx <= panel_x + 23) and (my >= 27) and (my <= 27 + 23))
+					local this_item = tpanel[i]
+					local btn_state = BTN_DEFAULT
+					if this_item.active == false then
+						btn_state = BTN_GRAY
+						
+						if artboard.active then
+							btn_state = BTN_PINK
+						end
+						
+					else
 					
-					if mouse_hover_tool and (ui.panel_clicked == -1) then
-						btn_state = BTN_HIGHLIGHT_ON
+						local mouse_hover_tool = false
+						mouse_hover_tool = ((mx >= panel_x) and (mx <= panel_x + 23) and (my >= 27) and (my <= 27 + 23))
+						
+						if mouse_hover_tool and (ui.panel_clicked == -1) then
+							btn_state = BTN_HIGHLIGHT_ON
+						end
+						
+						if (mouse_switch ~= _OFF) and (ui.panel_clicked == i) then
+							btn_state = BTN_HIGHLIGHT_OFF
+						end
+					
 					end
 					
-					if (mouse_switch ~= _OFF) and (ui.panel_clicked == i) then
-						btn_state = BTN_HIGHLIGHT_OFF
-					end
+					ui.drawButtonOutline(btn_state, panel_x, 27, 24, 24)
+					
+					lg.setColor(c_white)
+					lg.draw(this_item.icon, panel_x, 27)
+					
+					panel_x = panel_x + 24 + 12
 				
 				end
-				
-				ui.drawButtonOutline(btn_state, panel_x, 27, 24, 24)
-				
-				lg.setColor(c_white)
-				lg.draw(this_item.icon, panel_x, 27)
-				
-				panel_x = panel_x + 24 + 12
 			
 			end
-		
+			
 		end
 		
 	end

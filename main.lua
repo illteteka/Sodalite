@@ -68,7 +68,6 @@ grid_x = 0
 grid_y = 0
 grid_w = 32
 grid_h = 32
-debug_grid = "resize"
 
 mouse_x = -1
 mouse_y = -1
@@ -115,6 +114,8 @@ function resetEditor(exit_popup, add_layer)
 		ui.context_menu = {}
 		ui.title_active = false
 	end
+	
+	ui.toolbar[ui.toolbar_grid].active = true
 
 end
 
@@ -651,36 +652,14 @@ function love.update(dt)
 		
 		end
 		
-		if debug_mode == "zoom" then
-			if up_key == _ON then
-				updateCamera(screen_width, screen_height, camera_zoom, camera_zoom + (0.01 * 60 * dt))
-			end
-			
-			if down_key == _ON then
-				updateCamera(screen_width, screen_height, camera_zoom, camera_zoom - (0.01 * 60 * dt))
-			end
-		end
-		
-		-- if debug_mode == "grid" then
-			-- if debug_grid == "shift" then
-			-- if up_key == _ON then grid_y = grid_y - 1 end
-			-- if down_key == _ON then grid_y = grid_y + 1 end
-			-- if left_key == _ON then grid_x = grid_x - 1 end
-			-- if right_key == _ON then grid_x = grid_x + 1 end
+		-- if debug_mode == "zoom" then
+			-- if up_key == _ON then
+				-- updateCamera(screen_width, screen_height, camera_zoom, camera_zoom + (0.01 * 60 * dt))
 			-- end
 			
-			-- if debug_grid == "resize" then
-			-- if up_key == _PRESS then grid_h = grid_h - 1 end
-			-- if down_key == _PRESS then grid_h = grid_h + 1 end
-			-- if left_key == _PRESS then grid_w = grid_w - 1 end
-			-- if right_key == _PRESS then grid_w = grid_w + 1 end
+			-- if down_key == _ON then
+				-- updateCamera(screen_width, screen_height, camera_zoom, camera_zoom - (0.01 * 60 * dt))
 			-- end
-			
-			-- if comma_key == _PRESS then debug_grid = "shift" end
-			-- if period_key == _PRESS then debug_grid = "resize" end
-			
-			-- grid_w = math.max(grid_w, 2)
-			-- grid_h = math.max(grid_h, 2)
 		-- end
 	
 	end
@@ -751,7 +730,7 @@ function love.draw()
 			lg.draw(artboard.canvas, 0, 0, 0, camera_zoom)
 		end
 	
-		if debug_mode == "grid" then
+		if ui.toolbar[ui.toolbar_grid].active == false then
 			lg.setColor(1,1,1,0.25)
 		
 			local xx, yy
@@ -871,10 +850,6 @@ function love.draw()
 	
 	lg.setColor(1,1,1,0.6)
 	local debug_info = ""
-	
-	if debug_mode == "grid" then
-		debug_info = " " .. debug_grid .. " x:" .. grid_x .. " y:" .. grid_y .. " w:" .. grid_w ..  " h:" .. grid_h
-	end
 	
 	lg.print("Debug mode: " .. debug_mode .. debug_info, 94, screen_height - 50)
 	
