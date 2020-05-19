@@ -31,7 +31,7 @@ function polygon.new(loc, color, kind, use_tm)
 
 end
 
-function polygon.calcVertex(x, y, loc, use_tm, grid_on, gx, gy)
+function polygon.calcVertex(x, y, loc, use_tm)
 
 	local point_selected = -1
 	
@@ -42,10 +42,6 @@ function polygon.calcVertex(x, y, loc, use_tm, grid_on, gx, gy)
 		while i <= #polygon.data[tm.polygon_loc].raw do
 			
 			local vertex_radius = 10
-			
-			if grid_on then
-				vertex_radius = 20
-			end
 			
 			-- Scale selection radius if the camera is scaled
 			if camera_zoom > 1 then
@@ -64,12 +60,6 @@ function polygon.calcVertex(x, y, loc, use_tm, grid_on, gx, gy)
 				-- Add vertex to selection group
 				local moved_point = {}
 				moved_point.index = point_selected
-				
-				if grid_on then
-					x = gx
-					y = gy
-				end
-				
 				moved_point.x = x
 				moved_point.y = y
 				table.insert(vertex_selection, moved_point)
@@ -221,7 +211,7 @@ function polygon.redo()
 		
 		if moment[1].action == TM_NEW_POLYGON then
 			polygon.new(tm.polygon_loc, moment[1].color, moment[1].kind, false)
-			polygon.calcVertex(moment[2].x, moment[2].y, tm.polygon_loc, false, moment[2].grid, moment[2].gx, moment[2].gy)
+			polygon.calcVertex(moment[2].x, moment[2].y, tm.polygon_loc, false)
 			
 			local pp = polygon.data[tm.polygon_loc].raw[move_moment.index]
 			pp.x, pp.y = move_moment.x, move_moment.y
@@ -234,7 +224,7 @@ function polygon.redo()
 			palette.updateAccentColor()
 			
 		elseif moment[1].action == TM_ADD_VERTEX then
-			polygon.calcVertex(moment[1].x, moment[1].y, tm.polygon_loc, false, moment[1].grid, moment[1].gx, moment[1].gy)
+			polygon.calcVertex(moment[1].x, moment[1].y, tm.polygon_loc, false)
 			
 			local pp = polygon.data[tm.polygon_loc].raw[move_moment.index]
 			pp.x, pp.y = move_moment.x, move_moment.y
@@ -244,16 +234,7 @@ function polygon.redo()
 			for i = 1, #moment do
 			
 				local pp = polygon.data[tm.polygon_loc].raw[moment[i].index]
-				local move_x, move_y = 0, 0
-				if moment[i].grid then
-					move_x = moment[i].gx
-					move_y = moment[i].gy
-				else
-					move_x = moment[i].x
-					move_y = moment[i].y
-				end
-				
-				pp.x, pp.y = move_x, move_y
+				pp.x, pp.y = moment[i].x, moment[i].y
 			
 			end
 			
@@ -347,17 +328,7 @@ function polygon.undo()
 			
 				local copy = polygon.data[tm.polygon_loc]
 				local pp = copy.raw[moment[i].index]
-				
-				local move_x, move_y = 0, 0
-				if moment[i].grid then
-					move_x = moment[i].gox
-					move_y = moment[i].goy
-				else
-					move_x = moment[i].ox
-					move_y = moment[i].oy
-				end
-				
-				pp.x, pp.y = move_x, move_y
+				pp.x, pp.y = moment[i].ox, moment[i].oy
 			
 			end
 		
