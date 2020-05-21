@@ -503,7 +503,6 @@ function polygon.click(mx, my)
 		i = i - 1
 	end
 	
-	print(layer_hit)
 	return layer_hit
 
 end

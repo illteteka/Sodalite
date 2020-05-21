@@ -1,6 +1,6 @@
 local import = {}
 
-FILE_EXTENSION = "lol"
+FILE_EXTENSION = "soda"
 
 -- Import vars
 line_count = 0
@@ -37,6 +37,14 @@ function import.open(file)
 		
 		resetEditor(true, false)
 		import.read(file_contents)
+		
+		artboard.init()
+		ui.preview_zoom = 1
+		ui.preview_window_x = 0
+		ui.preview_window_y = 0
+
+		camera_zoom = 1
+		resetCamera()
 	end
 
 end

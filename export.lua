@@ -7,8 +7,8 @@ function export.saveLOL()
 		prefix = love.filesystem.getSourceBaseDirectory() .. "/"
 	end
 
-	local file = io.open(prefix .. document_name .. ".lol", "w")
-	file:write("Magma v1.0\n")
+	local file = io.open(prefix .. document_name .. ".soda", "w")
+	file:write("Sodalite v0.1 beta\n")
 	file:write(document_w .. "," .. document_h .. ";\n")
 	
 	local i = 1

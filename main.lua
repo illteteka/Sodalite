@@ -119,6 +119,7 @@ function resetEditor(exit_popup, add_layer)
 	
 	ui.toolbar[ui.toolbar_grid].active = true
 	ui.toolbar[ui.toolbar_pick].active = true
+	ui.toolbar[ui.toolbar_preview].active = true
 
 end
 
@@ -886,6 +887,7 @@ end
 
 function love.quit()
 	recursivelyDelete("cache")
+	--return true
 end
 
 function print_r ( t )

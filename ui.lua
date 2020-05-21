@@ -1452,6 +1452,7 @@ function ui.update(dt)
 		ui.toolbar[ui.toolbar_artboard].active = false
 		ui.toolbar[ui.toolbar_grid].active = false
 		ui.toolbar[ui.toolbar_pick].active = false
+		ui.toolbar[ui.toolbar_preview].active = false
 	else
 	
 		if artboard.active == false then
@@ -1512,7 +1513,7 @@ function ui.update(dt)
 			
 			local tool = ui.toolbar[key]
 			local ignore_tool_active = (tool.ref == ".grid") or (tool.ref == ".pick")
-			if (tool.ref ~= nil) and (tool.ref == ".prev") then
+			if (tool.ref ~= nil) and (tool.ref == ".prev") and document_w ~= 0 then
 				tool.active = true
 			end
 			
@@ -1548,8 +1549,12 @@ function ui.update(dt)
 					end
 					
 				elseif tool.ref == ".prev" then
-					ui.popupLoseFocus("preview")
-					ui.preview_active = not ui.preview_active
+					
+					if document_w ~= 0 then
+						ui.popupLoseFocus("preview")
+						ui.preview_active = not ui.preview_active
+					end
+					
 				elseif tool.ref == ".tri" then
 					
 					if ui.toolbar[ui.toolbar_polygon].active then
