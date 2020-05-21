@@ -31,7 +31,7 @@ function polygon.new(loc, color, kind, use_tm)
 
 end
 
-function polygon.calcVertex(x, y, loc, use_tm)
+function polygon.calcVertex(x, y, loc, use_grid)
 
 	local point_selected = -1
 	
@@ -40,6 +40,9 @@ function polygon.calcVertex(x, y, loc, use_tm)
 	while i <= #polygon.data[tm.polygon_loc].raw do
 		
 		local vertex_radius = 10
+		if use_grid and grid_snap then
+			vertex_radius = 20
+		end
 		
 		-- Scale selection radius if the camera is scaled
 		if camera_zoom > 1 then
@@ -114,7 +117,7 @@ function polygon.calcVertex(x, y, loc, use_tm)
 	
 	end
 	
-	this_point = polygon.addVertex(x, y, loc, line_to_purge, use_tm)
+	this_point = polygon.addVertex(x, y, loc, line_to_purge, true)
 	
 	end
 
@@ -207,10 +210,7 @@ function polygon.redo()
 		
 		if moment[1].action == TM_NEW_POLYGON then
 			polygon.new(tm.polygon_loc, moment[1].color, moment[1].kind, false)
-			polygon.calcVertex(moment[2].x, moment[2].y, tm.polygon_loc, false)
-			
-			local pp = polygon.data[tm.polygon_loc].raw[move_moment.index]
-			pp.x, pp.y = move_moment.x, move_moment.y
+			polygon.addVertex(move_moment.x, move_moment.y, tm.polygon_loc, -1, false)
 			
 			if moment[1].kind == "ellipse" then
 				polygon.data[tm.polygon_loc].segments = moment[3].segments
@@ -403,9 +403,9 @@ function polygon.click(mx, my)
 	local triangle_hit = false
 	local layer_hit = -1
 	
-	local i = 1
+	local i = #ui.layer
 	
-	while i <= #ui.layer do
+	while i >= 1 do
 		
 		if polygon.data[ui.layer[i].count] ~= nil and ui.layer[i].visible then
 			
@@ -426,7 +426,7 @@ function polygon.click(mx, my)
 						
 						if triangle_hit then
 							layer_hit = i
-							i = #ui.layer + 1
+							i = 0
 							j = #clone.raw + 1
 						end
 						
@@ -484,7 +484,7 @@ function polygon.click(mx, my)
 						triangle_hit = polygon.point_triangle(mx, my, cx, cy, (cx + cxx2), (cy + cyy2), (cx + cxx3), (cy + cyy3))
 						if triangle_hit then
 							layer_hit = i
-							i = #ui.layer + 1
+							i = 0
 							k = cseg + 1
 						end
 						
@@ -500,7 +500,7 @@ function polygon.click(mx, my)
 		
 		-- End of drawing the shape
 		
-		i = i + 1
+		i = i - 1
 	end
 	
 	print(layer_hit)
@@ -508,7 +508,7 @@ function polygon.click(mx, my)
 
 end
 
-function polygon.draw()
+function polygon.draw(skip_in_preview)
 
 	local i = 1
 	
@@ -521,7 +521,7 @@ function polygon.draw()
 			-- Draw selected vertices
 			local verts_selected = vertex_selection[1] ~= nil and #vertex_selection == 1
 			local mx, my = mouse_x, mouse_y
-			if ui.layer[i].count == tm.polygon_loc and verts_selected then
+			if ui.layer[i].count == tm.polygon_loc and verts_selected and skip_in_preview then
 			
 				-- Draw spr_vertex_mask on vertex locations
 				

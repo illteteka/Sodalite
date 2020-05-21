@@ -88,6 +88,7 @@ ui.toolbar_polygon = nil
 ui.toolbar_ellipse = nil
 ui.toolbar_preview = nil
 ui.toolbar_grid = nil
+ui.toolbar_pick = nil
 
 ui.primary_panel = {}
 ui.primary_textbox = -1
@@ -127,7 +128,7 @@ function ui.init()
 	ui.addTool("Cursor B",      icon_cursorw,  ".edit")
 	ui.toolbar_grid = ui.addTool("Grid",          icon_grid,     ".grid")
 	ui.addTool("Zoom",          icon_zoom,     ".zoom")
-	ui.addTool("Color Grabber", icon_pick,     ".pick")
+	ui.toolbar_pick = ui.addTool("Color Grabber", icon_pick,     ".pick")
 	ui.toolbar_preview = ui.addTool("Preview",       icon_look,     ".prev")
 	ui.addToolBreak()
 	ui.toolbar_polygon  = ui.addTool("Polygon",       icon_triangle, ".tri")
@@ -264,7 +265,7 @@ function ui.addPanel(panel, id, name, textbox, default, min_entry, max_entry)
 		item.active = false
 	else
 		item.icon = name
-		item.active = true
+		item.active = default
 	end
 	
 	item.is_textbox = textbox
@@ -276,12 +277,24 @@ end
 
 function ui.panelPolygon()
 
+	ui.primary_textbox = -1
+	ui.keyboard_last = ""
+	ui.keyboard_test = ""
+	ui.textbox_selection_origin = "toolbox"
+	ui.popupLoseFocus()
+	
 	ui.primary_panel = nil
 	ui.primary_panel = {}
 
 end
 
 function ui.panelEllipse()
+
+	ui.primary_textbox = -1
+	ui.keyboard_last = ""
+	ui.keyboard_test = ""
+	ui.textbox_selection_origin = "toolbox"
+	ui.popupLoseFocus()
 
 	ui.primary_panel = nil
 	ui.primary_panel = {}
@@ -304,17 +317,35 @@ end
 
 function ui.panelArtboard()
 
+	ui.primary_textbox = -1
+	ui.keyboard_last = ""
+	ui.keyboard_test = ""
+	ui.textbox_selection_origin = "toolbox"
+	ui.popupLoseFocus()
+
 	ui.primary_panel = nil
 	ui.primary_panel = {}
 	ui.primary_panel.name = "Free draw:"
 	
 	ui.addPanel(ui.primary_panel, 'art.brush',       'Brush size', true, artboard.brush_size, 1, math.max(document_w, document_h))
 	ui.addPanel(ui.primary_panel, 'art.opacity', 'Canvas opacity', true, artboard.opacity * 100, 0, 100)
-	ui.addPanel(ui.primary_panel, 'art.position', icon_art_above, false)
+	
+	local find_art_icon = icon_art_above
+	if artboard.draw_top == false then
+		find_art_icon = icon_art_below
+	end
+	
+	ui.addPanel(ui.primary_panel, 'art.position', find_art_icon, false, true)
 
 end
 
 function ui.panelReset()
+
+	ui.secondary_textbox = -1
+	ui.keyboard_last = ""
+	ui.keyboard_test = ""
+	ui.textbox_selection_origin = "toolbox2"
+	ui.popupLoseFocus()
 
 	ui.secondary_panel = nil
 	ui.secondary_panel = {}
@@ -323,15 +354,21 @@ end
 
 function ui.panelGrid()
 
+	ui.secondary_textbox = -1
+	ui.keyboard_last = ""
+	ui.keyboard_test = ""
+	ui.textbox_selection_origin = "toolbox2"
+	ui.popupLoseFocus()
+
 	ui.secondary_panel = nil
 	ui.secondary_panel = {}
 	ui.secondary_panel.name = "Grid:"
 
-	ui.addPanel(ui.secondary_panel, 'grid.width',   'Width', true, 32, 2, math.max(document_w, document_h))
-	ui.addPanel(ui.secondary_panel, 'grid.height', 'Height', true, 32, 2, math.max(document_w, document_h))
-	ui.addPanel(ui.secondary_panel, 'grid.x',    'X Offset', true,  0, 0, math.max(document_w, document_h))
-	ui.addPanel(ui.secondary_panel, 'grid.y',    'Y Offset', true,  0, 0, math.max(document_w, document_h))
-	ui.addPanel(ui.secondary_panel, 'grid.snap',   icon_cursorb, false)
+	ui.addPanel(ui.secondary_panel, 'grid.width',   'Width', true, grid_w, 2, math.max(document_w, document_h))
+	ui.addPanel(ui.secondary_panel, 'grid.height', 'Height', true, grid_h, 2, math.max(document_w, document_h))
+	ui.addPanel(ui.secondary_panel, 'grid.x',    'X Offset', true, grid_x, 0, math.max(document_w, document_h))
+	ui.addPanel(ui.secondary_panel, 'grid.y',    'Y Offset', true, grid_y, 0, math.max(document_w, document_h))
+	ui.addPanel(ui.secondary_panel, 'grid.snap', icon_magnet, false, not grid_snap)
 
 end
 
@@ -567,6 +604,26 @@ function ui.popupLoseFocus(kind)
 		
 		if tonumber(tbox.value) > tbox.high then
 			tbox.value = tbox.high
+		end
+		
+		if tbox.id == "grid.width" or tbox.id == "grid.height" or tbox.id == "grid.x" or tbox.id == "grid.y" then
+		
+			if tbox.id == "grid.width" then
+				grid_w = tonumber(tbox.value)
+			end
+			
+			if tbox.id == "grid.height" then
+				grid_h = tonumber(tbox.value)
+			end
+			
+			if tbox.id == "grid.x" then
+				grid_x = tonumber(tbox.value)
+			end
+			
+			if tbox.id == "grid.y" then
+				grid_y = tonumber(tbox.value)
+			end
+			
 		end
 		
 		ui.textbox_selection_origin = ""
@@ -1390,14 +1447,11 @@ function ui.update(dt)
 	ui.toolbar[ui.toolbar_preview].active = not ui.preview_active
 	
 	if document_w == 0 then
-		-- local i
-		-- for i = 1, #ui.toolbar do
-			-- ui.toolbar[i].active = false
-		-- end
 		ui.toolbar[ui.toolbar_polygon].active = false
 		ui.toolbar[ui.toolbar_ellipse].active = false
 		ui.toolbar[ui.toolbar_artboard].active = false
 		ui.toolbar[ui.toolbar_grid].active = false
+		ui.toolbar[ui.toolbar_pick].active = false
 	else
 	
 		if artboard.active == false then
@@ -1457,12 +1511,12 @@ function ui.update(dt)
 			end
 			
 			local tool = ui.toolbar[key]
-			local ignore_tool_active = (tool.ref == ".grid")
+			local ignore_tool_active = (tool.ref == ".grid") or (tool.ref == ".pick")
 			if (tool.ref ~= nil) and (tool.ref == ".prev") then
 				tool.active = true
 			end
 			
-			if (tool.active or ignore_tool_active) and (tool.ref ~= nil) and (check_success) then
+			if (tool.active or ignore_tool_active) and (tool.ref ~= nil) and (check_success) and (ui.popup[1] == nil) then
 			
 				ui.toolbar_clicked = key
 			
@@ -1486,7 +1540,13 @@ function ui.update(dt)
 				elseif tool.ref == ".zoom" then
 					print("zoom")
 				elseif tool.ref == ".pick" then
-					print("nose picker")
+				
+					if document_w ~= 0 then
+						color_grabber = true
+						love.mouse.setCursor(cursor_pick)
+						ui.toolbar[ui.toolbar_pick].active = false
+					end
+					
 				elseif tool.ref == ".prev" then
 					ui.popupLoseFocus("preview")
 					ui.preview_active = not ui.preview_active
@@ -1643,6 +1703,64 @@ function ui.update(dt)
 		
 	end
 	
+	if ui.secondary_panel[1] ~= nil then
+	
+		if ui.secondary_textbox == -1 then -- Update textboxes when inactive
+		
+			if ui.secondary_panel[1].id == 'grid.width' then
+				ui.secondary_panel[1].value = grid_w
+				ui.secondary_panel[2].value = grid_h
+				ui.secondary_panel[3].value = grid_x
+				ui.secondary_panel[4].value = grid_y
+			end
+		
+		else
+		
+			if ui.secondary_panel[1].id == 'grid.width' then
+			
+				local load_w, load_h, load_x, load_y = grid_w, grid_h, grid_x, grid_y
+				
+				-- Update with arrow keys
+				if tonumber(ui.secondary_panel[ui.secondary_textbox].value) ~= nil and ((hz_dir ~= 0) or (vt_dir ~= 0)) then
+					local this_t = ui.secondary_panel[ui.secondary_textbox]
+					this_t.value = this_t.value + (hz_key * hz_dir) + (vt_key * vt_dir)
+					
+					this_t.value = math.min(this_t.value, this_t.high)
+					this_t.value = math.max(this_t.value, this_t.low)
+				end
+				
+				if tonumber(ui.secondary_panel[1].value) ~= nil then
+					load_w = ui.secondary_panel[1].value
+					load_w = math.min(load_w, ui.secondary_panel[1].high)
+					load_w = math.max(load_w, ui.secondary_panel[1].low)
+				end
+				
+				if tonumber(ui.secondary_panel[2].value) ~= nil then
+					load_h = ui.secondary_panel[2].value
+					load_h = math.min(load_h, ui.secondary_panel[2].high)
+					load_h = math.max(load_h, ui.secondary_panel[2].low)
+				end
+				
+				if tonumber(ui.secondary_panel[3].value) ~= nil then
+					load_x = ui.secondary_panel[3].value
+					load_x = math.min(load_x, ui.secondary_panel[3].high)
+					load_x = math.max(load_x, ui.secondary_panel[3].low)
+				end
+				
+				if tonumber(ui.secondary_panel[4].value) ~= nil then
+					load_y = ui.secondary_panel[4].value
+					load_y = math.min(load_y, ui.secondary_panel[4].high)
+					load_y = math.max(load_y, ui.secondary_panel[4].low)
+				end
+				
+				grid_w, grid_h, grid_x, grid_y = load_w, load_h, load_x, load_y
+			
+			end
+		
+		end
+		
+	end
+	
 	-- Interaction for toolbar panels
 	local panel_x = 70 + 4
 	
@@ -1784,6 +1902,11 @@ function ui.update(dt)
 				if (mouse_switch == _PRESS and (mx >= panel_x) and (mx <= panel_x + 23) and (my >= 27) and (my <= 27 + 23)) then
 					ui.secondary_clicked = i
 					hit_button = i
+					
+					if ui.secondary_panel[i].id == "grid.snap" then
+						grid_snap = not grid_snap
+						ui.secondary_panel[i].active = not grid_snap
+					end
 				end
 				
 				panel_x = panel_x + 24 + 12
@@ -1869,7 +1992,7 @@ function ui.update(dt)
 		end
 		
 		-- Only show cursors when in bounds of the preview window
-		if pmx >= -grab and pmx <= rw + grab and pmy >= -grab and pmy <= rh + grab and not ui.preview_dragging then
+		if pmx >= -grab and pmx <= rw + grab and pmy >= -grab and pmy <= rh + grab and not ui.preview_dragging and not color_grabber then
 		
 			local drag_titlebar = false
 		
@@ -2010,7 +2133,7 @@ function ui.update(dt)
 		end
 	end
 		
-	if ui.preview_dragging then
+	if ui.preview_dragging and not color_grabber then
 	
 		if mouse_switch == _RELEASE then
 			ui.preview_dragging = false
@@ -3041,7 +3164,11 @@ function ui.draw()
 		lg.setColor(col_box)
 		lg.rectangle("fill", rx, ry, rw, rh)
 		lg.setColor(c_white)
-		lg.draw(grad_active, rx, ry + 1, 0, rw/256, 23)
+		local toolbar_color = grad_active
+		if ui.popup[1] ~= nil then
+			toolbar_color = grad_inactive
+		end
+		lg.draw(toolbar_color, rx, ry + 1, 0, rw/256, 23)
 		
 		lg.print("Preview", rx + 10, ry + 3)
 		lg.setColor(ui.preview_bg_color)
@@ -3065,7 +3192,7 @@ function ui.draw()
 			lg.draw(artboard.canvas, 0, 0, 0, ui.preview_zoom)
 		end
 		
-		polygon.draw()
+		polygon.draw(false)
 		
 		if not artboard.draw_top and artboard.canvas ~= nil and ui.preview_artboard_enabled then
 			local artcol = {1, 1, 1, artboard.opacity}

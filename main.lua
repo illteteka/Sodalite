@@ -17,7 +17,6 @@ vertex_selection = {}
 -- debug buttons
 one_button = _OFF
 two_button = _OFF
-debug_mode = "zoom"
 
 ctrl_name = "ctrl"
 
@@ -68,6 +67,7 @@ grid_x = 0
 grid_y = 0
 grid_w = 32
 grid_h = 32
+grid_snap = true
 
 mouse_x = -1
 mouse_y = -1
@@ -87,6 +87,8 @@ ui_off_mouse_down = false
 ui_on_mouse_up = false
 
 artboard_is_drawing = false
+
+color_grabber = false
 
 function resetEditor(exit_popup, add_layer)
 
@@ -116,6 +118,7 @@ function resetEditor(exit_popup, add_layer)
 	end
 	
 	ui.toolbar[ui.toolbar_grid].active = true
+	ui.toolbar[ui.toolbar_pick].active = true
 
 end
 
@@ -244,12 +247,14 @@ function love.load()
 	icon_look = lg.newImage("textures/icon_look.png")
 	icon_art_above = lg.newImage("textures/icon_art_above.png")
 	icon_art_below = lg.newImage("textures/icon_art_below.png")
+	icon_magnet = lg.newImage("textures/icon_magnet.png")
 	
 	cursor_typing = love.mouse.getSystemCursor("ibeam")
 	cursor_size_h = love.mouse.getSystemCursor("sizewe")
 	cursor_size_v = love.mouse.getSystemCursor("sizens")
 	cursor_size_rise = love.mouse.getSystemCursor("sizenesw")
 	cursor_size_fall = love.mouse.getSystemCursor("sizenwse")
+	cursor_pick = love.mouse.newCursor("textures/cursor_pick.png", 5, 21)
 	
 	ui.init()
 	palette.init()
@@ -450,7 +455,59 @@ function love.update(dt)
 	end
 	
 	local ui_active
-	ui_active = ui.update(dt)
+	
+	if color_grabber then
+	
+		if (mouse_switch == _PRESS) then
+		
+			local test_x, test_y = mx - math.floor(camera_x), my - math.floor(camera_y)
+			local test_hit_polygon = polygon.click(test_x, test_y)
+			local use_color = nil
+			
+			local cr, cb, cg, ca = 0,0,0,0
+			if artboard.opacity ~= 0 then
+				if test_x >= 0 and test_x <= document_w - 1 and test_y >= 0 and test_y <= document_h - 1 then
+					cr, cb, cg, ca = artboard.canvas:newImageData():getPixel(test_x, test_y)
+				end
+			end
+			
+			if artboard.draw_top then
+			
+				if test_hit_polygon ~= -1 then
+					use_color = polygon.data[ui.layer[test_hit_polygon].count].color
+				elseif ca ~= 0 then
+					use_color = {cr, cb, cg, 1}
+				end
+			
+			else
+			
+				if ca ~= 0 then
+					use_color = {cr, cb, cg, 1}
+				elseif test_hit_polygon ~= -1 then
+					use_color = polygon.data[ui.layer[test_hit_polygon].count].color
+				end
+			
+			end
+			
+			if use_color ~= nil then
+				palette.activeIsEditable = false
+				palette.colors[palette.slot+1] = {use_color[1], use_color[2], use_color[3], use_color[4]}
+				palette.active = palette.colors[palette.slot+1]
+				palette.updateFromBoxes()
+				palette.updateAccentColor()
+			end
+			
+			ui.toolbar[ui.toolbar_pick].active = true
+			love.mouse.setCursor()
+			color_grabber = false
+		
+		end
+	
+		ui_active = true
+	else
+		ui_active = ui.update(dt)
+	end
+	
 	ui_on_mouse_up = (ui_active == true) and (mouse_switch == _OFF)
 
 	if ui.popup[1] == nil and document_w ~= 0 then
@@ -481,17 +538,12 @@ function love.update(dt)
 				polygon.new(tm.polygon_loc, new_col, polygon.kind, true)
 			end
 			
-			if ui.toolbar[ui.toolbar_grid].active then
-				selection_mouse_x = mx - math.floor(camera_x)
-				selection_mouse_y = my - math.floor(camera_y)
-			else
-				selection_mouse_x = ((math.floor((mx - camera_x) / grid_w) * grid_w) + (grid_x % grid_w))
-				selection_mouse_y = ((math.floor((my - camera_y) / grid_h) * grid_h) + (grid_y % grid_h))
-			end
+			selection_mouse_x = mx - math.floor(camera_x)
+			selection_mouse_y = my - math.floor(camera_y)
 			
 			-- Test if we are placing a vertex or moving a vertex
 			if vertex_selection[1] == nil then -- If selection is empty
-			polygon.calcVertex(selection_mouse_x, selection_mouse_y, tm.polygon_loc, true)
+			polygon.calcVertex(selection_mouse_x, selection_mouse_y, tm.polygon_loc, not ui.toolbar[ui.toolbar_grid].active)
 			end
 		
 		end
@@ -505,12 +557,13 @@ function love.update(dt)
 			for i = 1, #vertex_selection do
 			
 				local cx, cy
-				if ui.toolbar[ui.toolbar_grid].active then
-					cx = mx - math.floor(camera_x)
-					cy = my - math.floor(camera_y)
-				else
+				if ui.toolbar[ui.toolbar_grid].active == false and grid_snap then
 					cx = ((math.floor((mx - camera_x) / grid_w) * grid_w) + (grid_x % grid_w))
 					cy = ((math.floor((my - camera_y) / grid_h) * grid_h) + (grid_y % grid_h))
+					
+				else
+					cx = mx - math.floor(camera_x)
+					cy = my - math.floor(camera_y)
 				end
 			
 				-- Move verices by offset of selection_mouse_*
@@ -625,13 +678,8 @@ function love.update(dt)
 	
 	end
 	
-	-- Debug keys
-	
 	if ((ui_active == false) or (ui_on_mouse_up)) then
 	
-		if o_key == _PRESS then debug_mode = "grid" end
-		if p_key == _PRESS then debug_mode = "zoom" end
-		
 		if artboard.active then
 			
 			if artboard.active then
@@ -644,27 +692,15 @@ function love.update(dt)
 		
 		end
 		
-		if t_key == _ON then
-		
-			if mouse_switch == _PRESS then
-				polygon.click(mx - math.floor(camera_x), my - math.floor(camera_y))
-			end
-		
+		if up_key == _ON then
+			updateCamera(screen_width, screen_height, camera_zoom, camera_zoom + (0.01 * 60 * dt))
 		end
 		
-		-- if debug_mode == "zoom" then
-			-- if up_key == _ON then
-				-- updateCamera(screen_width, screen_height, camera_zoom, camera_zoom + (0.01 * 60 * dt))
-			-- end
-			
-			-- if down_key == _ON then
-				-- updateCamera(screen_width, screen_height, camera_zoom, camera_zoom - (0.01 * 60 * dt))
-			-- end
-		-- end
-	
+		if down_key == _ON then
+			updateCamera(screen_width, screen_height, camera_zoom, camera_zoom - (0.01 * 60 * dt))
+		end
+
 	end
-	
-	-- End debug keys
 	
 	-- Camera controls
 	if lctrl_key == _OFF and rctrl_key == _OFF then
@@ -751,7 +787,7 @@ function love.draw()
 	
 	end
 	
-	polygon.draw()
+	polygon.draw(true)
 	
 	-- Draw lines while editing a shape
 	local polygons_exist = polygon.data[tm.polygon_loc] ~= nil
@@ -812,7 +848,7 @@ function love.draw()
 	end
 	
 	-- Draw spr_vertex on vertex locations
-	if polygon.data[tm.polygon_loc] ~= nil then
+	if polygon.data[tm.polygon_loc] ~= nil and artboard.active == false and ui.popup[1] == nil then
 		
 		local clone = polygon.data[tm.polygon_loc]
 		
@@ -845,15 +881,6 @@ function love.draw()
 	lg.pop()
 	
 	ui.draw()
-	
-	-- Debug UI
-	
-	lg.setColor(1,1,1,0.6)
-	local debug_info = ""
-	
-	lg.print("Debug mode: " .. debug_mode .. debug_info, 94, screen_height - 50)
-	
-	-- End Debug UI
 
 end
 
