@@ -83,12 +83,16 @@ vt_key = 0
 hz_dir = 0
 vt_dir = 0
 
+splash_timer = 0
+splash_active = true
+
 ui_off_mouse_down = false
 ui_on_mouse_up = false
 
 artboard_is_drawing = false
 
 color_grabber = false
+zoom_grabber = false
 
 function resetEditor(exit_popup, add_layer)
 
@@ -120,6 +124,7 @@ function resetEditor(exit_popup, add_layer)
 	ui.toolbar[ui.toolbar_grid].active = true
 	ui.toolbar[ui.toolbar_pick].active = true
 	ui.toolbar[ui.toolbar_preview].active = true
+	ui.toolbar[ui.toolbar_zoom].active = true
 
 end
 
@@ -249,6 +254,7 @@ function love.load()
 	icon_art_above = lg.newImage("textures/icon_art_above.png")
 	icon_art_below = lg.newImage("textures/icon_art_below.png")
 	icon_magnet = lg.newImage("textures/icon_magnet.png")
+	icon_splash = lg.newImage("textures/splash.png")
 	
 	cursor_typing = love.mouse.getSystemCursor("ibeam")
 	cursor_size_h = love.mouse.getSystemCursor("sizewe")
@@ -256,6 +262,7 @@ function love.load()
 	cursor_size_rise = love.mouse.getSystemCursor("sizenesw")
 	cursor_size_fall = love.mouse.getSystemCursor("sizenwse")
 	cursor_pick = love.mouse.newCursor("textures/cursor_pick.png", 5, 21)
+	cursor_zoom = love.mouse.newCursor("textures/cursor_zoom.png", 7, 8)
 	
 	ui.init()
 	palette.init()
@@ -362,6 +369,15 @@ function love.update(dt)
 	if two_button == _PRESS then print_r(tm.data) end
 	
 	-- end debug block
+	
+	if splash_active then
+	
+		splash_timer = splash_timer + (60 * dt)
+		if splash_timer > 60 * 6 or mouse_switch == _PRESS then
+			splash_active = false
+		end
+	
+	end
 	
 	if scrub_active then
 	
@@ -693,12 +709,13 @@ function love.update(dt)
 		
 		end
 		
-		if up_key == _ON then
-			updateCamera(screen_width, screen_height, camera_zoom, camera_zoom + (0.01 * 60 * dt))
-		end
-		
-		if down_key == _ON then
-			updateCamera(screen_width, screen_height, camera_zoom, camera_zoom - (0.01 * 60 * dt))
+		local smx, smy = love.mouse.getX(), love.mouse.getY()
+		local rx, ry, rw, rh = ui.preview_x, ui.preview_y, ui.preview_w, ui.preview_h
+		local bx, by, bw, bh = rx + 3, ry + 27, rw - 5, rh - 29 - 28
+		if ui.preview_active == false or (not (smx >= bx and smx <= bx + bw and smy >= by and smy <= by + bh)) then
+			if mouse_wheel_y ~= 0 then
+				updateCamera(screen_width, screen_height, camera_zoom, camera_zoom + (mouse_wheel_y * 0.1 * 60 * dt))
+			end
 		end
 
 	end
@@ -882,6 +899,12 @@ function love.draw()
 	lg.pop()
 	
 	ui.draw()
+	
+	if splash_active then
+	
+		lg.draw(icon_splash, math.floor((screen_width-500)/2), math.floor((screen_height-320)/2))
+	
+	end
 
 end
 

@@ -53,6 +53,7 @@ ui.lyr_spd = 1
 ui.lyr_timer = 0
 ui.lyr_clicked = 0
 ui.lyr_click_y = 0
+ui.lyr_button_active = -1
 
 ui.preview_active = false
 ui.preview_x = 100
@@ -78,6 +79,7 @@ ui.preview_textbox = ""
 ui.preview_textbox_locked = true
 ui.preview_textbox_orig = ""
 ui.preview_textbox_mode = "px"
+ui.preview_button_active = -1
 
 ui.toolbar = {}
 ui.toolbar_clicked = -1
@@ -89,6 +91,7 @@ ui.toolbar_ellipse = nil
 ui.toolbar_preview = nil
 ui.toolbar_grid = nil
 ui.toolbar_pick = nil
+ui.toolbar_zoom = nil
 
 ui.primary_panel = {}
 ui.primary_textbox = -1
@@ -119,15 +122,15 @@ function ui.init()
 	-- Add title bar items
 	ui.addTitle("File",     ".file")
 	ui.addTitle("Edit",     ".edit")
-	ui.addTitle("Search",   ".search")
-	ui.addTitle("View",     ".view")
-	ui.addTitle("Encoding", ".encoding")
+	ui.addTitle("Image",   ".image")
+	ui.addTitle("Select",  ".select")
+	ui.addTitle("Help",     ".help")
 	
 	-- Add toolbar items
 	ui.addTool("Cursor A",      icon_cursorb,  ".main")
 	ui.addTool("Cursor B",      icon_cursorw,  ".edit")
 	ui.toolbar_grid = ui.addTool("Grid",          icon_grid,     ".grid")
-	ui.addTool("Zoom",          icon_zoom,     ".zoom")
+	ui.toolbar_zoom = ui.addTool("Zoom",          icon_zoom,     ".zoom")
 	ui.toolbar_pick = ui.addTool("Color Grabber", icon_pick,     ".pick")
 	ui.toolbar_preview = ui.addTool("Preview",       icon_look,     ".prev")
 	ui.addToolBreak()
@@ -145,28 +148,44 @@ function ui.loadCM(x, y, ref)
 	
 	if ref == ".file" then
 	
-		ui.addCM("New",         true, "f.new")
-		ui.addCM("Open...",    false, "f.open")
+		ui.addCM("New",          true, "f.new")
 		ui.addCMBreak()
-		ui.addCM("Close",      false, "f.close")
-		ui.addCM("Save",       false, "f.save")
-		ui.addCM("Save As...", false, "f.as")
+		ui.addCM("Save",        false, "f.save")
+		ui.addCM("Save As...",  false, "f.as")
 		ui.addCMBreak()
-		ui.addCM("Exit",       false, "f.exit")
+		ui.addCM("Export .svg", false, "f.svg")
+		ui.addCM("Export .png", false, "f.png")
+		ui.addCMBreak()
+		ui.addCM("Exit",        false, "f.exit")
 		ui.generateCM(x, y)
 	
 	elseif ref == ".edit" then
-		ui.addCM("Bum", true, "e.new")
+	
+		ui.addCM("Undo", false, "e.undo")
+		ui.addCM("Redo", false, "e.redo")
+		ui.addCMBreak()
+		ui.addCM("Copy palette color",  false, "e.pcopy")
+		ui.addCM("Paste palette color", false, "e.ppaste")
 		ui.generateCM(x, y)
-	elseif ref == ".search" then
-		ui.addCM("On", true, "s.new")
+		
+	elseif ref == ".image" then
+	
+		ui.addCM("Document setup...", false, "i.setup")
+		ui.addCMBreak()
+		ui.addCM("Clear canvas", false, "i.clear")
 		ui.generateCM(x, y)
-	elseif ref == ".view" then
-		ui.addCM("A", true, "v.new")
+		
+	elseif ref == ".select" then
+	
+		ui.addCM("Select All", false, "s.all")
+		ui.addCM("Deselect", false, "s.de")
 		ui.generateCM(x, y)
-	elseif ref == ".encoding" then
-		ui.addCM("Crumb!!!", true, "en.new")
+		
+	elseif ref == ".help" then
+	
+		ui.addCM("About Sodalite...", true, "h.about")
 		ui.generateCM(x, y)
+		
 	end
 
 end
@@ -177,6 +196,7 @@ function ui.loadPopup(ref)
 		-- Don't make duplicate popup
 	else
 		
+		ui.textbox_selection_origin = "preview"
 		ui.popupLoseFocus("preview")
 
 		ui.popup = {}
@@ -341,6 +361,8 @@ end
 
 function ui.panelReset()
 
+	ui.toolbar[ui.toolbar_grid].active = true
+	ui.toolbar[ui.toolbar_zoom].active = true
 	ui.secondary_textbox = -1
 	ui.keyboard_last = ""
 	ui.keyboard_test = ""
@@ -369,6 +391,26 @@ function ui.panelGrid()
 	ui.addPanel(ui.secondary_panel, 'grid.x',    'X Offset', true, grid_x, 0, math.max(document_w, document_h))
 	ui.addPanel(ui.secondary_panel, 'grid.y',    'Y Offset', true, grid_y, 0, math.max(document_w, document_h))
 	ui.addPanel(ui.secondary_panel, 'grid.snap', icon_magnet, false, not grid_snap)
+
+end
+
+function ui.panelZoom()
+
+	ui.secondary_textbox = -1
+	ui.keyboard_last = ""
+	ui.keyboard_test = ""
+	ui.textbox_selection_origin = "toolbox2"
+	ui.popupLoseFocus()
+
+	ui.secondary_panel = nil
+	ui.secondary_panel = {}
+	ui.secondary_panel.name = "Zoom:"
+
+	ui.addPanel(ui.secondary_panel, 'zoom.type',  "px", true, 512, 1, 1000)
+	ui.addPanel(ui.secondary_panel, 'zoom.in',    icon_zoom_in, false, true)
+	ui.addPanel(ui.secondary_panel, 'zoom.out',   icon_zoom_out, false, true)
+	ui.addPanel(ui.secondary_panel, 'zoom.reset', icon_reset, false, true)
+	ui.addPanel(ui.secondary_panel, 'zoom.fit',   icon_fit, false, true)
 
 end
 
@@ -594,36 +636,42 @@ function ui.popupLoseFocus(kind)
 	
 		local tbox = ui.secondary_panel[ui.secondary_textbox]
 	
-		if tbox.value == "" then
+		if tbox.value ~= "." then
+		
+			if tbox.value == "" then
+				tbox.value = ui.secondary_text_orig
+			end
+			
+			if tonumber(tbox.value) < tbox.low then
+				tbox.value = tbox.low
+			end
+			
+			if tonumber(tbox.value) > tbox.high then
+				tbox.value = tbox.high
+			end
+			
+			if tbox.id == "grid.width" or tbox.id == "grid.height" or tbox.id == "grid.x" or tbox.id == "grid.y" then
+			
+				if tbox.id == "grid.width" then
+					grid_w = tonumber(tbox.value)
+				end
+				
+				if tbox.id == "grid.height" then
+					grid_h = tonumber(tbox.value)
+				end
+				
+				if tbox.id == "grid.x" then
+					grid_x = tonumber(tbox.value)
+				end
+				
+				if tbox.id == "grid.y" then
+					grid_y = tonumber(tbox.value)
+				end
+				
+			end
+		
+		else
 			tbox.value = ui.secondary_text_orig
-		end
-		
-		if tonumber(tbox.value) < tbox.low then
-			tbox.value = tbox.low
-		end
-		
-		if tonumber(tbox.value) > tbox.high then
-			tbox.value = tbox.high
-		end
-		
-		if tbox.id == "grid.width" or tbox.id == "grid.height" or tbox.id == "grid.x" or tbox.id == "grid.y" then
-		
-			if tbox.id == "grid.width" then
-				grid_w = tonumber(tbox.value)
-			end
-			
-			if tbox.id == "grid.height" then
-				grid_h = tonumber(tbox.value)
-			end
-			
-			if tbox.id == "grid.x" then
-				grid_x = tonumber(tbox.value)
-			end
-			
-			if tbox.id == "grid.y" then
-				grid_y = tonumber(tbox.value)
-			end
-			
 		end
 		
 		ui.textbox_selection_origin = ""
@@ -691,6 +739,7 @@ function ui.keyboardHit(key)
 			if (key == "backspace") then
 				ui.preview_textbox = string.sub(ui.preview_textbox, 0, string.len(ui.preview_textbox) - 1)
 			elseif (key == "return") then
+				ui.textbox_selection_origin = "preview"
 				ui.popupLoseFocus("preview")
 				ui.keyboard_last = ""
 				ui.keyboard_test = ""
@@ -716,6 +765,7 @@ function ui.keyboardHit(key)
 			if (key == "backspace") then
 				tbox.value = string.sub(tbox.value, 0, string.len(tbox.value) - 1)
 			elseif (key == "return") then
+				ui.textbox_selection_origin = "toolbar"
 				ui.popupLoseFocus("toolbar")
 				ui.keyboard_last = ""
 				ui.keyboard_test = ""
@@ -731,6 +781,11 @@ function ui.keyboardHit(key)
 			if ui.secondary_textbox ~= -1 then
 			
 				local allowed_keys = (tonumber(key) ~= nil)
+				
+				if ui.secondary_panel[ui.secondary_textbox].id == "zoom.type" then
+					allowed_keys = (tonumber(key) ~= nil) or ((key == ".") and (string.find(ui.secondary_panel[ui.secondary_textbox].value,"%.") == nil))
+				end
+				
 				if allowed_keys and string.len(tbox.value) < 5 then
 					tbox.value = tbox.value .. key					
 				end
@@ -741,6 +796,7 @@ function ui.keyboardHit(key)
 			if (key == "backspace") then
 				tbox.value = string.sub(tbox.value, 0, string.len(tbox.value) - 1)
 			elseif (key == "return") then
+				ui.textbox_selection_origin = "toolbar2"
 				ui.popupLoseFocus("toolbar2")
 				ui.keyboard_last = ""
 				ui.keyboard_test = ""
@@ -1240,7 +1296,7 @@ function ui.update(dt)
 		end
 		
 		if (document_w ~= 0) then
-		
+			
 			-- Add layer button
 			if (mx >= layx + 4) and (mx <= layx + 4 + 24) and (my >= layy + 13) and (my <= layy + 13 + 24) then
 				
@@ -1253,10 +1309,11 @@ function ui.update(dt)
 				ui.addLayer()
 				palette.updateAccentColor()
 				ui.lyr_scroll_percent = 0
+				ui.lyr_button_active = 1
 			end
 			
 			-- Delete layer button
-			if (mx >= layx + 4 + 24 + 8) and (mx <= layx + 4 + 24 + 24 + 8) and (my >= layy + 13) and (my <= layy + 13 + 24) then
+			if (mx >= layx + 4 + 24 + 4) and (mx <= layx + 4 + 24 + 24 + 4) and (my >= layy + 13) and (my <= layy + 13 + 24) then
 				
 				if (#ui.layer > 1) then
 					-- tm.polygon_loc is the literal id of the added layer (ignores reordering)
@@ -1278,6 +1335,8 @@ function ui.update(dt)
 					end
 					
 				end
+				
+				ui.lyr_button_active = 2
 				
 			end
 			
@@ -1351,6 +1410,10 @@ function ui.update(dt)
 		
 		ui_active = true
 			
+	end
+	
+	if (mouse_switch == _RELEASE) and ui.lyr_button_active ~= -1 then
+		ui.lyr_button_active = -1
 	end
 	
 	if (ui.lyr_scroll) then
@@ -1453,6 +1516,7 @@ function ui.update(dt)
 		ui.toolbar[ui.toolbar_grid].active = false
 		ui.toolbar[ui.toolbar_pick].active = false
 		ui.toolbar[ui.toolbar_preview].active = false
+		ui.toolbar[ui.toolbar_zoom].active = false
 	else
 	
 		if artboard.active == false then
@@ -1512,7 +1576,7 @@ function ui.update(dt)
 			end
 			
 			local tool = ui.toolbar[key]
-			local ignore_tool_active = (tool.ref == ".grid") or (tool.ref == ".pick")
+			local ignore_tool_active = (tool.ref == ".grid") or (tool.ref == ".pick") or (tool.ref == ".zoom")
 			if (tool.ref ~= nil) and (tool.ref == ".prev") and document_w ~= 0 then
 				tool.active = true
 			end
@@ -1530,6 +1594,8 @@ function ui.update(dt)
 				
 					if document_w ~= 0 then
 						if ui.toolbar[ui.toolbar_grid].active then
+							zoom_grabber = false
+							ui.toolbar[ui.toolbar_zoom].active = true
 							ui.panelGrid()
 							ui.toolbar[ui.toolbar_grid].active = false
 						else
@@ -1539,7 +1605,19 @@ function ui.update(dt)
 					end
 					
 				elseif tool.ref == ".zoom" then
-					print("zoom")
+					
+					if document_w ~= 0 then
+						if ui.toolbar[ui.toolbar_zoom].active then
+							zoom_grabber = true
+							ui.panelZoom()
+							ui.toolbar[ui.toolbar_zoom].active = false
+						else
+							zoom_grabber = false
+							ui.panelReset()
+							ui.toolbar[ui.toolbar_zoom].active = true
+						end
+					end
+					
 				elseif tool.ref == ".pick" then
 				
 					if document_w ~= 0 then
@@ -1551,6 +1629,7 @@ function ui.update(dt)
 				elseif tool.ref == ".prev" then
 					
 					if document_w ~= 0 then
+						ui.textbox_selection_origin = "preview"
 						ui.popupLoseFocus("preview")
 						ui.preview_active = not ui.preview_active
 					end
@@ -1793,10 +1872,12 @@ function ui.update(dt)
 					if (mx >= ix - 5) and (mx <= ix + 41) and (my >= iy + 25) and (my <= iy + 45) then
 						
 						if ui.secondary_textbox ~= -1 then
+							ui.textbox_selection_origin = "toolbar2"
 							ui.popupLoseFocus("toolbar2")
 						end
 						
 						if ui.primary_textbox ~= -1 then
+							ui.textbox_selection_origin = "toolbar"
 							ui.popupLoseFocus("toolbar")
 						end
 						
@@ -1831,7 +1912,10 @@ function ui.update(dt)
 					end
 				end
 				
-				panel_x = panel_x + 24 + 12
+				if ui.primary_panel[i].id == "art.position" then
+					panel_x = panel_x + 8
+				end
+				panel_x = panel_x + 24 + 4
 			
 			end
 		
@@ -1839,6 +1923,7 @@ function ui.update(dt)
 		
 		if (mouse_switch == _PRESS) then
 			if ui.primary_textbox ~= -1 and hit_tbox == -1 then
+				ui.textbox_selection_origin = "toolbar"
 				ui.popupLoseFocus("toolbar")
 				ui_active = true
 			end
@@ -1881,10 +1966,12 @@ function ui.update(dt)
 					if (mx >= ix - 5) and (mx <= ix + 41) and (my >= iy + 25) and (my <= iy + 45) then
 						
 						if ui.primary_textbox ~= -1 then
+							ui.textbox_selection_origin = "toolbar"
 							ui.popupLoseFocus("toolbar")
 						end
 						
 						if ui.secondary_textbox ~= -1 then
+							ui.textbox_selection_origin = "toolbar2"
 							ui.popupLoseFocus("toolbar2")
 						end
 						
@@ -1912,9 +1999,35 @@ function ui.update(dt)
 						grid_snap = not grid_snap
 						ui.secondary_panel[i].active = not grid_snap
 					end
+					
+					if ui.secondary_panel[i].id == "zoom.in" then
+						local larger_window_bound = math.max(document_w, document_h)
+						local round_zoom = math.floor(camera_zoom * 100)/100
+						local temp_zoom = math.min(round_zoom * 1.25, math.min(99999/larger_window_bound, 999.99))
+						updateCamera(screen_width, screen_height, camera_zoom, temp_zoom)
+					end
+					
+					if ui.secondary_panel[i].id == "zoom.out" then
+						local round_zoom = math.floor(camera_zoom * 100)/100
+						local temp_zoom = math.max(round_zoom * 0.85, 0.05)
+						updateCamera(screen_width, screen_height, camera_zoom, temp_zoom)
+					end
+					
+					if ui.secondary_panel[i].id == "zoom.reset" then
+						updateCamera(screen_width, screen_height, camera_zoom, 1)
+						resetCamera()
+					end
+					
+					if ui.secondary_panel[i].id == "zoom.fit" then
+						local smaller_preview_bound = math.min(screen_width - 208 - 64, screen_height - 54)
+						local larger_window_bound = math.max(document_w, document_h)
+						local temp_zoom = smaller_preview_bound / larger_window_bound
+						updateCamera(screen_width, screen_height, camera_zoom, temp_zoom)
+						resetCamera()
+					end
 				end
 				
-				panel_x = panel_x + 24 + 12
+				panel_x = panel_x + 24 + 4
 			
 			end
 		
@@ -1922,6 +2035,7 @@ function ui.update(dt)
 		
 		if (mouse_switch == _PRESS) then
 			if ui.secondary_textbox ~= -1 and hit_tbox == -1 then
+				ui.textbox_selection_origin = "toolbar2"
 				ui.popupLoseFocus("toolbar2")
 				ui_active = true
 			end
@@ -1971,6 +2085,7 @@ function ui.update(dt)
 		else
 		
 			if ui.preview_action ~= "textbox" and (ui.popup[1] == nil) and ui.active_textbox == "preview" then
+				ui.textbox_selection_origin = "preview"
 				ui.popupLoseFocus("preview")
 			end
 		
@@ -1978,6 +2093,7 @@ function ui.update(dt)
 		
 		if tab_key == _PRESS then
 			if (ui.popup[1] == nil) and ui.active_textbox == "preview" then
+				ui.textbox_selection_origin = "preview"
 				ui.popupLoseFocus("preview")
 			end
 		end
@@ -1997,7 +2113,7 @@ function ui.update(dt)
 		end
 		
 		-- Only show cursors when in bounds of the preview window
-		if pmx >= -grab and pmx <= rw + grab and pmy >= -grab and pmy <= rh + grab and not ui.preview_dragging and not color_grabber then
+		if pmx >= -grab and pmx <= rw + grab and pmy >= -grab and pmy <= rh + grab and not ui.preview_dragging and not color_grabber and not zoom_grabber then
 		
 			local drag_titlebar = false
 		
@@ -2033,10 +2149,12 @@ function ui.update(dt)
 			end
 			
 			if mouse_switch == _PRESS then
+
 				ui_active = true
 			
 				-- Close window button (x)
 				if (mx >= rx + rw - 22) and (mx <= rx + rw - 22 + 18) and (my >= ry + 5) and (my <= ry + 20) then
+					ui.textbox_selection_origin = "preview"
 					ui.popupLoseFocus("preview")
 					ui.preview_active = false
 				end
@@ -2081,6 +2199,7 @@ function ui.update(dt)
 						local round_zoom = math.floor(ui.preview_zoom * 100)/100
 						ui.preview_zoom = math.min(round_zoom * 1.25, math.min(99999/larger_window_bound, 999.99))
 						ui.preview_action = ""
+						ui.preview_button_active = 1
 					end
 
 					-- Zoom Out
@@ -2088,6 +2207,7 @@ function ui.update(dt)
 						local round_zoom = math.floor(ui.preview_zoom * 100)/100
 						ui.preview_zoom = math.max(round_zoom * 0.85, 0.05)
 						ui.preview_action = ""
+						ui.preview_button_active = 2
 					end
 
 					-- Reset scale
@@ -2096,6 +2216,7 @@ function ui.update(dt)
 						ui.preview_window_y = 0
 						ui.preview_zoom = 1
 						ui.preview_action = ""
+						ui.preview_button_active = 3
 					end
 
 					-- Fit to window
@@ -2106,12 +2227,14 @@ function ui.update(dt)
 						local larger_window_bound = math.max(document_w, document_h)
 						ui.preview_zoom = smaller_preview_bound / larger_window_bound
 						ui.preview_action = ""
+						ui.preview_button_active = 4
 					end
 
 					-- Toggle artboard
 					if (mx >= ix + 112) and (mx <= ix + 24 + 112) and (my >= iy) and (my <= iy + 24) then
 						ui.preview_artboard_enabled = not ui.preview_artboard_enabled
 						ui.preview_action = ""
+						ui.preview_button_active = 5
 					end
 
 					-- Background color
@@ -2133,12 +2256,17 @@ function ui.update(dt)
 		if mouse_switch == _PRESS then
 			ui.preview_action = ""
 			if ui.preview_action ~= "textbox" and (ui.popup[1] == nil) and ui.active_textbox == "preview" then
+				ui.textbox_selection_origin = "preview"
 				ui.popupLoseFocus("preview")
 			end
 		end
 	end
+	
+	if mouse_switch == _RELEASE and ui.preview_button_active ~= -1 then
+		ui.preview_button_active = -1
+	end
 		
-	if ui.preview_dragging and not color_grabber then
+	if ui.preview_dragging and not color_grabber and not zoom_grabber then
 	
 		if mouse_switch == _RELEASE then
 			ui.preview_dragging = false
@@ -2247,6 +2375,7 @@ function ui.update(dt)
 	
 	if ui.preview_action == "move" then
 	
+		ui.textbox_selection_origin = "preview"
 		ui.popupLoseFocus("preview")
 		if mouse_switch == _RELEASE then
 			ui.preview_action = ""
@@ -2271,6 +2400,12 @@ function ui.update(dt)
 			ui.preview_bg_color = new_col
 		end
 	
+	end
+	
+	if ui.active_textbox == "preview" and mouse_switch == _PRESS and (mx <= 64 or my <= 54) then
+		ui.textbox_selection_origin = "preview"
+		ui.popupLoseFocus("preview")
+		ui.preview_action = ""
 	end
 	
 	-- Check collision on popup box
@@ -2423,6 +2558,31 @@ function ui.update(dt)
 	
 	if mouse_switch == _PRESS and my <= 58 then
 		ui_active = true
+	end
+	
+	if zoom_grabber and ui_active == false then
+	
+		if mx > 64 and my > 54 and mx < screen_width - 208 then
+			love.mouse.setCursor(cursor_zoom)
+		
+			if mouse_switch == _PRESS then
+				local larger_window_bound = math.max(document_w, document_h)
+				local round_zoom = math.floor(camera_zoom * 100)/100
+				local temp_zoom = math.min(round_zoom * 1.25, math.min(99999/larger_window_bound, 999.99))
+				updateCamera(screen_width, screen_height, camera_zoom, temp_zoom)
+				ui_active = true
+			end
+			
+			if rmb_switch == _PRESS then
+				local round_zoom = math.floor(camera_zoom * 100)/100
+				local temp_zoom = math.max(round_zoom * 0.85, 0.05)
+				updateCamera(screen_width, screen_height, camera_zoom, temp_zoom)
+				ui_active = true
+			end
+		else
+			love.mouse.setCursor()
+		end
+	
 	end
 	
 	ui.popup_enter = false
@@ -2689,13 +2849,39 @@ function ui.draw()
 	ui.drawOutline(layx + 1, layy + 10, layw + 16, 30)
 	
 	-- Draw add + trash icons
+	local btn_state = BTN_DEFAULT
+
+	local mouse_hover_tool = false
+	mouse_hover_tool = ((mx >= layx + 4) and (mx <= layx + 4 + 23) and (my >= layy + 13) and (my <= layy + 13 + 23))
+	
+	if mouse_hover_tool and (ui.lyr_button_active == -1) then
+		btn_state = BTN_HIGHLIGHT_ON
+	end
+	
+	if (mouse_switch ~= _OFF) and (ui.lyr_button_active == 1) then
+		btn_state = BTN_HIGHLIGHT_OFF
+	end
+	
+	ui.drawButtonOutline(btn_state, layx + 4, layy + 13, 24, 24)
 	lg.setColor(c_white)
 	lg.draw(icon_add,   layx + 4, layy + 13)
-	ui.drawOutline(layx + 4, layy + 13, 24, 24, true)
 	
+	local btn_state = BTN_DEFAULT
+
+	local mouse_hover_tool = false
+	mouse_hover_tool = ((mx >= layx + 4 + 24 + 4) and (mx <= layx + 4 + 23 + 24 + 4) and (my >= layy + 13) and (my <= layy + 13 + 23))
+	
+	if mouse_hover_tool and (ui.lyr_button_active == -1) then
+		btn_state = BTN_HIGHLIGHT_ON
+	end
+	
+	if (mouse_switch ~= _OFF) and (ui.lyr_button_active == 2) then
+		btn_state = BTN_HIGHLIGHT_OFF
+	end
+	
+	ui.drawButtonOutline(btn_state, layx + 4 + 24 + 4, layy + 13, 24, 24)
 	lg.setColor(c_white)
-	lg.draw(icon_trash, layx + 4 + 24 + 8, layy + 13)
-	ui.drawOutline(layx + 4 + 24 + 8, layy + 13, 24, 24, true)
+	lg.draw(icon_trash, layx + 4 + 24 + 4, layy + 13)
 	
 	-- Draw layers in window
 	local layer_amt = #ui.layer
@@ -2975,7 +3161,15 @@ function ui.draw()
 		lg.draw(ui.toolbar[ui.toolbar_ellipse].icon, ix - 3, iy)
 	end
 	
-	lg.draw(ui.toolbar[4].icon, ix + 27, iy)
+	if document_w ~= 0 then
+		if ui.toolbar[ui.toolbar_pick].active == false then
+			lg.draw(ui.toolbar[ui.toolbar_pick].icon, ix + 27, iy)
+		elseif ui.toolbar[ui.toolbar_zoom].active == false then
+			lg.draw(ui.toolbar[ui.toolbar_zoom].icon, ix + 28, iy)
+		elseif ui.toolbar[ui.toolbar_grid].active == false then
+			lg.draw(ui.toolbar[ui.toolbar_grid].icon, ix + 28, iy + 1)
+		end
+	end
 	
 	-- Draw toolbar panels
 	
@@ -3058,7 +3252,10 @@ function ui.draw()
 				lg.setColor(c_white)
 				lg.draw(this_item.icon, panel_x, 27)
 				
-				panel_x = panel_x + 24 + 12
+				if ui.primary_panel[i].id == "art.position" then
+					panel_x = panel_x + 8
+				end
+				panel_x = panel_x + 24 + 4
 			
 			end
 		
@@ -3153,7 +3350,7 @@ function ui.draw()
 				lg.setColor(c_white)
 				lg.draw(this_item.icon, panel_x, 27)
 				
-				panel_x = panel_x + 24 + 12
+				panel_x = panel_x + 24 + 4
 			
 			end
 		
@@ -3250,27 +3447,87 @@ function ui.draw()
 		lg.draw(icon_close, rx + rw - 22 + 5, ry + 9)
 		
 		-- Zoom In
-		ui.drawOutline(ix, iy, 24, 24, true)
+		local btn_state = BTN_DEFAULT
+
+		local mouse_hover_tool = false
+		mouse_hover_tool = ((mx >= ix) and (mx <= ix + 23) and (my >= iy) and (my <= iy + 23))
+		
+		if mouse_hover_tool and (ui.preview_button_active == -1) then
+			btn_state = BTN_HIGHLIGHT_ON
+		end
+		
+		if (mouse_switch ~= _OFF) and (ui.preview_button_active == 1) then
+			btn_state = BTN_HIGHLIGHT_OFF
+		end
+		ui.drawButtonOutline(btn_state, ix, iy, 24, 24)
 		lg.setColor(c_white)
 		lg.draw(icon_zoom_in, ix, iy)
 		
 		-- Zoom Out
-		ui.drawOutline(ix + 28, iy, 24, 24, true)
+		local btn_state = BTN_DEFAULT
+
+		local mouse_hover_tool = false
+		mouse_hover_tool = ((mx >= ix + 28) and (mx <= ix + 23 + 28) and (my >= iy) and (my <= iy + 23))
+		
+		if mouse_hover_tool and (ui.preview_button_active == -1) then
+			btn_state = BTN_HIGHLIGHT_ON
+		end
+		
+		if (mouse_switch ~= _OFF) and (ui.preview_button_active == 2) then
+			btn_state = BTN_HIGHLIGHT_OFF
+		end
+		ui.drawButtonOutline(btn_state, ix + 28, iy, 24, 24)
 		lg.setColor(c_white)
 		lg.draw(icon_zoom_out, ix + 28, iy)
 		
 		-- Reset scale
-		ui.drawOutline(ix + 56, iy, 24, 24, true)
+		local btn_state = BTN_DEFAULT
+
+		local mouse_hover_tool = false
+		mouse_hover_tool = ((mx >= ix + 56) and (mx <= ix + 23 + 56) and (my >= iy) and (my <= iy + 23))
+		
+		if mouse_hover_tool and (ui.preview_button_active == -1) then
+			btn_state = BTN_HIGHLIGHT_ON
+		end
+		
+		if (mouse_switch ~= _OFF) and (ui.preview_button_active == 3) then
+			btn_state = BTN_HIGHLIGHT_OFF
+		end
+		ui.drawButtonOutline(btn_state, ix + 56, iy, 24, 24)
 		lg.setColor(c_white)
 		lg.draw(icon_reset, ix + 56, iy)
 		
 		-- Fit to window
-		ui.drawOutline(ix + 84, iy, 24, 24, true)
+		local btn_state = BTN_DEFAULT
+
+		local mouse_hover_tool = false
+		mouse_hover_tool = ((mx >= ix + 84) and (mx <= ix + 23 + 84) and (my >= iy) and (my <= iy + 23))
+		
+		if mouse_hover_tool and (ui.preview_button_active == -1) then
+			btn_state = BTN_HIGHLIGHT_ON
+		end
+		
+		if (mouse_switch ~= _OFF) and (ui.preview_button_active == 4) then
+			btn_state = BTN_HIGHLIGHT_OFF
+		end
+		ui.drawButtonOutline(btn_state, ix + 84, iy, 24, 24)
 		lg.setColor(c_white)
 		lg.draw(icon_fit, ix + 84, iy)
 		
 		-- Toggle artboard
-		ui.drawOutline(ix + 112, iy, 24, 24, true)
+		local btn_state = BTN_DEFAULT
+
+		local mouse_hover_tool = false
+		mouse_hover_tool = ((mx >= ix + 112) and (mx <= ix + 23 + 112) and (my >= iy) and (my <= iy + 23))
+		
+		if mouse_hover_tool and (ui.preview_button_active == -1) then
+			btn_state = BTN_HIGHLIGHT_ON
+		end
+		
+		if (mouse_switch ~= _OFF) and (ui.preview_button_active == 5) then
+			btn_state = BTN_HIGHLIGHT_OFF
+		end
+		ui.drawButtonOutline(btn_state, ix + 112, iy, 24, 24)
 		lg.setColor(c_white)
 		lg.draw(icon_draw, ix + 112, iy)
 		
