@@ -714,7 +714,11 @@ function love.update(dt)
 		local bx, by, bw, bh = rx + 3, ry + 27, rw - 5, rh - 29 - 28
 		if ui.preview_active == false or (not (smx >= bx and smx <= bx + bw and smy >= by and smy <= by + bh)) then
 			if mouse_wheel_y ~= 0 then
-				updateCamera(screen_width, screen_height, camera_zoom, camera_zoom + (mouse_wheel_y * 0.1 * 60 * dt))
+				local temp_zoom = camera_zoom + (mouse_wheel_y * 0.1 * 60 * dt)
+				local larger_window_bound = math.max(document_w, document_h)
+				temp_zoom = math.max(temp_zoom, 0.05)
+				temp_zoom = math.min(temp_zoom, math.min(99999/larger_window_bound, 999.99))
+				updateCamera(screen_width, screen_height, camera_zoom, temp_zoom)
 			end
 		end
 

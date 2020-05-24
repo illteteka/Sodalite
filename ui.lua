@@ -102,6 +102,7 @@ ui.secondary_panel = {}
 ui.secondary_textbox = -1
 ui.secondary_text_orig = ""
 ui.secondary_clicked = -1
+ui.zoom_textbox_mode = "px"
 
 ui.mouse_x = -1
 ui.mouse_y = -1
@@ -642,12 +643,38 @@ function ui.popupLoseFocus(kind)
 				tbox.value = ui.secondary_text_orig
 			end
 			
-			if tonumber(tbox.value) < tbox.low then
-				tbox.value = tbox.low
-			end
+			if tbox.id == "zoom.type" then
 			
-			if tonumber(tbox.value) > tbox.high then
-				tbox.value = tbox.high
+				local tbox_to_camera = tonumber(tbox.value)
+				local larger_window_bound = math.max(document_w, document_h)
+				local new_zoom = camera_zoom
+				
+				if ui.zoom_textbox_mode == "px" then
+					tbox_to_camera = tbox_to_camera / larger_window_bound
+					if tbox_to_camera < 0.05 then
+						tbox.value = ui.secondary_text_orig
+						new_zoom = tonumber(tbox.value) / larger_window_bound
+						tbox_to_camera = new_zoom
+					end
+				else
+					tbox_to_camera = tbox_to_camera / 100
+					new_zoom = math.max(tbox_to_camera, 0.05)
+					tbox_to_camera = new_zoom
+				end
+				new_zoom = math.min(tbox_to_camera, math.min(99999/larger_window_bound, 999.99))
+				
+				updateCamera(screen_width, screen_height, camera_zoom, new_zoom)
+			
+			else
+			
+				if tonumber(tbox.value) < tbox.low then
+					tbox.value = tbox.low
+				end
+				
+				if tonumber(tbox.value) > tbox.high then
+					tbox.value = tbox.high
+				end
+			
 			end
 			
 			if tbox.id == "grid.width" or tbox.id == "grid.height" or tbox.id == "grid.x" or tbox.id == "grid.y" then
@@ -782,7 +809,7 @@ function ui.keyboardHit(key)
 			
 				local allowed_keys = (tonumber(key) ~= nil)
 				
-				if ui.secondary_panel[ui.secondary_textbox].id == "zoom.type" then
+				if ui.secondary_panel[ui.secondary_textbox].id == "zoom.type" and ui.zoom_textbox_mode == "px" then
 					allowed_keys = (tonumber(key) ~= nil) or ((key == ".") and (string.find(ui.secondary_panel[ui.secondary_textbox].value,"%.") == nil))
 				end
 				
@@ -1797,6 +1824,20 @@ function ui.update(dt)
 				ui.secondary_panel[3].value = grid_x
 				ui.secondary_panel[4].value = grid_y
 			end
+			
+			if ui.secondary_panel[1].id == 'zoom.type' then
+				if ui.zoom_textbox_mode == "px" then
+					local larger_window_bound = math.max(document_w, document_h)
+					local txt_num = larger_window_bound * camera_zoom
+					local txt_num_string = "" .. txt_num
+					if string.len(txt_num_string) > 5 then
+						txt_num = math.floor(txt_num)
+					end
+					ui.secondary_panel[1].value = txt_num
+				elseif ui.zoom_textbox_mode == "%" then
+					ui.secondary_panel[1].value = math.floor(camera_zoom * 100)
+				end
+			end
 		
 		else
 		
@@ -1838,6 +1879,79 @@ function ui.update(dt)
 				end
 				
 				grid_w, grid_h, grid_x, grid_y = load_w, load_h, load_x, load_y
+			
+			end
+			
+			if ui.secondary_panel[1].id == 'zoom.type' then
+			
+				local larger_window_bound = math.max(document_w, document_h)
+				local load_zoom = camera_zoom
+				local zoom_changed = false
+				local this_t = ui.secondary_panel[ui.secondary_textbox]
+				
+				-- Update with arrow keys
+				if tonumber(ui.secondary_panel[ui.secondary_textbox].value) ~= nil and ((hz_dir ~= 0) or (vt_dir ~= 0)) then
+					
+					this_t.value = this_t.value + (hz_key * hz_dir) + (vt_key * vt_dir)
+					
+					local tbox_to_camera = tonumber(this_t.value)
+					if ui.zoom_textbox_mode == "px" then
+						tbox_to_camera = tbox_to_camera / larger_window_bound
+					else
+						tbox_to_camera = tbox_to_camera / 100
+					end
+					
+					tbox_to_camera = math.min(tbox_to_camera, math.min(99999/larger_window_bound, 999.99))
+					tbox_to_camera = math.max(tbox_to_camera, 0.05)
+					updateCamera(screen_width, screen_height, camera_zoom, tbox_to_camera)
+					
+					if ui.zoom_textbox_mode == "px" then
+						this_t.value = tbox_to_camera * larger_window_bound
+						if string.len(this_t.value) > 5 then
+							this_t.value = math.floor(this_t.value)
+						end
+					else
+						this_t.value = math.floor(tbox_to_camera * 100)
+					end
+					
+					zoom_changed = true
+					
+				end
+				
+				-- Update zoom preview based on typed input
+				if not zoom_changed then
+				
+					if this_t.value ~= "" and this_t.value ~= "." then
+						local tbox_to_camera = tonumber(this_t.value)
+						local new_zoom = camera_zoom
+						local zoom_valid = true
+						
+						if ui.zoom_textbox_mode == "px" then
+							tbox_to_camera = tbox_to_camera / larger_window_bound
+							if tbox_to_camera < 0.05 then
+								zoom_valid = false
+								new_zoom = tonumber(this_t.value) / larger_window_bound
+								tbox_to_camera = new_zoom
+							end
+						else
+							tbox_to_camera = tbox_to_camera / 100
+							new_zoom = math.max(tbox_to_camera, 0.05)
+							if new_zoom ~= tbox_to_camera then
+								zoom_valid = false
+							end
+							tbox_to_camera = new_zoom
+						end
+						new_zoom = math.min(tbox_to_camera, math.min(99999/larger_window_bound, 999.99))
+						if new_zoom ~= tbox_to_camera then
+							zoom_valid = false
+						end
+						
+						if zoom_valid then
+							updateCamera(screen_width, screen_height, camera_zoom, new_zoom)
+						end
+					end
+				
+				end
 			
 			end
 		
@@ -1954,6 +2068,17 @@ function ui.update(dt)
 		
 			local this_item = ui.secondary_panel[i]
 			if this_item.is_textbox then
+			
+				-- Check collision on px for zoom
+				if this_item.id == "zoom.type" then
+					if mouse_switch == _PRESS and (mx >= panel_x - 5) and (mx <= panel_x - 5 + 24) and (my >= 29) and (my <= 29 + 21) then
+						if ui.zoom_textbox_mode == "px" then
+							ui.zoom_textbox_mode = "%"
+						else
+							ui.zoom_textbox_mode = "px"
+						end
+					end
+				end
 			
 				-- Title of element
 				panel_x = panel_x + font:getWidth(this_item.name) + 12
@@ -3285,9 +3410,16 @@ function ui.draw()
 			local this_item = ui.secondary_panel[i]
 			if this_item.is_textbox then
 			
+				local temp_name = this_item.name
+				if this_item.id == "zoom.type" then
+					if ui.zoom_textbox_mode ~= "px" then
+						temp_name = " %"
+					end
+				end
+			
 				-- Title of element
 				lg.setColor(c_black)
-				lg.print(this_item.name, panel_x, 29)
+				lg.print(temp_name, panel_x, 29)
 				panel_x = panel_x + font:getWidth(this_item.name) + 12
 				
 				-- Textbox of element
