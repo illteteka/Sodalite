@@ -1639,9 +1639,14 @@ function ui.update(dt)
 							ui.panelZoom()
 							ui.toolbar[ui.toolbar_zoom].active = false
 						else
+							local open_grid = ui.toolbar[ui.toolbar_grid].active == false
 							zoom_grabber = false
 							ui.panelReset()
 							ui.toolbar[ui.toolbar_zoom].active = true
+							if open_grid then
+								ui.panelGrid()
+								ui.toolbar[ui.toolbar_grid].active = false
+							end
 						end
 					end
 					
