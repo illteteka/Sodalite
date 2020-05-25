@@ -128,8 +128,8 @@ function ui.init()
 	ui.addTitle("Help",     ".help")
 	
 	-- Add toolbar items
-	ui.addTool("Cursor A",      icon_cursorb,  ".main")
-	ui.addTool("Cursor B",      icon_cursorw,  ".edit")
+	ui.addTool("Shape Selection",      icon_cursorw,  ".main")
+	ui.addTool("Box Selection",      icon_select,  ".edit")
 	ui.toolbar_grid = ui.addTool("Grid",          icon_grid,     ".grid")
 	ui.toolbar_zoom = ui.addTool("Zoom",          icon_zoom,     ".zoom")
 	ui.toolbar_pick = ui.addTool("Color Grabber", icon_pick,     ".pick")
