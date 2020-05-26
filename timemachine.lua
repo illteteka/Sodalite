@@ -132,4 +132,41 @@ function tm.step()
 	
 end
 
+function tm.print()
+
+	local i
+	for i = 1, #tm.data do
+	
+		print("STEP " .. i)
+		local aa = tm.data[i][1].action
+		local akind = ""
+		if aa == TM_NEW_POLYGON then
+			akind = "TM_NEW_POLYGON"
+		elseif aa == TM_ADD_VERTEX then
+			akind = "TM_ADD_VERTEX"
+		elseif aa == TM_DEL_LINE then
+			akind = "TM_DEL_LINE"
+		elseif aa == TM_MOVE_VERTEX then
+			akind = "TM_MOVE_VERTEX"
+		elseif aa == TM_CHANGE_COLOR then
+			akind = "TM_CHANGE_COLOR"
+		elseif aa == TM_PICK_LAYER then
+			akind = "TM_PICK_LAYER"
+		elseif aa == TM_MOVE_LAYER then
+			akind = "TM_MOVE_LAYER"
+		elseif aa == TM_ADD_ELLIPSE then
+			akind = "TM_ADD_ELLIPSE"
+		elseif aa == TM_ELLIPSE_SEG then
+			akind = "TM_ELLIPSE_SEG"
+		elseif aa == TM_ELLIPSE_ANGLE then
+			akind = "TM_ELLIPSE_ANGLE"
+		end
+		print("action " .. akind)
+		print_r(tm.data[i])
+		print("___________________________")
+	
+	end
+
+end
+
 return tm

@@ -203,7 +203,7 @@ function editorRedo()
 end
 
 function storeMovedVertices()
---only update this if it updated
+
 	local needs_update = false
 
 	if vertex_selection[1] ~= nil then
@@ -213,12 +213,15 @@ function storeMovedVertices()
 			if pp.x ~= vertex_selection[i].x or pp.y ~= vertex_selection[i].y then
 				needs_update = true
 			end
+			
+			if vertex_selection[i].new ~= nil and vertex_selection[i].new then
+				needs_update = true
+			end
 		end
 	end
 	
 	if needs_update then
 	
-		print("needed update :)")
 		local i
 		for i = 1, #vertex_selection do
 		
@@ -422,7 +425,7 @@ function love.update(dt)
 	-- debug block
 	
 	if one_button == _PRESS then print_r(polygon.data) end
-	if two_button == _PRESS then print_r(tm.data) end
+	if two_button == _PRESS then tm.print() end
 	
 	-- end debug block
 	
@@ -669,21 +672,20 @@ function love.update(dt)
 		
 			if selection_and_ui_active then
 				selection_and_ui_active = false
-			else
-				ui_off_mouse_down = false
+			end
 			
-				-- If a point was selected, add TM_MOVE_VERTEX to time machine
-				storeMovedVertices()
-			
-				if vertex_selection_mode == false then
-					vertex_selection = {}
-				end
-				
+			ui_off_mouse_down = false
+		
+			-- If a point was selected, add TM_MOVE_VERTEX to time machine
+			storeMovedVertices()
+		
+			if vertex_selection_mode == false then
+				vertex_selection = {}
 			end
 			
 		end
 		
-		if mouse_switch == _OFF and ((hz_dir * hz_key ~= 0) or (vt_dir * vt_key ~= 0)) and vertex_selection_mode and ui.textbox_selection_origin == "" then
+		if mouse_switch == _OFF and ((hz_dir * hz_key ~= 0) or (vt_dir * vt_key ~= 0)) and vertex_selection_mode and ui.active_textbox == "" then
 		
 			local i
 			
@@ -694,27 +696,25 @@ function love.update(dt)
 				local pp_one = polygon.data[tm.polygon_loc].raw[vertex_selection[1].index]
 				
 				if i == 1 then
-				
-					if ui.toolbar[ui.toolbar_grid].active == false and grid_snap then
-						pp.x, pp.y = pp.x + (hz_dir * hz_key * grid_w), pp.y + (-vt_dir * vt_key * grid_h)
-					else
-						pp.x, pp.y = pp.x + (hz_dir * hz_key), pp.y + (-vt_dir * vt_key)
-					end
 					
 					if arrow_key_selection == false then
 					
-						local i
-						for i = 1, #vertex_selection do
-							local vert_copy = vertex_selection[i].index
-							vertex_selection[i].x = polygon.data[tm.polygon_loc].raw[vert_copy].x
-							vertex_selection[i].y = polygon.data[tm.polygon_loc].raw[vert_copy].y
+						local j
+						for j = 1, #vertex_selection do
+							local vert_copy = vertex_selection[j].index
+							vertex_selection[j].x = polygon.data[tm.polygon_loc].raw[vert_copy].x
+							vertex_selection[j].y = polygon.data[tm.polygon_loc].raw[vert_copy].y
 						end
 						
 						arrow_key_selection = true
 						
 					end
 					
-					pp.x, pp.y = pp.x + (hz_dir * hz_key), pp.y + (-vt_dir * vt_key)
+					if ui.toolbar[ui.toolbar_grid].active == false and grid_snap then
+						pp.x, pp.y = pp.x + (hz_dir * hz_key * grid_w), pp.y + (-vt_dir * vt_key * grid_h)
+					else
+						pp.x, pp.y = pp.x + (hz_dir * hz_key), pp.y + (-vt_dir * vt_key)
+					end
 				
 				else
 				
@@ -727,7 +727,6 @@ function love.update(dt)
 		end
 		
 		if ((hz_dir == 0) and (vt_dir == 0)) and arrow_key_selection then
-			print("whoop")
 			storeMovedVertices()
 			arrow_key_selection = false
 		end

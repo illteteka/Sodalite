@@ -549,6 +549,7 @@ function ui.popupLoseFocus(kind)
 		ui.popup_sel_a = 0
 		ui.popup_sel_b = 0
 		ui.textbox_selection_origin = ""
+		ui.active_textbox = ""
 	
 	elseif ui.textbox_selection_origin == "preview" then
 	
@@ -569,6 +570,7 @@ function ui.popupLoseFocus(kind)
 	
 		ui.textbox_selection_origin = ""
 		ui.preview_textbox_locked = true
+		ui.active_textbox = ""
 	
 	elseif ui.textbox_selection_origin == "toolbar" then
 	
@@ -631,6 +633,7 @@ function ui.popupLoseFocus(kind)
 		
 		ui.textbox_selection_origin = ""
 		ui.primary_textbox = -1
+		ui.active_textbox = ""
 	
 	elseif ui.textbox_selection_origin == "toolbar2" then
 	
@@ -702,6 +705,7 @@ function ui.popupLoseFocus(kind)
 		
 		ui.textbox_selection_origin = ""
 		ui.secondary_textbox = -1
+		ui.active_textbox = ""
 	
 	end
 	
@@ -1379,6 +1383,10 @@ function ui.update(dt)
 				
 				-- Layer was clicked on, switch layers
 				if ui.layer[layer_hit] ~= nil then
+					storeMovedVertices()
+					vertex_selection_mode = false
+					vertex_selection = {}
+				
 					ui.lyr_clicked = layer_hit
 					ui.lyr_click_y = my
 					

@@ -203,6 +203,7 @@ function polygon.addVertex(x, y, loc, old_line, use_tm)
 		moved_point.index = #copy.raw
 		moved_point.x = x
 		moved_point.y = y
+		moved_point.new = true
 		table.insert(vertex_selection, moved_point)
 	end
 	
@@ -239,10 +240,6 @@ function polygon.redo()
 			polygon.addVertex(move_moment.x, move_moment.y, tm.polygon_loc, moment[1].old_line, false)
 			
 		elseif moment[1].action == TM_MOVE_VERTEX then
-		
-			print_r(tm.data)
-			print("tm.cursor", tm.cursor)
-			print_r(polygon.data[tm.polygon_loc])
 		
 			local i
 			for i = 1, #moment do
