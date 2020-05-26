@@ -631,7 +631,6 @@ function ui.popupLoseFocus(kind)
 		
 		ui.textbox_selection_origin = ""
 		ui.primary_textbox = -1
-		scrub_active = false
 	
 	elseif ui.textbox_selection_origin == "toolbar2" then
 	
@@ -703,7 +702,6 @@ function ui.popupLoseFocus(kind)
 		
 		ui.textbox_selection_origin = ""
 		ui.secondary_textbox = -1
-		scrub_active = false
 	
 	end
 	
@@ -1044,11 +1042,6 @@ function ui.update(dt)
 	-- Check collision on title bar
 	if my < 24 then
 	
-		-- Clear selection on interaction
-		if has_interaction and #vertex_selection ~= 0 then
-			vertex_selection = {}
-		end
-	
 		local i
 		local title_len = 12
 		local hit_item = false
@@ -1327,6 +1320,10 @@ function ui.update(dt)
 			-- Add layer button
 			if (mx >= layx + 4) and (mx <= layx + 4 + 24) and (my >= layy + 13) and (my <= layy + 13 + 24) then
 				
+				storeMovedVertices()
+				vertex_selection_mode = false
+				vertex_selection = {}
+			
 				local old_layer = tm.polygon_loc
 				tm.polygon_loc = #ui.layer + #ui.layer_trash + 1
 
@@ -1343,7 +1340,9 @@ function ui.update(dt)
 			if (mx >= layx + 4 + 24 + 4) and (mx <= layx + 4 + 24 + 24 + 4) and (my >= layy + 13) and (my <= layy + 13 + 24) then
 				
 				if (#ui.layer > 1) then
-					-- tm.polygon_loc is the literal id of the added layer (ignores reordering)
+					storeMovedVertices()
+					vertex_selection_mode = false
+					vertex_selection = {}
 					
 					local find_layer = 0
 					for i = 1, #ui.layer do
@@ -2000,8 +1999,6 @@ function ui.update(dt)
 							ui.popupLoseFocus("toolbar")
 						end
 						
-						scrub_active = true
-						
 						ui.primary_textbox = i
 						ui.primary_text_orig = ui.primary_panel[i].value
 						
@@ -2104,8 +2101,6 @@ function ui.update(dt)
 							ui.textbox_selection_origin = "toolbar2"
 							ui.popupLoseFocus("toolbar2")
 						end
-						
-						scrub_active = true
 						
 						ui.secondary_textbox = i
 						ui.secondary_text_orig = ui.secondary_panel[i].value

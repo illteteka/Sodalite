@@ -23,6 +23,8 @@ ctrl_name = "ctrl"
 a_key = _OFF
 lctrl_key = _OFF
 rctrl_key = _OFF
+lshift_key = _OFF
+rshift_key = _OFF
 z_key = _OFF
 y_key = _OFF
 c_key = _OFF
@@ -75,9 +77,10 @@ mouse_x_previous = -1
 mouse_y_previous = -1
 mouse_wheel_x = 0
 mouse_wheel_y = 0
+mouse_x_offset = -1
+mouse_y_offset = -1
 
 scrub_timer = 0
-scrub_active = false
 hz_key = 0
 vt_key = 0
 hz_dir = 0
@@ -93,6 +96,12 @@ artboard_is_drawing = false
 
 color_grabber = false
 zoom_grabber = false
+
+selection_and_ui_active = false
+
+vertex_selection_mode = false
+
+arrow_key_selection = false
 
 function resetEditor(exit_popup, add_layer)
 
@@ -166,6 +175,8 @@ function editorUndo()
 		ui.popupLoseFocus("toolbar")
 	end
 
+	storeMovedVertices()
+	vertex_selection_mode = false
 	vertex_selection = {}
 	palette.activeIsEditable = false
 	local repeat_undo = polygon.undo()
@@ -180,6 +191,8 @@ function editorRedo()
 		ui.popupLoseFocus("toolbar")
 	end
 
+	storeMovedVertices()
+	vertex_selection_mode = false
 	vertex_selection = {}
 	palette.activeIsEditable = false
 	local repeat_redo = polygon.redo()
@@ -187,6 +200,46 @@ function editorRedo()
 	while (repeat_redo) do
 		repeat_redo = polygon.redo()
 	end
+end
+
+function storeMovedVertices()
+--only update this if it updated
+	local needs_update = false
+
+	if vertex_selection[1] ~= nil then
+		local i
+		for i = 1, #vertex_selection do
+			local pp = polygon.data[tm.polygon_loc].raw[vertex_selection[i].index]
+			if pp.x ~= vertex_selection[i].x or pp.y ~= vertex_selection[i].y then
+				needs_update = true
+			end
+		end
+	end
+	
+	if needs_update then
+	
+		print("needed update :)")
+		local i
+		for i = 1, #vertex_selection do
+		
+			local pp = polygon.data[tm.polygon_loc].raw[vertex_selection[i].index]
+			tm.store(TM_MOVE_VERTEX, vertex_selection[i].index, pp.x, pp.y, vertex_selection[i].x, vertex_selection[i].y)
+		
+		end
+		
+		if #vertex_selection ~= 0 then
+			tm.step()
+		end
+		
+		local i
+		for i = 1, #vertex_selection do
+			local vert_copy = vertex_selection[i].index
+			vertex_selection[i].x = polygon.data[tm.polygon_loc].raw[vert_copy].x
+			vertex_selection[i].y = polygon.data[tm.polygon_loc].raw[vert_copy].y
+		end
+		
+	end
+
 end
 
 function love.load()
@@ -351,6 +404,8 @@ function love.update(dt)
 	
 	lctrl_key = input.pullSwitch(love.keyboard.isDown("l" .. ctrl_name), lctrl_key)
 	rctrl_key = input.pullSwitch(love.keyboard.isDown("r" .. ctrl_name), rctrl_key)
+	lshift_key = input.pullSwitch(love.keyboard.isDown("lshift"), lshift_key)
+	rshift_key = input.pullSwitch(love.keyboard.isDown("rshift"), rshift_key)
 	space_key = input.pullSwitch(love.keyboard.isDown("space"), space_key)
 	tab_key = input.pullSwitch(love.keyboard.isDown("tab"), tab_key)
 	enter_key = input.pullSwitch(love.keyboard.isDown("return"), enter_key)
@@ -380,87 +435,77 @@ function love.update(dt)
 	
 	end
 	
-	if scrub_active then
+	-- Update horizontal scrubbing
+
+	if (left_key == _PRESS) or ((right_key == _RELEASE) and (left_key == _ON)) then
+		hz_dir = -1
+	end
+
+	if (right_key == _PRESS) or ((left_key == _RELEASE) and (right_key == _ON)) then
+		hz_dir = 1
+	end
+
+	if (left_key == _OFF) and (right_key == _OFF) then
+		hz_dir = 0
+	end
+
+	-- Update vertical scrubbing
+
+	if (up_key == _PRESS) or ((down_key == _RELEASE) and (up_key == _ON)) then
+		vt_dir = 1
+	end
+
+	if (down_key == _PRESS) or ((up_key == _RELEASE) and (down_key == _ON)) then
+		vt_dir = -1
+	end
+
+	if (up_key == _OFF) and (down_key == _OFF) then
+		vt_dir = 0
+	end
+		
+	-- Update scrub
 	
-		-- Update horizontal scrubbing
-
-		if (left_key == _PRESS) or ((right_key == _RELEASE) and (left_key == _ON)) then
-			hz_dir = -1
-		end
-
-		if (right_key == _PRESS) or ((left_key == _RELEASE) and (right_key == _ON)) then
-			hz_dir = 1
-		end
-
-		if (left_key == _OFF) and (right_key == _OFF) then
-			hz_dir = 0
-		end
-
-		-- Update vertical scrubbing
-
-		if (up_key == _PRESS) or ((down_key == _RELEASE) and (up_key == _ON)) then
-			vt_dir = 1
-		end
-
-		if (down_key == _PRESS) or ((up_key == _RELEASE) and (down_key == _ON)) then
-			vt_dir = -1
-		end
-
-		if (up_key == _OFF) and (down_key == _OFF) then
-			vt_dir = 0
-		end
+	if hz_dir ~= 0 or vt_dir ~= 0 then
+	
+		scrub_timer = scrub_timer + (dt * 60)
 		
-		-- Update scrub
-		
-		if hz_dir ~= 0 or vt_dir ~= 0 then
-		
-			scrub_timer = scrub_timer + (dt * 60)
+		-- Always move on key trigger event
+		if (up_key == _PRESS) or (down_key == _PRESS) or (left_key == _PRESS) or (right_key == _PRESS) then
+			if hz_dir ~= 0 then
+				hz_key = 1
+			end
 			
-			-- Always move on key trigger event
-			if (up_key == _PRESS) or (down_key == _PRESS) or (left_key == _PRESS) or (right_key == _PRESS) then
+			if vt_dir ~= 0 then
+				vt_key = 1
+			end
+		else
+		
+			local floor_timer = math.floor(scrub_timer)
+			if (floor_timer > 25) then
+			
 				if hz_dir ~= 0 then
 					hz_key = 1
+				else
+					hz_key = 0
 				end
 				
 				if vt_dir ~= 0 then
 					vt_key = 1
-				end
-			else
-			
-				local floor_timer = math.floor(scrub_timer)
-				if (floor_timer > 25) then
-				
-					if hz_dir ~= 0 then
-						hz_key = 1
-					else
-						hz_key = 0
-					end
-					
-					if vt_dir ~= 0 then
-						vt_key = 1
-					else
-						vt_key = 0
-					end
-					
-					scrub_timer = 24.5
-				
 				else
-					hz_key = 0
 					vt_key = 0
 				end
+				
+				scrub_timer = 24.5
 			
+			else
+				hz_key = 0
+				vt_key = 0
 			end
 		
-		elseif hz_dir == 0 or vt_dir == 0 then
-			scrub_timer = 0
 		end
-		
-	else
+	
+	elseif hz_dir == 0 or vt_dir == 0 then
 		scrub_timer = 0
-		hz_key = 0
-		vt_key = 0
-		hz_dir = 0
-		vt_dir = 0
 	end
 	
 	-- Camera movement
@@ -532,9 +577,8 @@ function love.update(dt)
 	
 	if artboard.active == false and ((ui_active == false) or (ui_off_mouse_down)) then
 	
-		if polygon.data[tm.polygon_loc] ~= nil and input.ctrlCombo(a_key) then
+		if polygon.data[tm.polygon_loc] ~= nil and input.ctrlCombo(a_key) and vertex_selection_mode == false then
 		
-			--[[
 			local i
 			for i = 1, #polygon.data[tm.polygon_loc].raw do
 			
@@ -543,8 +587,9 @@ function love.update(dt)
 				moved_point.x = polygon.data[tm.polygon_loc].raw[i].x
 				moved_point.y = polygon.data[tm.polygon_loc].raw[i].y
 				table.insert(vertex_selection, moved_point)
+				vertex_selection_mode = true
 			
-			end--]]
+			end
 		
 		end
 		
@@ -560,33 +605,61 @@ function love.update(dt)
 			selection_mouse_y = my - math.floor(camera_y)
 			
 			-- Test if we are placing a vertex or moving a vertex
-			if vertex_selection[1] == nil then -- If selection is empty
 			polygon.calcVertex(selection_mouse_x, selection_mouse_y, tm.polygon_loc, not ui.toolbar[ui.toolbar_grid].active)
+			
+			if vertex_selection_mode and vertex_selection[1] ~= nil then
+				
+				local i
+				for i = 1, #vertex_selection do
+					local vert_copy = vertex_selection[i].index
+					vertex_selection[i].x = polygon.data[tm.polygon_loc].raw[vert_copy].x
+					vertex_selection[i].y = polygon.data[tm.polygon_loc].raw[vert_copy].y
+				end
+				
+				mouse_x_offset, mouse_y_offset = vertex_selection[1].x - selection_mouse_x, vertex_selection[1].y - selection_mouse_y
+				
 			end
 		
 		end
 		
-		if mouse_switch == _ON then
+		if mouse_switch == _ON and selection_and_ui_active == false then
 		
 			ui_off_mouse_down = true
 		
-			-- If a point is selected, have it follow the mouse
 			local i
+			local calc_mouse_x, calc_mouse_y
+			
+			if not vertex_selection_mode then
+				calc_mouse_x, calc_mouse_y = mx, my
+			else
+				calc_mouse_x, calc_mouse_y = mx + mouse_x_offset, my + mouse_y_offset
+			end
+			
+			-- If a point is selected, have it follow the mouse
 			for i = 1, #vertex_selection do
 			
 				local cx, cy
-				if ui.toolbar[ui.toolbar_grid].active == false and grid_snap then
-					cx = ((math.floor((mx - camera_x) / grid_w) * grid_w) + (grid_x % grid_w))
-					cy = ((math.floor((my - camera_y) / grid_h) * grid_h) + (grid_y % grid_h))
-					
-				else
-					cx = mx - math.floor(camera_x)
-					cy = my - math.floor(camera_y)
-				end
-			
-				-- Move verices by offset of selection_mouse_*
 				local pp = polygon.data[tm.polygon_loc].raw[vertex_selection[i].index]
-				pp.x, pp.y = cx, cy
+				local pp_one = polygon.data[tm.polygon_loc].raw[vertex_selection[1].index]
+				
+				if i == 1 then
+				
+					if ui.toolbar[ui.toolbar_grid].active == false and grid_snap then
+						cx = ((math.floor((calc_mouse_x - camera_x) / grid_w) * grid_w) + (grid_x % grid_w))
+						cy = ((math.floor((calc_mouse_y - camera_y) / grid_h) * grid_h) + (grid_y % grid_h))
+					else
+						cx = calc_mouse_x - math.floor(camera_x)
+						cy = calc_mouse_y - math.floor(camera_y)
+					end
+					
+					-- Move verices by offset of selection_mouse_*
+					pp.x, pp.y = cx, cy
+				
+				else
+				
+					pp.x, pp.y = vertex_selection[i].x + (pp_one.x - vertex_selection[1].x), vertex_selection[i].y + (pp_one.y - vertex_selection[1].y)
+				
+				end
 			
 			end
 		
@@ -594,25 +667,86 @@ function love.update(dt)
 		
 		if mouse_switch == _RELEASE then
 		
-			ui_off_mouse_down = false
+			if selection_and_ui_active then
+				selection_and_ui_active = false
+			else
+				ui_off_mouse_down = false
+			
+				-- If a point was selected, add TM_MOVE_VERTEX to time machine
+				storeMovedVertices()
+			
+				if vertex_selection_mode == false then
+					vertex_selection = {}
+				end
+				
+			end
+			
+		end
 		
-			-- If a point was selected, add TM_MOVE_VERTEX to time machine
+		if mouse_switch == _OFF and ((hz_dir * hz_key ~= 0) or (vt_dir * vt_key ~= 0)) and vertex_selection_mode and ui.textbox_selection_origin == "" then
+		
 			local i
+			
 			for i = 1, #vertex_selection do
 			
+				local cx, cy
 				local pp = polygon.data[tm.polygon_loc].raw[vertex_selection[i].index]
-				tm.store(TM_MOVE_VERTEX, vertex_selection[i].index, pp.x, pp.y, vertex_selection[i].x, vertex_selection[i].y)
+				local pp_one = polygon.data[tm.polygon_loc].raw[vertex_selection[1].index]
+				
+				if i == 1 then
+				
+					if ui.toolbar[ui.toolbar_grid].active == false and grid_snap then
+						pp.x, pp.y = pp.x + (hz_dir * hz_key * grid_w), pp.y + (-vt_dir * vt_key * grid_h)
+					else
+						pp.x, pp.y = pp.x + (hz_dir * hz_key), pp.y + (-vt_dir * vt_key)
+					end
+					
+					if arrow_key_selection == false then
+					
+						local i
+						for i = 1, #vertex_selection do
+							local vert_copy = vertex_selection[i].index
+							vertex_selection[i].x = polygon.data[tm.polygon_loc].raw[vert_copy].x
+							vertex_selection[i].y = polygon.data[tm.polygon_loc].raw[vert_copy].y
+						end
+						
+						arrow_key_selection = true
+						
+					end
+					
+					pp.x, pp.y = pp.x + (hz_dir * hz_key), pp.y + (-vt_dir * vt_key)
+				
+				else
+				
+					pp.x, pp.y = vertex_selection[i].x + (pp_one.x - vertex_selection[1].x), vertex_selection[i].y + (pp_one.y - vertex_selection[1].y)
+				
+				end
 			
-			end
-			
-			if #vertex_selection ~= 0 then
-				tm.step()
 			end
 		
-			vertex_selection = {}
+		end
+		
+		if ((hz_dir == 0) and (vt_dir == 0)) and arrow_key_selection then
+			print("whoop")
+			storeMovedVertices()
+			arrow_key_selection = false
 		end
 		
 	else -- artboard is active
+	
+		if mouse_switch == _PRESS then
+		
+			if vertex_selection[1] ~= nil then
+			
+				local raw_x, raw_y = love.mouse.getX(), love.mouse.getY()
+				
+				if (raw_x < 64) or (raw_x > screen_width - 208) or (raw_y < 58) then
+					selection_and_ui_active = true
+				end
+			
+			end
+		
+		end
 	
 		if minus_key == _PRESS then
 			artboard.brush_size = math.max(artboard.brush_size - 1, 1)
@@ -674,6 +808,11 @@ function love.update(dt)
 	end
 	
 	if mouse_switch == _OFF and artboard.active == false and ((ui_active == false) or (ui_on_mouse_up)) then
+	
+		if input.ctrlCombo(d_key) and vertex_selection_mode then
+			vertex_selection_mode = false
+			vertex_selection = {}
+		end
 	
 		if input.ctrlCombo(z_key) then
 			editorUndo()
@@ -892,6 +1031,26 @@ function love.draw()
 		
 		end
 		
+	end
+	
+	if polygon.data[tm.polygon_loc] ~= nil and artboard.active == false and ui.popup[1] == nil and #vertex_selection >= 1 then
+	
+		local clone = polygon.data[tm.polygon_loc]
+		
+		lg.setColor({1, 1, 1, 1})
+		
+		local j = 1
+		while j <= #vertex_selection do
+			
+			local tx, ty = clone.raw[vertex_selection[j].index].x, clone.raw[vertex_selection[j].index].y
+			local sc = camera_zoom
+			
+			lg.draw(spr_vertex, math.floor(tx * sc) - 5, math.floor(ty * sc) - 5)
+			
+			j = j + 1
+		
+		end
+	
 	end
 	
 	if not artboard.draw_top and artboard.canvas ~= nil then

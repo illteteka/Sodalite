@@ -54,7 +54,18 @@ function polygon.calcVertex(x, y, loc, use_grid)
 		local vx, vy = polygon.data[tm.polygon_loc].raw[i].x, polygon.data[tm.polygon_loc].raw[i].y
 		
 		-- If check was successful
-		if (lume.distance(x, y, vx, vy) < vertex_radius) then
+		
+		local add_to_selection = true
+		local j = 1
+		for j = 1, #vertex_selection do
+		
+			if vertex_selection[j].index == i then
+				add_to_selection = false
+			end
+		
+		end
+		
+		if (lume.distance(x, y, vx, vy) < vertex_radius) and add_to_selection then
 			point_selected = i
 			i = #polygon.data[tm.polygon_loc].raw + 1
 			
@@ -70,11 +81,15 @@ function polygon.calcVertex(x, y, loc, use_grid)
 		i = i + 1
 		
 	end
+	
+	if input.shiftEither() and #polygon.data[tm.polygon_loc].raw >= 1 and point_selected ~= -1 then
+		vertex_selection_mode = true
+	end
 
 	-- Stop ellipses from having more than 2 vertices
 	local ellipse_limit = polygon.data[tm.polygon_loc].kind == "ellipse" and #polygon.data[tm.polygon_loc].raw == 2
 	
-	if point_selected == -1 and not ellipse_limit then
+	if point_selected == -1 and not ellipse_limit and not vertex_selection_mode then
 	
 	local line_to_purge = -1
 	
@@ -224,6 +239,10 @@ function polygon.redo()
 			polygon.addVertex(move_moment.x, move_moment.y, tm.polygon_loc, moment[1].old_line, false)
 			
 		elseif moment[1].action == TM_MOVE_VERTEX then
+		
+			print_r(tm.data)
+			print("tm.cursor", tm.cursor)
+			print_r(polygon.data[tm.polygon_loc])
 		
 			local i
 			for i = 1, #moment do
@@ -518,7 +537,7 @@ function polygon.draw(skip_in_preview)
 			local active_clone = polygon.data[tm.polygon_loc]
 			
 			-- Draw selected vertices
-			local verts_selected = vertex_selection[1] ~= nil and #vertex_selection == 1
+			local verts_selected = vertex_selection[1] ~= nil
 			local mx, my = mouse_x, mouse_y
 			if ui.layer[i].count == tm.polygon_loc and verts_selected and skip_in_preview then
 			

@@ -28,6 +28,10 @@ function input.ctrlCombo(a)
 	return input.combo(lctrl_key, a) or input.combo(rctrl_key, a)
 end
 
+function input.shiftEither()
+	return (lshift_key ~= _OFF and lshift_key ~= _RELEASE) or (rshift_key ~= _OFF and rshift_key ~= _RELEASE)
+end
+
 function input.pullSwitch(a, b)
 
 	local output = b
