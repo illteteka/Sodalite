@@ -58,6 +58,9 @@ camera_y = 0
 camera_zoom = 1
 camera_round = 0
 
+box_selection_active = false
+box_selection_x = 0
+box_selection_y = 0
 selection_mouse_x = 0
 selection_mouse_y = 0
 
@@ -96,12 +99,17 @@ artboard_is_drawing = false
 
 color_grabber = false
 zoom_grabber = false
+select_grabber = false
 
 selection_and_ui_active = false
-
 vertex_selection_mode = false
-
 arrow_key_selection = false
+
+box_select_timer = 0
+h_out = nil -- Shaders
+h_out2 = nil
+v_out = nil
+v_out2 = nil
 
 function resetEditor(exit_popup, add_layer)
 
@@ -134,6 +142,7 @@ function resetEditor(exit_popup, add_layer)
 	ui.toolbar[ui.toolbar_pick].active = true
 	ui.toolbar[ui.toolbar_preview].active = true
 	ui.toolbar[ui.toolbar_zoom].active = true
+	ui.toolbar[ui.toolbar_select].active = true
 
 end
 
@@ -321,6 +330,27 @@ function love.load()
 	cursor_pick = love.mouse.newCursor("textures/cursor_pick.png", 5, 21)
 	cursor_zoom = love.mouse.newCursor("textures/cursor_zoom.png", 7, 8)
 	
+	-- Import shaders
+	h_out = lg.newShader("shaders/h_outline.frag")
+	h_out:send("_mod",20)
+	h_out:send("_lt",10)
+	h_out:send("_off",10)
+	
+	v_out = lg.newShader("shaders/v_outline.frag")
+	v_out:send("_mod",20)
+	v_out:send("_lt",10)
+	v_out:send("_off",10)
+	
+	h_out2 = lg.newShader("shaders/h_outline.frag")
+	h_out2:send("_mod",20)
+	h_out2:send("_lt",10)
+	h_out2:send("_off",10)
+	
+	v_out2 = lg.newShader("shaders/v_outline.frag")
+	v_out2:send("_mod",20)
+	v_out2:send("_lt",10)
+	v_out2:send("_off",10)
+	
 	ui.init()
 	palette.init()
 	tm.init()
@@ -377,6 +407,16 @@ function love.filedropped(file)
 end
 
 function love.update(dt)
+
+	-- Update shaders
+	if select_grabber and mouse_switch == _ON and box_selection_active then
+		box_select_timer = box_select_timer + (60 * dt * 0.5)
+		h_out:send("_off",100-math.floor(box_select_timer))
+		v_out:send("_off",100-math.floor(box_select_timer-6))
+		h_out2:send("_off",100-math.floor(box_select_timer+10))
+		v_out2:send("_off",100-math.floor(box_select_timer-6+10))
+		if box_select_timer > 100 then box_select_timer = 1 end
+	end
 
 	mouse_x_previous, mouse_y_previous = mouse_x, mouse_y
 	local mx, my = math.floor(love.mouse.getX() / camera_zoom), math.floor(love.mouse.getY() / camera_zoom)
@@ -950,6 +990,13 @@ function love.draw()
 	
 	polygon.draw(true)
 	
+	if not artboard.draw_top and artboard.canvas ~= nil then
+		local artcol = {1, 1, 1, artboard.opacity}
+		
+		lg.setColor(artcol)
+		lg.draw(artboard.canvas, 0, 0, 0, camera_zoom)
+	end
+	
 	-- Draw lines while editing a shape
 	local polygons_exist = polygon.data[tm.polygon_loc] ~= nil
 	local mouse_down     = mouse_switch == _ON
@@ -1022,7 +1069,7 @@ function love.draw()
 			local tx, ty = clone.raw[j].x, clone.raw[j].y
 			local sc = camera_zoom
 			
-			if (#clone.raw < 3) or (lume.distance(mx - math.floor(camera_x), my - math.floor(camera_y), tx, ty) < vertex_radius) then
+			if (#clone.raw < 3) or (lume.distance(mx - math.floor(camera_x), my - math.floor(camera_y), tx, ty) < vertex_radius) or (select_grabber) then
 				lg.draw(spr_vertex, math.floor(tx * sc) - 5, math.floor(ty * sc) - 5)
 			end
 			
@@ -1052,11 +1099,16 @@ function love.draw()
 	
 	end
 	
-	if not artboard.draw_top and artboard.canvas ~= nil then
-		local artcol = {1, 1, 1, artboard.opacity}
-		
-		lg.setColor(artcol)
-		lg.draw(artboard.canvas, 0, 0, 0, camera_zoom)
+	if select_grabber and mouse_switch == _ON and box_selection_active then
+	
+		local sx, sy, sx2, sy2 = (box_selection_x - camera_x) * camera_zoom, (box_selection_y - camera_y) * camera_zoom, (mx - camera_x) * camera_zoom, (my - camera_y) * camera_zoom
+		if sx2 < sx then sx, sx2 = sx2, sx end
+		if sy2 < sy then sy, sy2 = sy2, sy end
+		lg.setColor(c_black)
+		drawRect(0, sx, sy, sx2 - sx, sy2 - sy)
+		lg.setColor(c_white)
+		drawRect(1, sx, sy, sx2 - sx, sy2 - sy)
+	
 	end
 	
 	lg.pop()
@@ -1069,6 +1121,20 @@ function love.draw()
 	
 	end
 
+end
+
+function drawRect(s,x,y,w,h)
+	local s1, s2 = h_out, v_out
+	if s == 1 then
+		s1, s2 = h_out2, v_out2
+	end
+	lg.setShader(s1)
+	lg.rectangle("fill",x,y,w-1,1)
+	lg.rectangle("fill",x+1,y+h-1,w-1,1)
+	lg.setShader(s2)
+	lg.rectangle("fill",x,y+1,1,h-1)
+	lg.rectangle("fill",x+w-1,y,1,h-1)
+	lg.setShader()
 end
 
 function love.quit()

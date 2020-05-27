@@ -92,6 +92,7 @@ ui.toolbar_preview = nil
 ui.toolbar_grid = nil
 ui.toolbar_pick = nil
 ui.toolbar_zoom = nil
+ui.toolbar_select = nil
 
 ui.primary_panel = {}
 ui.primary_textbox = -1
@@ -129,7 +130,7 @@ function ui.init()
 	
 	-- Add toolbar items
 	ui.addTool("Shape Selection",      icon_cursorw,  ".main")
-	ui.addTool("Box Selection",      icon_select,  ".edit")
+	ui.toolbar_select = ui.addTool("Box Selection",      icon_select,  ".select")
 	ui.toolbar_grid = ui.addTool("Grid",          icon_grid,     ".grid")
 	ui.toolbar_zoom = ui.addTool("Zoom",          icon_zoom,     ".zoom")
 	ui.toolbar_pick = ui.addTool("Color Grabber", icon_pick,     ".pick")
@@ -449,6 +450,31 @@ function ui.addPopup(name, kind, loc)
 	ui.popup[col][row].name = name
 	ui.popup[col][row].kind = kind
 
+end
+
+function ui.closeSelection()
+	if document_w ~= 0 then
+		if ui.toolbar[ui.toolbar_select].active then
+			zoom_grabber = false
+			ui.toolbar[ui.toolbar_zoom].active = true
+			local keep_grid = ui.toolbar[ui.toolbar_grid].active == false
+			ui.panelReset()
+			if keep_grid then
+				ui.toolbar[ui.toolbar_grid].active = false
+			end
+			select_grabber = true
+			ui.toolbar[ui.toolbar_select].active = false
+		else
+			local open_grid = ui.toolbar[ui.toolbar_grid].active == false
+			ui.panelReset()
+			select_grabber = false
+			ui.toolbar[ui.toolbar_select].active = true
+			if open_grid then
+				ui.panelGrid()
+				ui.toolbar[ui.toolbar_grid].active = false
+			end
+		end
+	end
 end
 
 function ui.addCMBreak()
@@ -1551,6 +1577,7 @@ function ui.update(dt)
 		ui.toolbar[ui.toolbar_pick].active = false
 		ui.toolbar[ui.toolbar_preview].active = false
 		ui.toolbar[ui.toolbar_zoom].active = false
+		ui.toolbar[ui.toolbar_select].active = false
 	else
 	
 		if artboard.active == false then
@@ -1610,7 +1637,7 @@ function ui.update(dt)
 			end
 			
 			local tool = ui.toolbar[key]
-			local ignore_tool_active = (tool.ref == ".grid") or (tool.ref == ".pick") or (tool.ref == ".zoom")
+			local ignore_tool_active = (tool.ref == ".grid") or (tool.ref == ".pick") or (tool.ref == ".zoom") or (tool.ref == ".select")
 			if (tool.ref ~= nil) and (tool.ref == ".prev") and document_w ~= 0 then
 				tool.active = true
 			end
@@ -1622,17 +1649,25 @@ function ui.update(dt)
 				-- Toolbar actions go here
 				if tool.ref == ".main" then
 					print("cursor a")
-				elseif tool.ref == ".edit" then
-					print("cursor b")
+				elseif tool.ref == ".select" then
+					
+					ui.closeSelection()
+					
 				elseif tool.ref == ".grid" then
 				
 					if document_w ~= 0 then
 						if ui.toolbar[ui.toolbar_grid].active then
 							zoom_grabber = false
 							ui.toolbar[ui.toolbar_zoom].active = true
+							select_grabber = false
+							ui.toolbar[ui.toolbar_select].active = true
 							ui.panelGrid()
 							ui.toolbar[ui.toolbar_grid].active = false
 						else
+							zoom_grabber = false
+							ui.toolbar[ui.toolbar_zoom].active = true
+							select_grabber = false
+							ui.toolbar[ui.toolbar_select].active = true
 							ui.panelReset()
 							ui.toolbar[ui.toolbar_grid].active = true
 						end
@@ -1642,6 +1677,8 @@ function ui.update(dt)
 					
 					if document_w ~= 0 then
 						if ui.toolbar[ui.toolbar_zoom].active then
+							select_grabber = false
+							ui.toolbar[ui.toolbar_select].active = true
 							zoom_grabber = true
 							ui.panelZoom()
 							ui.toolbar[ui.toolbar_zoom].active = false
@@ -1660,6 +1697,8 @@ function ui.update(dt)
 				elseif tool.ref == ".pick" then
 				
 					if document_w ~= 0 then
+						select_grabber = false
+						ui.toolbar[ui.toolbar_select].active = true
 						color_grabber = true
 						love.mouse.setCursor(cursor_pick)
 						ui.toolbar[ui.toolbar_pick].active = false
@@ -2246,7 +2285,7 @@ function ui.update(dt)
 		end
 		
 		-- Only show cursors when in bounds of the preview window
-		if pmx >= -grab and pmx <= rw + grab and pmy >= -grab and pmy <= rh + grab and not ui.preview_dragging and not color_grabber and not zoom_grabber then
+		if pmx >= -grab and pmx <= rw + grab and pmy >= -grab and pmy <= rh + grab and not ui.preview_dragging and not color_grabber and not zoom_grabber and not select_grabber then
 		
 			local drag_titlebar = false
 		
@@ -2399,7 +2438,7 @@ function ui.update(dt)
 		ui.preview_button_active = -1
 	end
 		
-	if ui.preview_dragging and not color_grabber and not zoom_grabber then
+	if ui.preview_dragging and not color_grabber and not zoom_grabber and not select_grabber then
 	
 		if mouse_switch == _RELEASE then
 			ui.preview_dragging = false
@@ -2714,6 +2753,92 @@ function ui.update(dt)
 			end
 		else
 			love.mouse.setCursor()
+		end
+	
+	end
+	
+	if select_grabber and ui_active == false then
+	
+		if mx > 64 and my > 54 and mx < screen_width - 208 then
+		
+			if mouse_switch == _PRESS then
+				box_selection_x = mx / camera_zoom
+				box_selection_y = my / camera_zoom
+				box_selection_active = true
+				ui_active = true
+			end
+			
+			if mouse_switch == _ON then
+				ui_active = true
+			end
+			
+			if mouse_switch == _RELEASE then
+			
+				-- Selection end
+				if box_selection_active then
+				
+					local sx, sy, sx2, sy2 = (box_selection_x - camera_x), (box_selection_y - camera_y), (mx / camera_zoom) - camera_x, (my / camera_zoom) - camera_y
+					if sx2 < sx then sx, sx2 = sx2, sx end
+					if sy2 < sy then sy, sy2 = sy2, sy end
+					local sw, sh = math.floor(sx2 - sx), math.floor(sy2 - sy)
+					sx, sy = math.floor(sx), math.floor(sy)
+					local vertex_selection_starting = #vertex_selection
+					local select_success = false
+				
+					if polygon.data[tm.polygon_loc] ~= nil then
+		
+						local clone = polygon.data[tm.polygon_loc]
+						
+						local j = 1
+						while j <= #clone.raw do
+							
+							local tx, ty = clone.raw[j].x, clone.raw[j].y
+							
+							if tx >= sx and tx <= sx + sw and ty >= sy and ty <= sy + sh then
+								
+								local vert_exists = false
+								local k = 1
+								while k <= vertex_selection_starting do
+									if vertex_selection[k].index == j then
+										vert_exists = true
+										k = #vertex_selection + 1
+									end
+									k = k + 1
+								end
+								
+								if not vert_exists then
+								
+									local moved_point = {}
+									moved_point.index = j
+									moved_point.x = tx
+									moved_point.y = ty
+									table.insert(vertex_selection, moved_point)
+									select_success = true
+									vertex_selection_mode = true
+								
+								end
+								
+							end
+							
+							j = j + 1
+						
+						end
+						
+					end
+					
+					if select_success then
+					
+						ui.closeSelection()
+					
+					end
+				
+				end
+			
+				box_selection_x, box_selection_y = 0, 0
+				ui_active = true
+				box_selection_active = false
+			end
+		
 		end
 	
 	end
@@ -3295,7 +3420,9 @@ function ui.draw()
 	end
 	
 	if document_w ~= 0 then
-		if ui.toolbar[ui.toolbar_pick].active == false then
+		if ui.toolbar[ui.toolbar_select].active == false then
+			lg.draw(ui.toolbar[ui.toolbar_select].icon, ix + 28, iy)
+		elseif ui.toolbar[ui.toolbar_pick].active == false then
 			lg.draw(ui.toolbar[ui.toolbar_pick].icon, ix + 27, iy)
 		elseif ui.toolbar[ui.toolbar_zoom].active == false then
 			lg.draw(ui.toolbar[ui.toolbar_zoom].icon, ix + 28, iy)
