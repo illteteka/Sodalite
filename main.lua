@@ -19,6 +19,7 @@ one_button = _OFF
 two_button = _OFF
 
 ctrl_name = "ctrl"
+ctrl_id = "Ctrl"
 
 a_key = _OFF
 lctrl_key = _OFF
@@ -32,6 +33,7 @@ v_key = _OFF
 w_key = _OFF
 s_key = _OFF
 d_key = _OFF
+n_key = _OFF
 p_key = _OFF
 o_key = _OFF
 i_key = _OFF
@@ -46,6 +48,8 @@ period_key = _OFF
 comma_key = _OFF
 minus_key = _OFF
 plus_key = _OFF
+scz_key = _OFF
+undo_key = _OFF
 
 up_key = _OFF
 down_key = _OFF
@@ -211,6 +215,22 @@ function editorRedo()
 	end
 end
 
+function editorSelectAll()
+
+	local i
+	for i = 1, #polygon.data[tm.polygon_loc].raw do
+	
+		local moved_point = {}
+		moved_point.index = i
+		moved_point.x = polygon.data[tm.polygon_loc].raw[i].x
+		moved_point.y = polygon.data[tm.polygon_loc].raw[i].y
+		table.insert(vertex_selection, moved_point)
+		vertex_selection_mode = true
+	
+	end
+
+end
+
 function storeMovedVertices()
 
 	local needs_update = false
@@ -258,6 +278,7 @@ function love.load()
 
 	if love.system.getOS() == "OS X" then
 		ctrl_name = "gui"
+		ctrl_id = "Cmd"
 	end
 
 	math.randomseed(os.time())
@@ -430,6 +451,7 @@ function love.update(dt)
 	e_key = input.pullSwitch(love.keyboard.isDown("e"), e_key) --*
 	i_key = input.pullSwitch(love.keyboard.isDown("i"), i_key) --*
 	o_key = input.pullSwitch(love.keyboard.isDown("o"), o_key) --*
+	n_key = input.pullSwitch(love.keyboard.isDown("n"), n_key) --*
 	p_key = input.pullSwitch(love.keyboard.isDown("p"), p_key) --*
 	r_key = input.pullSwitch(love.keyboard.isDown("r"), r_key) --*
 	s_key = input.pullSwitch(love.keyboard.isDown("s"), s_key)
@@ -456,6 +478,8 @@ function love.update(dt)
 	comma_key = input.pullSwitch(love.keyboard.isDown(","), comma_key)
 	minus_key = input.pullSwitch(love.keyboard.isDown("-"), minus_key)
 	plus_key = input.pullSwitch(love.keyboard.isDown("="), plus_key)
+	scz_key = input.pullSwitch(input.shiftEither() and input.ctrlEither() and (z_key == _ON), scz_key)
+	undo_key = input.pullSwitch(input.ctrlCombo(z_key) and not input.shiftEither(), undo_key)
 	
 	-- debug buttons
 	one_button = input.pullSwitch(love.keyboard.isDown("f3"), one_button)
@@ -614,6 +638,19 @@ function love.update(dt)
 		ui_active = ui.update(dt)
 	end
 	
+	if mouse_switch == _OFF and (ui_active == false) then
+	
+		if input.ctrlCombo(n_key) then
+			splash_active = false
+			ui.loadPopup("f.new")
+			ui.preview_palette_enabled = false
+			ui.context_menu = {}
+			ui.title_active = false
+			ui_active = true
+		end
+	
+	end
+	
 	ui_on_mouse_up = (ui_active == true) and (mouse_switch == _OFF)
 
 	if ui.popup[1] == nil and document_w ~= 0 then
@@ -622,17 +659,7 @@ function love.update(dt)
 	
 		if polygon.data[tm.polygon_loc] ~= nil and input.ctrlCombo(a_key) and vertex_selection_mode == false then
 		
-			local i
-			for i = 1, #polygon.data[tm.polygon_loc].raw do
-			
-				local moved_point = {}
-				moved_point.index = i
-				moved_point.x = polygon.data[tm.polygon_loc].raw[i].x
-				moved_point.y = polygon.data[tm.polygon_loc].raw[i].y
-				table.insert(vertex_selection, moved_point)
-				vertex_selection_mode = true
-			
-			end
+			editorSelectAll()
 		
 		end
 		
@@ -787,14 +814,6 @@ function love.update(dt)
 		
 		end
 	
-		if minus_key == _PRESS then
-			artboard.brush_size = math.max(artboard.brush_size - 1, 1)
-		end
-		
-		if plus_key == _PRESS then
-			artboard.brush_size = artboard.brush_size + 1
-		end
-	
 		if ((ui_active == false) or (ui_off_mouse_down)) then
 		
 			local ax, ay = mx - camera_x, my - camera_y
@@ -832,11 +851,15 @@ function love.update(dt)
 		
 			if mouse_switch == _OFF then
 		
-				if input.ctrlCombo(z_key) then
+				if undo_key == _PRESS then
 					artboard.undo()
 				end
 				
 				if input.ctrlCombo(y_key) then
+					artboard.redo()
+				end
+				
+				if scz_key == _PRESS then
 					artboard.redo()
 				end
 				
@@ -853,11 +876,15 @@ function love.update(dt)
 			vertex_selection = {}
 		end
 	
-		if input.ctrlCombo(z_key) then
+		if undo_key == _PRESS then
 			editorUndo()
 		end
 		
 		if input.ctrlCombo(y_key) then
+			editorRedo()
+		end
+		
+		if scz_key == _PRESS then
 			editorRedo()
 		end
 		
@@ -866,7 +893,6 @@ function love.update(dt)
 			-- Only make a save file if the vector data has been edited
 			if tm.data[1] ~= nil then
 				export.saveLOL()
-				export.saveSVG()
 			end
 			
 			export.saveArtboard()
@@ -882,7 +908,7 @@ function love.update(dt)
 				palette.activeIsEditable = false
 			end
 			
-			if c_key == _PRESS then
+			if input.ctrlCombo(r_key) then
 				artboard.clear()
 			end
 		

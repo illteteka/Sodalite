@@ -147,15 +147,20 @@ end
 function ui.loadCM(x, y, ref)
 
 	ui.context_menu = {}
+	local can_select_all = false
+	can_select_all = (artboard.active == false) and (polygon.data[tm.polygon_loc] ~= nil) and (vertex_selection_mode == false)
+	local can_save = tm.data[1] ~= nil and document_w ~= 0
+	local can_paste_color = false
+	can_paste_color = (ui.preview_action == "background" and palette.canPaste and palette.copy ~= nil) or (ui.preview_action ~= "background" and palette.canPaste and palette.copy ~= nil and ui.preview_palette_enabled)
 	
 	if ref == ".file" then
 	
-		ui.addCM("New",          true, "f.new")
+		ui.addCM("New",          true, "f.new", ctrl_id .. "+N")
 		ui.addCMBreak()
-		ui.addCM("Save",        false, "f.save")
+		ui.addCM("Save",        can_save, "f.save", ctrl_id .. "+S")
 		ui.addCM("Save As...",  false, "f.as")
 		ui.addCMBreak()
-		ui.addCM("Export .svg", false, "f.svg")
+		ui.addCM("Export .svg", can_save, "f.svg")
 		ui.addCM("Export .png", false, "f.png")
 		ui.addCMBreak()
 		ui.addCM("Exit",        false, "f.exit")
@@ -163,24 +168,25 @@ function ui.loadCM(x, y, ref)
 	
 	elseif ref == ".edit" then
 	
-		ui.addCM("Undo", false, "e.undo")
-		ui.addCM("Redo", false, "e.redo")
+		ui.addCM("Undo", ui.toolbar[ui.toolbar_undo].active, "e.undo", ctrl_id .. "+Z")
+		ui.addCM("Redo", ui.toolbar[ui.toolbar_redo].active, "e.redo", ctrl_id .. "+Y or Shift+" .. ctrl_id .. "+Z")
 		ui.addCMBreak()
-		ui.addCM("Copy palette color",  false, "e.pcopy")
-		ui.addCM("Paste palette color", false, "e.ppaste")
+		ui.addCM("Copy palette color",  false, "e.pcopy", ctrl_id .. "+C")
+		ui.addCM("Paste palette color", false, "e.ppaste", ctrl_id .. "+V")
 		ui.generateCM(x, y)
 		
 	elseif ref == ".image" then
 	
 		ui.addCM("Document setup...", false, "i.setup")
 		ui.addCMBreak()
-		ui.addCM("Clear canvas", false, "i.clear")
+		ui.addCM("Center camera", document_w ~= 0, "i.center", ctrl_id .. "+Space")
+		ui.addCM("Clear canvas", document_w ~= 0, "i.clear", ctrl_id .. "+R")
 		ui.generateCM(x, y)
 		
 	elseif ref == ".select" then
 	
-		ui.addCM("Select All", false, "s.all")
-		ui.addCM("Deselect", false, "s.de")
+		ui.addCM("Select All", can_select_all, "s.all", ctrl_id .. "+A")
+		ui.addCM("Deselect", vertex_selection_mode, "s.de", ctrl_id .. "+D")
 		ui.generateCM(x, y)
 		
 	elseif ref == ".help" then
@@ -204,6 +210,10 @@ function ui.loadPopup(ref)
 		ui.popup = {}
 		
 		if ref == "f.new" then
+			storeMovedVertices()
+			vertex_selection_mode = false
+			vertex_selection = {}
+		
 			ui.addPopup("New document", "f.new", "col")
 			ui.addPopup("Name:", "text", "col")
 			ui.addPopup("Untitled", "textbox", "row")
@@ -214,6 +224,86 @@ function ui.loadPopup(ref)
 			ui.addPopup("OK", "ok", "col")
 			ui.addPopup("Cancel", "cancel", "row")
 			ui.generatePopup()
+		end
+		
+		if ref == "f.save" then
+			export.saveLOL()
+			export.saveArtboard()
+		end
+		
+		if ref == "f.svg" then
+			export.saveSVG()
+		end
+		
+		if ref == "e.pcopy" then
+		
+			if ui.preview_action == "background" then
+
+				local new_col = {ui.preview_bg_color[1], ui.preview_bg_color[2], ui.preview_bg_color[3], ui.preview_bg_color[4]}
+				palette.copy = new_col
+
+			else
+
+				local new_col = {palette.active[1], palette.active[2], palette.active[3], palette.active[4]}
+				palette.copy = new_col
+
+			end
+		
+		end
+		
+		if ref == "e.ppaste" then
+		
+			if ui.preview_action == "background" then
+
+				local new_col = {palette.copy[1], palette.copy[2], palette.copy[3], palette.copy[4]}
+				ui.preview_bg_color = new_col
+
+			else
+
+				palette.colors[palette.slot + 1] = palette.copy
+				palette.active = palette.colors[palette.slot + 1]
+				palette.updateAccentColor()
+				palette.updateFromBoxes()
+				
+				local copy_again = palette.colors[palette.slot + 1]
+				local new_col = {copy_again[1], copy_again[2], copy_again[3], copy_again[4]}
+				palette.copy = new_col
+
+			end
+		
+		end
+		
+		if ref == "s.all" then
+			editorSelectAll()
+		end
+		
+		if ref == "s.de" then
+			vertex_selection_mode = false
+			vertex_selection = {}
+		end
+		
+		if ref == "i.center" then
+			resetCamera()
+		end
+		
+		if ref == "i.clear" then
+			artboard.clear()
+		end
+		
+		if ref == "e.undo" then
+			if artboard.active == false then
+				editorUndo()
+			else
+				artboard.undo()
+			end
+		end
+		
+		if ref == "e.redo" then
+			if artboard.active == false then
+				editorRedo()
+			else
+				artboard.redo()
+			end
 		end
 	
 	end
@@ -254,12 +344,13 @@ function ui.addToolBreak()
 end
 
 -- Context menu
-function ui.addCM(name, active, ref)
+function ui.addCM(name, active, ref, keys)
 
 	local item = {}
 	item.name = name
 	item.ref = ref
 	item.active = active
+	item.key_combo = keys or ""
 	
 	table.insert(ui.context_menu, item)
 
@@ -1642,7 +1733,7 @@ function ui.update(dt)
 				tool.active = true
 			end
 			
-			if (tool.active or ignore_tool_active) and (tool.ref ~= nil) and (check_success) and (ui.popup[1] == nil) then
+			if (tool.active or ignore_tool_active) and (tool.ref ~= nil) and (check_success) and (ui.popup[1] == nil) and (ui.context_menu[1] == nil) then
 			
 				ui.toolbar_clicked = key
 			
@@ -2046,13 +2137,15 @@ function ui.update(dt)
 							ui.popupLoseFocus("toolbar")
 						end
 						
-						ui.primary_textbox = i
-						ui.primary_text_orig = ui.primary_panel[i].value
-						
-						ui.active_textbox = "toolbar"
-						ui.textbox_selection_origin = "toolbar"
-						
-						hit_tbox = i
+						if ui_active == false then
+							ui.primary_textbox = i
+							ui.primary_text_orig = ui.primary_panel[i].value
+							
+							ui.active_textbox = "toolbar"
+							ui.textbox_selection_origin = "toolbar"
+							
+							hit_tbox = i
+						end
 					end
 				end
 				
@@ -2060,7 +2153,7 @@ function ui.update(dt)
 			
 			else
 			
-				if (mouse_switch == _PRESS and (mx >= panel_x) and (mx <= panel_x + 23) and (my >= 27) and (my <= 27 + 23)) then
+				if (mouse_switch == _PRESS and ui_active == false and (mx >= panel_x) and (mx <= panel_x + 23) and (my >= 27) and (my <= 27 + 23)) then
 					ui.primary_clicked = i
 					hit_button = i
 					
@@ -2120,7 +2213,7 @@ function ui.update(dt)
 			
 				-- Check collision on px for zoom
 				if this_item.id == "zoom.type" then
-					if mouse_switch == _PRESS and (mx >= panel_x - 5) and (mx <= panel_x - 5 + 24) and (my >= 29) and (my <= 29 + 21) then
+					if mouse_switch == _PRESS and ui_active == false and (mx >= panel_x - 5) and (mx <= panel_x - 5 + 24) and (my >= 29) and (my <= 29 + 21) then
 						if ui.zoom_textbox_mode == "px" then
 							ui.zoom_textbox_mode = "%"
 						else
@@ -2149,13 +2242,15 @@ function ui.update(dt)
 							ui.popupLoseFocus("toolbar2")
 						end
 						
-						ui.secondary_textbox = i
-						ui.secondary_text_orig = ui.secondary_panel[i].value
-						
-						ui.active_textbox = "toolbar2"
-						ui.textbox_selection_origin = "toolbar2"
-						
-						hit_tbox = i
+						if ui_active == false then
+							ui.secondary_textbox = i
+							ui.secondary_text_orig = ui.secondary_panel[i].value
+							
+							ui.active_textbox = "toolbar2"
+							ui.textbox_selection_origin = "toolbar2"
+							
+							hit_tbox = i
+						end
 					end
 				end
 				
@@ -2163,7 +2258,7 @@ function ui.update(dt)
 			
 			else
 			
-				if (mouse_switch == _PRESS and (mx >= panel_x) and (mx <= panel_x + 23) and (my >= 27) and (my <= 27 + 23)) then
+				if (mouse_switch == _PRESS and ui_active == false and (mx >= panel_x) and (mx <= panel_x + 23) and (my >= 27) and (my <= 27 + 23)) then
 					ui.secondary_clicked = i
 					hit_button = i
 					
@@ -3924,6 +4019,7 @@ function ui.draw()
 				
 				lg.setColor(tc)
 				lg.print(ui.context_menu[i].name, ui.context_x + 12, ui.context_y + h + 9)
+				lg.printf(ui.context_menu[i].key_combo, ui.context_x, ui.context_y + h + 9, ui.context_w - 12, "right")
 				
 				h = h + 22
 			else -- If entry is a break

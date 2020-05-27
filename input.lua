@@ -32,6 +32,10 @@ function input.shiftEither()
 	return (lshift_key ~= _OFF and lshift_key ~= _RELEASE) or (rshift_key ~= _OFF and rshift_key ~= _RELEASE)
 end
 
+function input.ctrlEither()
+	return (lctrl_key ~= _OFF and lctrl_key ~= _RELEASE) or (rctrl_key ~= _OFF and rctrl_key ~= _RELEASE)
+end
+
 function input.pullSwitch(a, b)
 
 	local output = b
