@@ -13,6 +13,7 @@ screen_width = 1280
 screen_height = 700
 
 vertex_selection = {}
+shape_selection = {}
 
 -- debug buttons
 one_button = _OFF
@@ -104,12 +105,13 @@ artboard_is_drawing = false
 color_grabber = false
 zoom_grabber = false
 select_grabber = false
+shape_grabber = false
 
 selection_and_ui_active = false
 vertex_selection_mode = false
+shape_selection_mode = false
 arrow_key_selection = false
 
-box_select_timer = 0
 h_out = nil -- Shaders
 h_out2 = nil
 v_out = nil
@@ -147,6 +149,7 @@ function resetEditor(exit_popup, add_layer)
 	ui.toolbar[ui.toolbar_preview].active = true
 	ui.toolbar[ui.toolbar_zoom].active = true
 	ui.toolbar[ui.toolbar_select].active = true
+	ui.toolbar[ui.toolbar_shape].active = true
 
 end
 
@@ -288,7 +291,7 @@ function love.load()
 	bad_is_dev = a ~= nil
 	if bad_is_dev then io.close(a) end
 	
-	love.window.setMode(screen_width, screen_height, {resizable=true, vsync=bad_is_dev, minwidth=1024, minheight=600})
+	love.window.setMode(screen_width, screen_height, {vsync=love.window.getVSync(), resizable=true, minwidth=1024, minheight=600})
 	lg.setLineWidth(1)
 	lg.setLineStyle("rough")
 	love.keyboard.setKeyRepeat(true)
@@ -353,24 +356,24 @@ function love.load()
 	
 	-- Import shaders
 	h_out = lg.newShader("shaders/h_outline.frag")
-	h_out:send("_mod",20)
-	h_out:send("_lt",10)
-	h_out:send("_off",10)
+	h_out:send("_mod",8)
+	h_out:send("_lt",4)
+	h_out:send("_off",8)
 	
 	v_out = lg.newShader("shaders/v_outline.frag")
-	v_out:send("_mod",20)
-	v_out:send("_lt",10)
-	v_out:send("_off",10)
+	v_out:send("_mod",8)
+	v_out:send("_lt",4)
+	v_out:send("_off",8)
 	
 	h_out2 = lg.newShader("shaders/h_outline.frag")
-	h_out2:send("_mod",20)
-	h_out2:send("_lt",10)
-	h_out2:send("_off",10)
+	h_out2:send("_mod",8)
+	h_out2:send("_lt",4)
+	h_out2:send("_off",8)
 	
 	v_out2 = lg.newShader("shaders/v_outline.frag")
-	v_out2:send("_mod",20)
-	v_out2:send("_lt",10)
-	v_out2:send("_off",10)
+	v_out2:send("_mod",8)
+	v_out2:send("_lt",4)
+	v_out2:send("_off",8)
 	
 	ui.init()
 	palette.init()
@@ -429,16 +432,6 @@ end
 
 function love.update(dt)
 
-	-- Update shaders
-	if select_grabber and mouse_switch == _ON and box_selection_active then
-		box_select_timer = box_select_timer + (60 * dt * 0.5)
-		h_out:send("_off",100-math.floor(box_select_timer))
-		v_out:send("_off",100-math.floor(box_select_timer-6))
-		h_out2:send("_off",100-math.floor(box_select_timer+10))
-		v_out2:send("_off",100-math.floor(box_select_timer-6+10))
-		if box_select_timer > 100 then box_select_timer = 1 end
-	end
-
 	mouse_x_previous, mouse_y_previous = mouse_x, mouse_y
 	local mx, my = math.floor(love.mouse.getX() / camera_zoom), math.floor(love.mouse.getY() / camera_zoom)
 	mouse_x, mouse_y = mx, my
@@ -482,15 +475,12 @@ function love.update(dt)
 	undo_key = input.pullSwitch(input.ctrlCombo(z_key) and not input.shiftEither(), undo_key)
 	
 	-- debug buttons
+	if bad_is_dev then
 	one_button = input.pullSwitch(love.keyboard.isDown("f3"), one_button)
 	two_button = input.pullSwitch(love.keyboard.isDown("f4"), two_button)
-	-- End of input
-	
-	-- debug block
-	
 	if one_button == _PRESS then print_r(polygon.data) end
 	if two_button == _PRESS then tm.print() end
-	
+	end
 	-- end debug block
 	
 	if splash_active then

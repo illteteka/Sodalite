@@ -40,7 +40,11 @@ end
 
 local i
 for i = 1, #LUAS do
-os.execute("cd " .. LUA_PATH .. " & " .. "luajit.exe -b " .. COMP_PATH .. LUAS[i] .. "\" " .. COMP_PATH .. "\\compile\\" .. LUAS[i] .. "\"")
+	if (LUAS[i] ~= "conf.lua") then
+	os.execute("cd " .. LUA_PATH .. " & " .. "luajit.exe -b " .. COMP_PATH .. LUAS[i] .. "\" " .. COMP_PATH .. "\\compile\\" .. LUAS[i] .. "\"")
+	else
+	os.execute("copy " .. COMP_PATH .. LUAS[i] .. "\" " .. COMP_PATH .. "compile\\" .. LUAS[i] .. "\"")
+	end
 end
 
 os.execute("cd " .. COMP_PATH .. "\\compile\" & 7z a -r game.zip * & ren game.zip game.love & move game.love ../game.love & RMDIR /S /Q .")

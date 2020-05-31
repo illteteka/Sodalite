@@ -1,5 +1,7 @@
 function love.conf(t)
-    t.identity = "Sodalite"
+	t.window.vsync = true
+
+	t.identity = "Sodalite"
     t.version = "11.3"
  
     t.window.icon = nil

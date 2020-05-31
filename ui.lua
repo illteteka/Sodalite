@@ -129,7 +129,7 @@ function ui.init()
 	ui.addTitle("Help",     ".help")
 	
 	-- Add toolbar items
-	ui.addTool("Shape Selection",      icon_cursorw,  ".main")
+	ui.toolbar_shape = ui.addTool("Shape Selection",      icon_cursorw,  ".main")
 	ui.toolbar_select = ui.addTool("Box Selection",      icon_select,  ".select")
 	ui.toolbar_grid = ui.addTool("Grid",          icon_grid,     ".grid")
 	ui.toolbar_zoom = ui.addTool("Zoom",          icon_zoom,     ".zoom")
@@ -151,7 +151,7 @@ function ui.loadCM(x, y, ref)
 	can_select_all = (artboard.active == false) and (polygon.data[tm.polygon_loc] ~= nil) and (vertex_selection_mode == false)
 	local can_save = tm.data[1] ~= nil and document_w ~= 0
 	local can_paste_color = false
-	can_paste_color = (ui.preview_action == "background" and palette.canPaste and palette.copy ~= nil) or (ui.preview_action ~= "background" and palette.canPaste and palette.copy ~= nil and ui.preview_palette_enabled)
+	can_paste_color = (palette.canPaste and palette.copy ~= nil) --or (ui.preview_action ~= "background" and palette.canPaste and palette.copy ~= nil and ui.preview_palette_enabled)
 	
 	if ref == ".file" then
 	
@@ -171,8 +171,8 @@ function ui.loadCM(x, y, ref)
 		ui.addCM("Undo", ui.toolbar[ui.toolbar_undo].active, "e.undo", ctrl_id .. "+Z")
 		ui.addCM("Redo", ui.toolbar[ui.toolbar_redo].active, "e.redo", ctrl_id .. "+Y or Shift+" .. ctrl_id .. "+Z")
 		ui.addCMBreak()
-		ui.addCM("Copy palette color",  false, "e.pcopy", ctrl_id .. "+C")
-		ui.addCM("Paste palette color", false, "e.ppaste", ctrl_id .. "+V")
+		ui.addCM("Copy palette color",  palette.canPaste, "e.pcopy", ctrl_id .. "+C")
+		ui.addCM("Paste palette color", can_paste_color, "e.ppaste", ctrl_id .. "+V")
 		ui.generateCM(x, y)
 		
 	elseif ref == ".image" then
@@ -543,7 +543,32 @@ function ui.addPopup(name, kind, loc)
 
 end
 
-function ui.closeSelection()
+function ui.shapeSelectButton()
+	if document_w ~= 0 then
+		if ui.toolbar[ui.toolbar_shape].active then
+			zoom_grabber = false
+			ui.toolbar[ui.toolbar_zoom].active = true
+			local keep_grid = ui.toolbar[ui.toolbar_grid].active == false
+			ui.panelReset()
+			if keep_grid then
+				ui.toolbar[ui.toolbar_grid].active = false
+			end
+			shape_grabber = true
+			ui.toolbar[ui.toolbar_shape].active = false
+		else
+			local open_grid = ui.toolbar[ui.toolbar_grid].active == false
+			ui.panelReset()
+			shape_grabber = false
+			ui.toolbar[ui.toolbar_shape].active = true
+			if open_grid then
+				ui.panelGrid()
+				ui.toolbar[ui.toolbar_grid].active = false
+			end
+		end
+	end
+end
+
+function ui.selectionButton()
 	if document_w ~= 0 then
 		if ui.toolbar[ui.toolbar_select].active then
 			zoom_grabber = false
@@ -1669,6 +1694,7 @@ function ui.update(dt)
 		ui.toolbar[ui.toolbar_preview].active = false
 		ui.toolbar[ui.toolbar_zoom].active = false
 		ui.toolbar[ui.toolbar_select].active = false
+		ui.toolbar[ui.toolbar_shape].active = false
 	else
 	
 		if artboard.active == false then
@@ -1739,10 +1765,12 @@ function ui.update(dt)
 			
 				-- Toolbar actions go here
 				if tool.ref == ".main" then
-					print("cursor a")
+					
+					ui.shapeSelectButton()
+					
 				elseif tool.ref == ".select" then
 					
-					ui.closeSelection()
+					ui.selectionButton()
 					
 				elseif tool.ref == ".grid" then
 				
@@ -1752,6 +1780,8 @@ function ui.update(dt)
 							ui.toolbar[ui.toolbar_zoom].active = true
 							select_grabber = false
 							ui.toolbar[ui.toolbar_select].active = true
+							shape_grabber = false
+							ui.toolbar[ui.toolbar_shape].active = true
 							ui.panelGrid()
 							ui.toolbar[ui.toolbar_grid].active = false
 						else
@@ -1759,6 +1789,8 @@ function ui.update(dt)
 							ui.toolbar[ui.toolbar_zoom].active = true
 							select_grabber = false
 							ui.toolbar[ui.toolbar_select].active = true
+							shape_grabber = false
+							ui.toolbar[ui.toolbar_shape].active = true
 							ui.panelReset()
 							ui.toolbar[ui.toolbar_grid].active = true
 						end
@@ -1770,6 +1802,8 @@ function ui.update(dt)
 						if ui.toolbar[ui.toolbar_zoom].active then
 							select_grabber = false
 							ui.toolbar[ui.toolbar_select].active = true
+							shape_grabber = false
+							ui.toolbar[ui.toolbar_shape].active = true
 							zoom_grabber = true
 							ui.panelZoom()
 							ui.toolbar[ui.toolbar_zoom].active = false
@@ -1790,6 +1824,8 @@ function ui.update(dt)
 					if document_w ~= 0 then
 						select_grabber = false
 						ui.toolbar[ui.toolbar_select].active = true
+						shape_grabber = false
+						ui.toolbar[ui.toolbar_shape].active = true
 						color_grabber = true
 						love.mouse.setCursor(cursor_pick)
 						ui.toolbar[ui.toolbar_pick].active = false
@@ -2923,7 +2959,7 @@ function ui.update(dt)
 					
 					if select_success then
 					
-						ui.closeSelection()
+						ui.selectionButton()
 					
 					end
 				
@@ -3517,6 +3553,8 @@ function ui.draw()
 	if document_w ~= 0 then
 		if ui.toolbar[ui.toolbar_select].active == false then
 			lg.draw(ui.toolbar[ui.toolbar_select].icon, ix + 28, iy)
+		elseif ui.toolbar[ui.toolbar_shape].active == false then
+			lg.draw(ui.toolbar[ui.toolbar_shape].icon, ix + 28, iy + 1)
 		elseif ui.toolbar[ui.toolbar_pick].active == false then
 			lg.draw(ui.toolbar[ui.toolbar_pick].icon, ix + 27, iy)
 		elseif ui.toolbar[ui.toolbar_zoom].active == false then
