@@ -186,7 +186,7 @@ function ui.loadCM(x, y, ref)
 	elseif ref == ".select" then
 	
 		ui.addCM("Select All", can_select_all, "s.all", ctrl_id .. "+A")
-		ui.addCM("Deselect", vertex_selection_mode, "s.de", ctrl_id .. "+D")
+		ui.addCM("Deselect", vertex_selection_mode or shape_selection_mode, "s.de", ctrl_id .. "+D")
 		ui.generateCM(x, y)
 		
 	elseif ref == ".help" then
@@ -213,6 +213,7 @@ function ui.loadPopup(ref)
 			storeMovedVertices()
 			vertex_selection_mode = false
 			vertex_selection = {}
+			storeMovedShapes()
 			shape_selection_mode = false
 			shape_selection = {}
 			multi_shape_selection = false
@@ -283,6 +284,10 @@ function ui.loadPopup(ref)
 		if ref == "s.de" then
 			vertex_selection_mode = false
 			vertex_selection = {}
+			
+			shape_selection_mode = false
+			shape_selection = {}
+			multi_shape_selection = false
 		end
 		
 		if ref == "i.center" then
@@ -561,6 +566,7 @@ function ui.shapeSelectButton()
 			shape_grabber = true
 			ui.toolbar[ui.toolbar_shape].active = false
 		else
+			storeMovedShapes()
 			shape_selection_mode = false
 			shape_selection = {}
 			multi_shape_selection = false
@@ -1064,12 +1070,13 @@ function ui.swapLayer(new, use_my)
 	vertex_selection_mode = false
 	vertex_selection = {}
 
+	storeMovedShapes()
 	shape_selection_mode = false
 	shape_selection = {}
 	multi_shape_selection = false
 
 	ui.lyr_clicked = new
-	ui.lyr_click_y = my
+	ui.lyr_click_y = love.mouse.getY()
 	
 	if not use_my then
 		ui.lyr_clicked = 0
@@ -1527,6 +1534,7 @@ function ui.update(dt)
 				vertex_selection_mode = false
 				vertex_selection = {}
 				
+				storeMovedShapes()
 				shape_selection_mode = false
 				shape_selection = {}
 				multi_shape_selection = false
@@ -1551,6 +1559,7 @@ function ui.update(dt)
 					vertex_selection_mode = false
 					vertex_selection = {}
 					
+					storeMovedShapes()
 					shape_selection_mode = false
 					shape_selection = {}
 					multi_shape_selection = false

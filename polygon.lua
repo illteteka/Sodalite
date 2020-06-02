@@ -283,6 +283,21 @@ function polygon.redo()
 		
 			polygon.data[tm.polygon_loc]._angle = moment[1].new
 			
+		elseif moment[1].action == TM_MOVE_SHAPE then
+		
+			local i
+			for i = 1, #moment do
+
+				local shape_copy = polygon.data[moment[i].index]
+				
+				local j
+				for j = 1, #shape_copy.raw do
+					local pp = shape_copy.raw[j]
+					pp.x, pp.y = pp.x + moment[i].x, pp.y + moment[i].y
+				end
+
+			end
+		
 		end
 	
 	end
@@ -375,6 +390,21 @@ function polygon.undo()
 		
 			polygon.data[tm.polygon_loc]._angle = moment[1].original
 			
+		elseif moment[1].action == TM_MOVE_SHAPE then
+		
+			local i
+			for i = 1, #moment do
+
+				local shape_copy = polygon.data[moment[i].index]
+				
+				local j
+				for j = 1, #shape_copy.raw do
+					local pp = shape_copy.raw[j]
+					pp.x, pp.y = pp.x - moment[i].x, pp.y - moment[i].y
+				end
+
+			end
+		
 		end
 		
 		tm.cursor = tm.cursor - 1

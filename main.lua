@@ -215,6 +215,11 @@ function editorUndo()
 		ui.popupLoseFocus("toolbar")
 	end
 
+	storeMovedShapes()
+	shape_selection_mode = false
+	shape_selection = {}
+	multi_shape_selection = false
+	
 	storeMovedVertices()
 	vertex_selection_mode = false
 	vertex_selection = {}
@@ -231,6 +236,11 @@ function editorRedo()
 		ui.popupLoseFocus("toolbar")
 	end
 
+	storeMovedShapes()
+	shape_selection_mode = false
+	shape_selection = {}
+	multi_shape_selection = false
+	
 	storeMovedVertices()
 	vertex_selection_mode = false
 	vertex_selection = {}
@@ -297,6 +307,44 @@ function storeMovedVertices()
 			vertex_selection[i].y = polygon.data[tm.polygon_loc].raw[vert_copy].y
 		end
 		
+	end
+
+end
+
+function storeMovedShapes()
+
+	local needs_update = false
+	
+	if shape_selection[1] ~= nil then
+		local i = 1
+		while i <= #shape_selection do
+			needs_update = needs_update or (shape_selection[i].x ~= 0) or (shape_selection[i].y ~= 0)
+			
+			if needs_update then
+				i = #shape_selection + 1
+			end
+			i = i + 1
+		end
+	end
+	
+	if needs_update then
+	
+		local i = 1
+		while i <= #shape_selection do
+		
+			tm.store(TM_MOVE_SHAPE, ui.layer[shape_selection[i].index].count, shape_selection[i].x, shape_selection[i].y)
+			
+			shape_selection[i].x = 0
+			shape_selection[i].y = 0
+			
+			i = i + 1
+			
+		end
+		
+		if #shape_selection ~= 0 then
+			tm.step()
+		end
+	
 	end
 
 end
@@ -788,11 +836,12 @@ function love.update(dt)
 						local pp = this_shape[o]
 						pp.x = pp.x + cx
 						pp.y = pp.y + cy
-						shape_selection[n].x = shape_selection[n].x + cx
-						shape_selection[n].y = shape_selection[n].y + cy
 						
 						o = o + 1
 					end
+					
+					shape_selection[n].x = shape_selection[n].x + cx
+					shape_selection[n].y = shape_selection[n].y + cy
 					
 					n = n + 1
 				end
@@ -817,6 +866,8 @@ function love.update(dt)
 				selection_and_ui_active = false
 			end
 		
+			storeMovedShapes()
+		
 			if not multi_shape_selection then
 				shape_selection_mode = false
 				shape_selection = {}
@@ -836,6 +887,8 @@ function love.update(dt)
 					cx, cy = (hz_dir * hz_key), (-vt_dir * vt_key)
 				end
 				
+				arrow_key_selection = true
+				
 				local n = 1
 				while n <= #shape_selection do
 				
@@ -846,11 +899,12 @@ function love.update(dt)
 						local pp = this_shape[o]
 						pp.x = pp.x + cx
 						pp.y = pp.y + cy
-						shape_selection[n].x = shape_selection[n].x + cx
-						shape_selection[n].y = shape_selection[n].y + cy
 						
 						o = o + 1
 					end
+					
+					shape_selection[n].x = shape_selection[n].x + cx
+					shape_selection[n].y = shape_selection[n].y + cy
 					
 					n = n + 1
 				end
@@ -860,7 +914,7 @@ function love.update(dt)
 		end
 
 		if ((hz_dir == 0) and (vt_dir == 0)) and arrow_key_selection then
-			--storeMovedVertices()
+			storeMovedShapes()
 			arrow_key_selection = false
 		end
 	
