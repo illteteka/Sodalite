@@ -414,7 +414,7 @@ function polygon.point_triangle(mx, my, ax, ay, bx, by, cx, cy)
 	return not (first_check or second_check)
 end
 
-function polygon.click(mx, my)
+function polygon.click(mx, my, skip_selection)
 
 	local triangle_hit = false
 	local layer_hit = -1
@@ -441,9 +441,33 @@ function polygon.click(mx, my)
 						triangle_hit = polygon.point_triangle(mx, my, aa.x, aa.y, bb.x, bb.y, cc.x, cc.y)
 						
 						if triangle_hit then
-							layer_hit = i
-							i = 0
-							j = #clone.raw + 1
+						
+							if skip_selection then
+							
+								local hit_twice = false
+								local n = 1
+								while n <= #shape_selection do
+									
+									if shape_selection[n].index == i then
+										hit_twice = true
+										n = #shape_selection + 1
+									end
+									
+									n = n + 1
+								end
+								
+								if hit_twice == false then
+									layer_hit = i
+									i = 0
+									j = #clone.raw + 1
+								end
+							
+							else
+								layer_hit = i
+								i = 0
+								j = #clone.raw + 1
+							end
+							
 						end
 						
 					end
@@ -499,9 +523,33 @@ function polygon.click(mx, my)
 						
 						triangle_hit = polygon.point_triangle(mx, my, cx, cy, (cx + cxx2), (cy + cyy2), (cx + cxx3), (cy + cyy3))
 						if triangle_hit then
-							layer_hit = i
-							i = 0
-							k = cseg + 1
+							
+							if skip_selection then
+							
+								local hit_twice = false
+								local n = 1
+								while n <= #shape_selection do
+									
+									if shape_selection[n].index == i then
+										hit_twice = true
+										n = #shape_selection + 1
+									end
+									
+									n = n + 1
+								end
+								
+								if hit_twice == false then
+									layer_hit = i
+									i = 0
+									k = cseg + 1
+								end
+							
+							else
+								layer_hit = i
+								i = 0
+								k = cseg + 1
+							end
+							
 						end
 						
 						v = v + cinc
@@ -536,7 +584,7 @@ function polygon.draw(skip_in_preview)
 			-- Draw selected vertices
 			local verts_selected = vertex_selection[1] ~= nil
 			local mx, my = mouse_x, mouse_y
-			if ui.layer[i].count == tm.polygon_loc and verts_selected and skip_in_preview then
+			if ui.layer[i].count == tm.polygon_loc and verts_selected and skip_in_preview and shape_grabber == false then
 			
 				-- Draw spr_vertex_mask on vertex locations
 				

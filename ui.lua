@@ -180,7 +180,7 @@ function ui.loadCM(x, y, ref)
 		ui.addCM("Document setup...", false, "i.setup")
 		ui.addCMBreak()
 		ui.addCM("Center camera", document_w ~= 0, "i.center", ctrl_id .. "+Space")
-		ui.addCM("Clear canvas", document_w ~= 0, "i.clear", ctrl_id .. "+R")
+		ui.addCM("Clear canvas", document_w ~= 0 and artboard.active, "i.clear", ctrl_id .. "+R")
 		ui.generateCM(x, y)
 		
 	elseif ref == ".select" then
@@ -213,6 +213,9 @@ function ui.loadPopup(ref)
 			storeMovedVertices()
 			vertex_selection_mode = false
 			vertex_selection = {}
+			shape_selection_mode = false
+			shape_selection = {}
+			multi_shape_selection = false
 		
 			ui.addPopup("New document", "f.new", "col")
 			ui.addPopup("Name:", "text", "col")
@@ -546,6 +549,8 @@ end
 function ui.shapeSelectButton()
 	if document_w ~= 0 then
 		if ui.toolbar[ui.toolbar_shape].active then
+			vertex_selection_mode = false
+			vertex_selection = {}
 			zoom_grabber = false
 			ui.toolbar[ui.toolbar_zoom].active = true
 			local keep_grid = ui.toolbar[ui.toolbar_grid].active == false
@@ -556,9 +561,13 @@ function ui.shapeSelectButton()
 			shape_grabber = true
 			ui.toolbar[ui.toolbar_shape].active = false
 		else
+			shape_selection_mode = false
+			shape_selection = {}
+			multi_shape_selection = false
 			local open_grid = ui.toolbar[ui.toolbar_grid].active == false
 			ui.panelReset()
 			shape_grabber = false
+			love.mouse.setCursor()
 			ui.toolbar[ui.toolbar_shape].active = true
 			if open_grid then
 				ui.panelGrid()
@@ -1049,6 +1058,54 @@ function ui.deleteLayer(old)
 
 end
 
+function ui.swapLayer(new, use_my)
+
+	storeMovedVertices()
+	vertex_selection_mode = false
+	vertex_selection = {}
+
+	shape_selection_mode = false
+	shape_selection = {}
+	multi_shape_selection = false
+
+	ui.lyr_clicked = new
+	ui.lyr_click_y = my
+	
+	if not use_my then
+		ui.lyr_clicked = 0
+		ui.lyr_click_y = 0
+	end
+
+	local old_layer = tm.polygon_loc
+	tm.polygon_loc = ui.layer[new].count
+	palette.updateAccentColor()
+
+	local _tm_copy, skip_tm
+
+	if (tm.data[tm.location - 1] ~= nil) then
+		_tm_copy = tm.data[tm.location - 1][1]
+		skip_tm = false
+	else
+		skip_tm = true
+	end
+
+	if artboard.active == false and polygon.data[tm.polygon_loc] ~= nil and polygon.data[tm.polygon_loc].kind == "ellipse" then
+		polygon.kind = "ellipse"
+		ui.panelEllipse()
+	end
+
+	-- To reduce undo/redo ram usage, change previous swap to new layer instead of making another swap
+	if (not skip_tm) and (_tm_copy.action == TM_PICK_LAYER) and (_tm_copy.created_layer == false) and (_tm_copy.trash_layer == false) then
+		_tm_copy.new = tm.polygon_loc
+	else
+		if old_layer ~= tm.polygon_loc then -- If we swap to the current active layer, don't register the swap
+			tm.store(TM_PICK_LAYER, old_layer, tm.polygon_loc, false, false)
+			tm.step()
+		end
+	end	
+	
+end
+
 function ui.resizeWindow()
 
 	ui.popup_x = math.floor((screen_width / 2) - (ui.popup_w / 2))
@@ -1469,6 +1526,10 @@ function ui.update(dt)
 				storeMovedVertices()
 				vertex_selection_mode = false
 				vertex_selection = {}
+				
+				shape_selection_mode = false
+				shape_selection = {}
+				multi_shape_selection = false
 			
 				local old_layer = tm.polygon_loc
 				tm.polygon_loc = #ui.layer + #ui.layer_trash + 1
@@ -1489,6 +1550,10 @@ function ui.update(dt)
 					storeMovedVertices()
 					vertex_selection_mode = false
 					vertex_selection = {}
+					
+					shape_selection_mode = false
+					shape_selection = {}
+					multi_shape_selection = false
 					
 					local find_layer = 0
 					for i = 1, #ui.layer do
@@ -1525,41 +1590,7 @@ function ui.update(dt)
 				
 				-- Layer was clicked on, switch layers
 				if ui.layer[layer_hit] ~= nil then
-					storeMovedVertices()
-					vertex_selection_mode = false
-					vertex_selection = {}
-				
-					ui.lyr_clicked = layer_hit
-					ui.lyr_click_y = my
-					
-					local old_layer = tm.polygon_loc
-					tm.polygon_loc = ui.layer[layer_hit].count
-					palette.updateAccentColor()
-					
-					local _tm_copy, skip_tm
-					
-					if (tm.data[tm.location - 1] ~= nil) then
-						_tm_copy = tm.data[tm.location - 1][1]
-						skip_tm = false
-					else
-						skip_tm = true
-					end
-					
-					if artboard.active == false and polygon.data[tm.polygon_loc] ~= nil and polygon.data[tm.polygon_loc].kind == "ellipse" then
-						polygon.kind = "ellipse"
-						ui.panelEllipse()
-					end
-					
-					-- To reduce undo/redo ram usage, change previous swap to new layer instead of making another swap
-					if (not skip_tm) and (_tm_copy.action == TM_PICK_LAYER) and (_tm_copy.created_layer == false) and (_tm_copy.trash_layer == false) then
-						_tm_copy.new = tm.polygon_loc
-					else
-						if old_layer ~= tm.polygon_loc then -- If we swap to the current active layer, don't register the swap
-							tm.store(TM_PICK_LAYER, old_layer, tm.polygon_loc, false, false)
-							tm.step()
-						end
-					end	
-					
+					ui.swapLayer(layer_hit, true)
 				end
 				
 			end
@@ -1754,7 +1785,7 @@ function ui.update(dt)
 			end
 			
 			local tool = ui.toolbar[key]
-			local ignore_tool_active = (tool.ref == ".grid") or (tool.ref == ".pick") or (tool.ref == ".zoom") or (tool.ref == ".select")
+			local ignore_tool_active = (tool.ref == ".grid") or (tool.ref == ".pick") or (tool.ref == ".zoom") or (tool.ref == ".select") or (tool.ref == ".main")
 			if (tool.ref ~= nil) and (tool.ref == ".prev") and document_w ~= 0 then
 				tool.active = true
 			end
@@ -1780,8 +1811,6 @@ function ui.update(dt)
 							ui.toolbar[ui.toolbar_zoom].active = true
 							select_grabber = false
 							ui.toolbar[ui.toolbar_select].active = true
-							shape_grabber = false
-							ui.toolbar[ui.toolbar_shape].active = true
 							ui.panelGrid()
 							ui.toolbar[ui.toolbar_grid].active = false
 						else
@@ -1789,8 +1818,6 @@ function ui.update(dt)
 							ui.toolbar[ui.toolbar_zoom].active = true
 							select_grabber = false
 							ui.toolbar[ui.toolbar_select].active = true
-							shape_grabber = false
-							ui.toolbar[ui.toolbar_shape].active = true
 							ui.panelReset()
 							ui.toolbar[ui.toolbar_grid].active = true
 						end
@@ -1802,8 +1829,6 @@ function ui.update(dt)
 						if ui.toolbar[ui.toolbar_zoom].active then
 							select_grabber = false
 							ui.toolbar[ui.toolbar_select].active = true
-							shape_grabber = false
-							ui.toolbar[ui.toolbar_shape].active = true
 							zoom_grabber = true
 							ui.panelZoom()
 							ui.toolbar[ui.toolbar_zoom].active = false
@@ -1824,8 +1849,6 @@ function ui.update(dt)
 					if document_w ~= 0 then
 						select_grabber = false
 						ui.toolbar[ui.toolbar_select].active = true
-						shape_grabber = false
-						ui.toolbar[ui.toolbar_shape].active = true
 						color_grabber = true
 						love.mouse.setCursor(cursor_pick)
 						ui.toolbar[ui.toolbar_pick].active = false
@@ -2748,6 +2771,7 @@ function ui.update(dt)
 				document_h = tonumber(ui.popup[4][2].name)
 				
 				resetEditor(true, true)
+				updateTitle()
 			end
 		
 		end
@@ -2822,6 +2846,7 @@ function ui.update(dt)
 									document_h = tonumber(ui.popup[4][2].name)
 									
 									resetEditor(false, true)
+									updateTitle()
 									
 									exit_pop = true
 								elseif kind == "cancel" then
@@ -3013,6 +3038,10 @@ function ui.scrollButton()
 		else
 			ui.lyr_scroll_percent = lume.clamp(calc_pos, 0, 1)
 		end
+	end
+	
+	if ( tostring(ui.lyr_scroll_percent) == "nan" ) then
+		ui.lyr_scroll_percent = 0
 	end
 
 end

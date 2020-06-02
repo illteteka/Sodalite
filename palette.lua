@@ -167,7 +167,7 @@ function palette.updateAccentColor()
 
 	local qr, qg, qb
 	local o_col = palette.active
-	if polygon.data[1] ~= nil and polygon.data[tm.polygon_loc] ~= nil then --and = polygon.data[tm.polygon_loc].color
+	if polygon.data[1] ~= nil and polygon.data[tm.polygon_loc] ~= nil then
 		o_col = polygon.data[tm.polygon_loc].color
 	end
 	

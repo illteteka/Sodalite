@@ -45,6 +45,10 @@ function import.open(file)
 
 		camera_zoom = 1
 		resetCamera()
+		palette.updateAccentColor()
+		updateTitle()
+		
+		splash_active = false
 	end
 
 end

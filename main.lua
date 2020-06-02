@@ -21,6 +21,7 @@ two_button = _OFF
 
 ctrl_name = "ctrl"
 ctrl_id = "Ctrl"
+ctrl_cursor = "b"
 
 a_key = _OFF
 lctrl_key = _OFF
@@ -110,12 +111,17 @@ shape_grabber = false
 selection_and_ui_active = false
 vertex_selection_mode = false
 shape_selection_mode = false
+multi_shape_selection = false
 arrow_key_selection = false
 
 h_out = nil -- Shaders
 h_out2 = nil
+h_out3 = nil
 v_out = nil
 v_out2 = nil
+
+last_shape_grabbed = -1
+double_click_timer = 0
 
 function resetEditor(exit_popup, add_layer)
 
@@ -125,6 +131,20 @@ function resetEditor(exit_popup, add_layer)
 
 	camera_zoom = 1
 	resetCamera()
+	
+	vertex_selection_mode = false
+	vertex_selection = {}
+
+	shape_selection_mode = false
+	shape_selection = {}
+	multi_shape_selection = false
+	
+	color_grabber = false
+	zoom_grabber = false
+	select_grabber = false
+	shape_grabber = false
+	
+	love.mouse.setCursor()
 	
 	artboard.init()
 	tm.init()
@@ -151,6 +171,10 @@ function resetEditor(exit_popup, add_layer)
 	ui.toolbar[ui.toolbar_select].active = true
 	ui.toolbar[ui.toolbar_shape].active = true
 
+end
+
+function updateTitle()
+	love.window.setTitle(document_name .. " - Sodalite")
 end
 
 function updateCamera(w, h, zo, zn)
@@ -282,6 +306,7 @@ function love.load()
 	if love.system.getOS() == "OS X" then
 		ctrl_name = "gui"
 		ctrl_id = "Cmd"
+		ctrl_cursor = "w"
 	end
 
 	math.randomseed(os.time())
@@ -295,6 +320,7 @@ function love.load()
 	lg.setLineWidth(1)
 	lg.setLineStyle("rough")
 	love.keyboard.setKeyRepeat(true)
+	love.window.setTitle("Sodalite")
 	
 	font = lg.newFont("opensans.ttf", 13)
 	lg.setFont(font)
@@ -325,7 +351,6 @@ function love.load()
 	icon_eye = lg.newImage("textures/icon_eye.png")
 	icon_blink = lg.newImage("textures/icon_blink.png")
 	icon_circle = lg.newImage("textures/icon_circle.png")
-	icon_cursorb = lg.newImage("textures/icon_cursorb.png")
 	icon_cursorw = lg.newImage("textures/icon_cursorw.png")
 	icon_draw = lg.newImage("textures/icon_draw.png")
 	icon_grid = lg.newImage("textures/icon_grid.png")
@@ -353,6 +378,7 @@ function love.load()
 	cursor_size_fall = love.mouse.getSystemCursor("sizenwse")
 	cursor_pick = love.mouse.newCursor("textures/cursor_pick.png", 5, 21)
 	cursor_zoom = love.mouse.newCursor("textures/cursor_zoom.png", 7, 8)
+	cursor_shape = love.mouse.newCursor("textures/icon_cursor" .. ctrl_cursor .. ".png", 7, 5)
 	
 	-- Import shaders
 	h_out = lg.newShader("shaders/h_outline.frag")
@@ -368,12 +394,17 @@ function love.load()
 	h_out2 = lg.newShader("shaders/h_outline.frag")
 	h_out2:send("_mod",8)
 	h_out2:send("_lt",4)
-	h_out2:send("_off",8)
+	h_out2:send("_off",12)
 	
 	v_out2 = lg.newShader("shaders/v_outline.frag")
 	v_out2:send("_mod",8)
 	v_out2:send("_lt",4)
-	v_out2:send("_off",8)
+	v_out2:send("_off",12)
+	
+	h_out3 = lg.newShader("shaders/h_outline.frag")
+	h_out3:send("_mod",8)
+	h_out3:send("_lt",4)
+	h_out3:send("_off",8)
 	
 	ui.init()
 	palette.init()
@@ -441,15 +472,15 @@ function love.update(dt)
 	a_key = input.pullSwitch(love.keyboard.isDown("a"), a_key)
 	c_key = input.pullSwitch(love.keyboard.isDown("c"), c_key)
 	d_key = input.pullSwitch(love.keyboard.isDown("d"), d_key)
-	e_key = input.pullSwitch(love.keyboard.isDown("e"), e_key) --*
-	i_key = input.pullSwitch(love.keyboard.isDown("i"), i_key) --*
-	o_key = input.pullSwitch(love.keyboard.isDown("o"), o_key) --*
-	n_key = input.pullSwitch(love.keyboard.isDown("n"), n_key) --*
-	p_key = input.pullSwitch(love.keyboard.isDown("p"), p_key) --*
-	r_key = input.pullSwitch(love.keyboard.isDown("r"), r_key) --*
+	e_key = input.pullSwitch(love.keyboard.isDown("e"), e_key)
+	i_key = input.pullSwitch(love.keyboard.isDown("i"), i_key)
+	o_key = input.pullSwitch(love.keyboard.isDown("o"), o_key)
+	n_key = input.pullSwitch(love.keyboard.isDown("n"), n_key)
+	p_key = input.pullSwitch(love.keyboard.isDown("p"), p_key)
+	r_key = input.pullSwitch(love.keyboard.isDown("r"), r_key)
 	s_key = input.pullSwitch(love.keyboard.isDown("s"), s_key)
-	t_key = input.pullSwitch(love.keyboard.isDown("t"), t_key) --*
-	u_key = input.pullSwitch(love.keyboard.isDown("u"), u_key) --*
+	t_key = input.pullSwitch(love.keyboard.isDown("t"), t_key)
+	u_key = input.pullSwitch(love.keyboard.isDown("u"), u_key)
 	v_key = input.pullSwitch(love.keyboard.isDown("v"), v_key)
 	w_key = input.pullSwitch(love.keyboard.isDown("w"), w_key)
 	y_key = input.pullSwitch(love.keyboard.isDown("y"), y_key)
@@ -581,7 +612,7 @@ function love.update(dt)
 		if (mouse_switch == _PRESS) then
 		
 			local test_x, test_y = mx - math.floor(camera_x), my - math.floor(camera_y)
-			local test_hit_polygon = polygon.click(test_x, test_y)
+			local test_hit_polygon = polygon.click(test_x, test_y, false)
 			local use_color = nil
 			
 			local cr, cb, cg, ca = 0,0,0,0
@@ -641,85 +672,140 @@ function love.update(dt)
 	
 	end
 	
+	if mouse_switch == _PRESS then
+		
+		if vertex_selection[1] ~= nil or shape_selection[1] ~= nil then
+		
+			local raw_x, raw_y = love.mouse.getX(), love.mouse.getY()
+			
+			if (raw_x < 64) or (raw_x > screen_width - 208) or (raw_y < 58) then
+				selection_and_ui_active = true
+			end
+		
+		end
+	
+	end
+	
 	ui_on_mouse_up = (ui_active == true) and (mouse_switch == _OFF)
 
 	if ui.popup[1] == nil and document_w ~= 0 then
 	
-	if artboard.active == false and ((ui_active == false) or (ui_off_mouse_down)) then
+	if shape_grabber and artboard.active == false and not zoom_grabber and not color_grabber and ((ui_active == false) or (ui_off_mouse_down)) then
 	
-		if polygon.data[tm.polygon_loc] ~= nil and input.ctrlCombo(a_key) and vertex_selection_mode == false then
-		
-			editorSelectAll()
-		
-		end
-		
-		if mouse_switch == _PRESS then
-		
-			-- Create a new shape if one doesn't exist
-			if polygon.data[tm.polygon_loc] == nil then
-				local new_col = {palette.active[1], palette.active[2], palette.active[3], palette.active[4]}
-				polygon.new(tm.polygon_loc, new_col, polygon.kind, true)
+		if last_shape_grabbed ~= -1 then
+			double_click_timer = double_click_timer + (60 * dt)
+			
+			if double_click_timer > 30 then
+				last_shape_grabbed = -1
+				double_click_timer = 0
 			end
 			
-			selection_mouse_x = mx - math.floor(camera_x)
-			selection_mouse_y = my - math.floor(camera_y)
+		end
+	
+		if love.mouse.getCursor() == nil then
+			love.mouse.setCursor(cursor_shape)
+		end
+	
+		if (mouse_switch == _PRESS) then
+		
+			local use_shape_sel = shape_selection[1] ~= nil
+			local test_x, test_y = mx - math.floor(camera_x), my - math.floor(camera_y)
+			local test_hit_polygon = polygon.click(test_x, test_y, use_shape_sel)
+			local test_double_click = polygon.click(test_x, test_y, false)
 			
-			-- Test if we are placing a vertex or moving a vertex
-			polygon.calcVertex(selection_mouse_x, selection_mouse_y, tm.polygon_loc, not ui.toolbar[ui.toolbar_grid].active)
+			selection_mouse_x = test_x
+			selection_mouse_y = test_y
 			
-			if vertex_selection_mode and vertex_selection[1] ~= nil then
-				
-				local i
-				for i = 1, #vertex_selection do
-					local vert_copy = vertex_selection[i].index
-					vertex_selection[i].x = polygon.data[tm.polygon_loc].raw[vert_copy].x
-					vertex_selection[i].y = polygon.data[tm.polygon_loc].raw[vert_copy].y
+			if test_double_click ~= -1 then
+				local old_shape = last_shape_grabbed
+				last_shape_grabbed = test_double_click
+				if last_shape_grabbed ~= old_shape then
+					double_click_timer = 0
 				end
 				
-				mouse_x_offset, mouse_y_offset = vertex_selection[1].x - selection_mouse_x, vertex_selection[1].y - selection_mouse_y
+				if double_click_timer > 0 and double_click_timer < 14 then
+					ui.shapeSelectButton()
 				
+					ui.swapLayer(test_double_click, false)
+					
+					last_shape_grabbed = -1
+					double_click_timer = 0
+					test_hit_polygon = -1
+					ui_active = true
+				else
+					double_click_timer = 0
+				end
 			end
-		
+			
+			if test_double_click == -1 then
+				last_shape_grabbed = -1
+				double_click_timer = 0
+			end
+			
+			if test_hit_polygon ~= -1 then
+			
+				local allow_multi_select = input.shiftEither()
+				if allow_multi_select then
+					multi_shape_selection = true
+				end
+				
+				if shape_selection[1] == nil or allow_multi_select then
+					local copy_shape = {}
+					copy_shape.index = test_hit_polygon
+					copy_shape.x = 0
+					copy_shape.y = 0
+					table.insert(shape_selection, copy_shape)
+					shape_selection_mode = true
+				end
+			end
+			
+			mouse_x_offset, mouse_y_offset = -selection_mouse_x, -selection_mouse_y
+			
 		end
 		
 		if mouse_switch == _ON and selection_and_ui_active == false then
 		
-			ui_off_mouse_down = true
+			calc_mouse_x, calc_mouse_y = mx + mouse_x_offset, my + mouse_y_offset
 		
-			local i
-			local calc_mouse_x, calc_mouse_y
-			
-			if not vertex_selection_mode then
-				calc_mouse_x, calc_mouse_y = mx, my
-			else
-				calc_mouse_x, calc_mouse_y = mx + mouse_x_offset, my + mouse_y_offset
-			end
-			
-			-- If a point is selected, have it follow the mouse
-			for i = 1, #vertex_selection do
+			if shape_selection[1] ~= nil then
 			
 				local cx, cy
-				local pp = polygon.data[tm.polygon_loc].raw[vertex_selection[i].index]
-				local pp_one = polygon.data[tm.polygon_loc].raw[vertex_selection[1].index]
+				if ui.toolbar[ui.toolbar_grid].active == false and grid_snap then
+					cx = ((math.floor((calc_mouse_x - camera_x) / grid_w) * grid_w) + (grid_x % grid_w))
+					cy = ((math.floor((calc_mouse_y - camera_y) / grid_h) * grid_h) + (grid_y % grid_h))
+				else
+					cx = calc_mouse_x - math.floor(camera_x)
+					cy = calc_mouse_y - math.floor(camera_y)
+				end
 				
-				if i == 1 then
+				local n = 1
+				while n <= #shape_selection do
 				
-					if ui.toolbar[ui.toolbar_grid].active == false and grid_snap then
-						cx = ((math.floor((calc_mouse_x - camera_x) / grid_w) * grid_w) + (grid_x % grid_w))
-						cy = ((math.floor((calc_mouse_y - camera_y) / grid_h) * grid_h) + (grid_y % grid_h))
-					else
-						cx = calc_mouse_x - math.floor(camera_x)
-						cy = calc_mouse_y - math.floor(camera_y)
+					local shape_index = ui.layer[shape_selection[n].index].count
+					local o = 1
+					local this_shape = polygon.data[shape_index].raw
+					while o <= #this_shape do
+						local pp = this_shape[o]
+						pp.x = pp.x + cx
+						pp.y = pp.y + cy
+						shape_selection[n].x = shape_selection[n].x + cx
+						shape_selection[n].y = shape_selection[n].y + cy
+						
+						o = o + 1
 					end
 					
-					-- Move verices by offset of selection_mouse_*
-					pp.x, pp.y = cx, cy
-				
-				else
-				
-					pp.x, pp.y = vertex_selection[i].x + (pp_one.x - vertex_selection[1].x), vertex_selection[i].y + (pp_one.y - vertex_selection[1].y)
-				
+					n = n + 1
 				end
+				
+				local test_x, test_y = 0,0
+				if ui.toolbar[ui.toolbar_grid].active == false and grid_snap then
+					test_x = ((math.floor((mx - camera_x) / grid_w) * grid_w) + (grid_x % grid_w))
+					test_y = ((math.floor((my - camera_y) / grid_h) * grid_h) + (grid_y % grid_h))
+				else
+					test_x, test_y = mx - math.floor(camera_x), my - math.floor(camera_y)
+				end
+				
+				mouse_x_offset, mouse_y_offset = -test_x, -test_y
 			
 			end
 		
@@ -730,79 +816,203 @@ function love.update(dt)
 			if selection_and_ui_active then
 				selection_and_ui_active = false
 			end
-			
-			ui_off_mouse_down = false
 		
-			-- If a point was selected, add TM_MOVE_VERTEX to time machine
-			storeMovedVertices()
-		
-			if vertex_selection_mode == false then
-				vertex_selection = {}
+			if not multi_shape_selection then
+				shape_selection_mode = false
+				shape_selection = {}
 			end
 			
 		end
 		
-		if mouse_switch == _OFF and ((hz_dir * hz_key ~= 0) or (vt_dir * vt_key ~= 0)) and vertex_selection_mode and ui.active_textbox == "" then
-		
-			local i
+		if mouse_switch == _OFF and ((hz_dir * hz_key ~= 0) or (vt_dir * vt_key ~= 0)) and shape_selection_mode and ui.active_textbox == "" then
 			
-			for i = 1, #vertex_selection do
-			
-				local cx, cy
-				local pp = polygon.data[tm.polygon_loc].raw[vertex_selection[i].index]
-				local pp_one = polygon.data[tm.polygon_loc].raw[vertex_selection[1].index]
+			if shape_selection[1] ~= nil then
 				
-				if i == 1 then
+				local cx, cy
+				
+				if ui.toolbar[ui.toolbar_grid].active == false and grid_snap then
+					cx, cy = (hz_dir * hz_key * grid_w), (-vt_dir * vt_key * grid_h)
+				else
+					cx, cy = (hz_dir * hz_key), (-vt_dir * vt_key)
+				end
+				
+				local n = 1
+				while n <= #shape_selection do
+				
+					local shape_index = ui.layer[shape_selection[n].index].count
+					local o = 1
+					local this_shape = polygon.data[shape_index].raw
+					while o <= #this_shape do
+						local pp = this_shape[o]
+						pp.x = pp.x + cx
+						pp.y = pp.y + cy
+						shape_selection[n].x = shape_selection[n].x + cx
+						shape_selection[n].y = shape_selection[n].y + cy
+						
+						o = o + 1
+					end
 					
-					if arrow_key_selection == false then
+					n = n + 1
+				end
+			
+			end
+
+		end
+
+		if ((hz_dir == 0) and (vt_dir == 0)) and arrow_key_selection then
+			--storeMovedVertices()
+			arrow_key_selection = false
+		end
+	
+	end
+	
+	if artboard.active == false and ((ui_active == false) or (ui_off_mouse_down)) then
+	
+		if shape_grabber == false then
+	
+			if polygon.data[tm.polygon_loc] ~= nil and input.ctrlCombo(a_key) and vertex_selection_mode == false then
+			
+				editorSelectAll()
+			
+			end
+			
+			if mouse_switch == _PRESS then
+			
+				-- Create a new shape if one doesn't exist
+				if polygon.data[tm.polygon_loc] == nil then
+					local new_col = {palette.active[1], palette.active[2], palette.active[3], palette.active[4]}
+					polygon.new(tm.polygon_loc, new_col, polygon.kind, true)
+				end
+				
+				selection_mouse_x = mx - math.floor(camera_x)
+				selection_mouse_y = my - math.floor(camera_y)
+				
+				-- Test if we are placing a vertex or moving a vertex
+				polygon.calcVertex(selection_mouse_x, selection_mouse_y, tm.polygon_loc, not ui.toolbar[ui.toolbar_grid].active)
+				
+				if vertex_selection_mode and vertex_selection[1] ~= nil then
 					
-						local j
-						for j = 1, #vertex_selection do
-							local vert_copy = vertex_selection[j].index
-							vertex_selection[j].x = polygon.data[tm.polygon_loc].raw[vert_copy].x
-							vertex_selection[j].y = polygon.data[tm.polygon_loc].raw[vert_copy].y
+					local i
+					for i = 1, #vertex_selection do
+						local vert_copy = vertex_selection[i].index
+						vertex_selection[i].x = polygon.data[tm.polygon_loc].raw[vert_copy].x
+						vertex_selection[i].y = polygon.data[tm.polygon_loc].raw[vert_copy].y
+					end
+					
+					mouse_x_offset, mouse_y_offset = vertex_selection[1].x - selection_mouse_x, vertex_selection[1].y - selection_mouse_y
+					
+				end
+			
+			end
+			
+			if mouse_switch == _ON and selection_and_ui_active == false then
+			
+				ui_off_mouse_down = true
+			
+				local i
+				local calc_mouse_x, calc_mouse_y
+				
+				if not vertex_selection_mode then
+					calc_mouse_x, calc_mouse_y = mx, my
+				else
+					calc_mouse_x, calc_mouse_y = mx + mouse_x_offset, my + mouse_y_offset
+				end
+				
+				-- If a point is selected, have it follow the mouse
+				for i = 1, #vertex_selection do
+				
+					local cx, cy
+					local pp = polygon.data[tm.polygon_loc].raw[vertex_selection[i].index]
+					local pp_one = polygon.data[tm.polygon_loc].raw[vertex_selection[1].index]
+					
+					if i == 1 then
+					
+						if ui.toolbar[ui.toolbar_grid].active == false and grid_snap then
+							cx = ((math.floor((calc_mouse_x - camera_x) / grid_w) * grid_w) + (grid_x % grid_w))
+							cy = ((math.floor((calc_mouse_y - camera_y) / grid_h) * grid_h) + (grid_y % grid_h))
+						else
+							cx = calc_mouse_x - math.floor(camera_x)
+							cy = calc_mouse_y - math.floor(camera_y)
 						end
 						
-						arrow_key_selection = true
-						
-					end
+						-- Move verices by offset of selection_mouse_*
+						pp.x, pp.y = cx, cy
 					
-					if ui.toolbar[ui.toolbar_grid].active == false and grid_snap then
-						pp.x, pp.y = pp.x + (hz_dir * hz_key * grid_w), pp.y + (-vt_dir * vt_key * grid_h)
 					else
-						pp.x, pp.y = pp.x + (hz_dir * hz_key), pp.y + (-vt_dir * vt_key)
+					
+						pp.x, pp.y = vertex_selection[i].x + (pp_one.x - vertex_selection[1].x), vertex_selection[i].y + (pp_one.y - vertex_selection[1].y)
+					
 					end
-				
-				else
-				
-					pp.x, pp.y = vertex_selection[i].x + (pp_one.x - vertex_selection[1].x), vertex_selection[i].y + (pp_one.y - vertex_selection[1].y)
 				
 				end
 			
 			end
-		
-		end
-		
-		if ((hz_dir == 0) and (vt_dir == 0)) and arrow_key_selection then
-			storeMovedVertices()
-			arrow_key_selection = false
+			
+			if mouse_switch == _RELEASE then
+			
+				if selection_and_ui_active then
+					selection_and_ui_active = false
+				end
+				
+				ui_off_mouse_down = false
+			
+				-- If a point was selected, add TM_MOVE_VERTEX to time machine
+				storeMovedVertices()
+			
+				if vertex_selection_mode == false then
+					vertex_selection = {}
+				end
+				
+			end
+			
+			if mouse_switch == _OFF and ((hz_dir * hz_key ~= 0) or (vt_dir * vt_key ~= 0)) and vertex_selection_mode and ui.active_textbox == "" then
+			
+				local i
+				
+				for i = 1, #vertex_selection do
+				
+					local pp = polygon.data[tm.polygon_loc].raw[vertex_selection[i].index]
+					local pp_one = polygon.data[tm.polygon_loc].raw[vertex_selection[1].index]
+					
+					if i == 1 then
+						
+						if arrow_key_selection == false then
+						
+							local j
+							for j = 1, #vertex_selection do
+								local vert_copy = vertex_selection[j].index
+								vertex_selection[j].x = polygon.data[tm.polygon_loc].raw[vert_copy].x
+								vertex_selection[j].y = polygon.data[tm.polygon_loc].raw[vert_copy].y
+							end
+							
+							arrow_key_selection = true
+							
+						end
+						
+						if ui.toolbar[ui.toolbar_grid].active == false and grid_snap then
+							pp.x, pp.y = pp.x + (hz_dir * hz_key * grid_w), pp.y + (-vt_dir * vt_key * grid_h)
+						else
+							pp.x, pp.y = pp.x + (hz_dir * hz_key), pp.y + (-vt_dir * vt_key)
+						end
+					
+					else
+					
+						pp.x, pp.y = vertex_selection[i].x + (pp_one.x - vertex_selection[1].x), vertex_selection[i].y + (pp_one.y - vertex_selection[1].y)
+					
+					end
+				
+				end
+			
+			end
+			
+			if ((hz_dir == 0) and (vt_dir == 0)) and arrow_key_selection then
+				storeMovedVertices()
+				arrow_key_selection = false
+			end
+			
 		end
 		
 	else -- artboard is active
-	
-		if mouse_switch == _PRESS then
-		
-			if vertex_selection[1] ~= nil then
-			
-				local raw_x, raw_y = love.mouse.getX(), love.mouse.getY()
-				
-				if (raw_x < 64) or (raw_x > screen_width - 208) or (raw_y < 58) then
-					selection_and_ui_active = true
-				end
-			
-			end
-		
-		end
 	
 		if ((ui_active == false) or (ui_off_mouse_down)) then
 		
@@ -860,6 +1070,12 @@ function love.update(dt)
 	end
 	
 	if mouse_switch == _OFF and artboard.active == false and ((ui_active == false) or (ui_on_mouse_up)) then
+	
+		if input.ctrlCombo(d_key) and shape_selection_mode then
+			shape_selection_mode = false
+			shape_selection = {}
+			multi_shape_selection = false
+		end
 	
 		if input.ctrlCombo(d_key) and vertex_selection_mode then
 			vertex_selection_mode = false
@@ -1071,8 +1287,105 @@ function love.draw()
 	
 	end
 	
+	if polygons_exist and shape_selection[1] ~= nil then
+	
+		local n = 1
+		while n <= #shape_selection do
+		
+			local shape_index = ui.layer[shape_selection[n].index].count
+			
+			if polygon.data[shape_index].kind == "polygon" then
+			
+				local o = 1
+				local this_shape = polygon.data[shape_index].cache
+				while o <= #this_shape do
+					
+					lg.setColor(c_white)
+					local aa, bb = this_shape[o][1], this_shape[o][2]
+					local line_a, line_b = polygon.data[shape_index].raw[aa], polygon.data[shape_index].raw[bb]
+					local sc = camera_zoom
+					lg.line(line_a.x * sc, line_a.y * sc, line_b.x * sc, line_b.y * sc)
+					
+					lg.setShader(h_out3)
+					lg.setColor(c_black)
+					lg.line(line_a.x * sc, line_a.y * sc, line_b.x * sc, line_b.y * sc)
+					lg.setShader()
+					
+					o = o + 1
+				end
+			
+			elseif polygon.data[shape_index].kind == "ellipse" then
+			
+				local clone = polygon.data[shape_index]
+			
+				local sc = camera_zoom
+				if #clone.raw > 1 then
+				
+					-- Load points from raw
+					local aa, bb = clone.raw[1], clone.raw[2]
+					local cx, cy, cw, ch
+					
+					-- Calculate w/h
+					cw = math.abs(aa.x - bb.x) / 2
+					ch = math.abs(aa.y - bb.y) / 2
+					
+					-- Make x/y the points closest to the north west
+					if bb.x < aa.x then cx = bb.x else cx = aa.x end
+					if bb.y < aa.y then cy = bb.y else cy = aa.y end
+					
+					cx = cx + cw
+					cy = cy + ch
+					
+					local cseg, cang = clone.segments, clone._angle
+					
+					-- Ellipse vars
+					local v, k = 0, 0
+					local cinc = (360 / cseg)
+					local _rad, _cos, _sin = math.rad, math.cos, math.sin
+					
+					while k < cseg do
+		
+						local cx2, cy2, cx3, cy3, cxx2, cyy2, cxx3, cyy3
+						cx2 = polygon.lengthdir_x(cw, _rad(v))
+						cy2 = polygon.lengthdir_y(ch, _rad(v))
+						cx3 = polygon.lengthdir_x(cw, _rad(v + cinc))
+						cy3 = polygon.lengthdir_y(ch, _rad(v + cinc))
+						
+						if (cang % 360 ~= 0) then
+							local cang2 = _rad(-cang)
+							local cc, ss = _cos(cang2), _sin(cang2)
+							cxx2 = polygon.rotateX(cx2, cy2, 0, 0, cc, ss)
+							cyy2 = polygon.rotateY(cx2, cy2, 0, 0, cc, ss)
+							cxx3 = polygon.rotateX(cx3, cy3, 0, 0, cc, ss)
+							cyy3 = polygon.rotateY(cx3, cy3, 0, 0, cc, ss)
+						else -- Do less math if not rotating
+							cxx2, cyy2, cxx3, cyy3 = cx2, cy2, cx3, cy3
+						end
+						
+						lg.setColor(c_white)
+						lg.line((cx + cxx2) * sc, (cy + cyy2) * sc, (cx + cxx3) * sc, (cy + cyy3) * sc)
+						
+						lg.setShader(h_out3)
+						lg.setColor(c_black)
+						lg.line((cx + cxx2) * sc, (cy + cyy2) * sc, (cx + cxx3) * sc, (cy + cyy3) * sc)
+						lg.setShader()
+						
+						v = v + cinc
+						k = k + 1
+					
+					end
+				
+				end
+			
+			end
+			
+			n = n + 1
+		end
+	
+	end
+	
 	-- Draw spr_vertex on vertex locations
-	if polygon.data[tm.polygon_loc] ~= nil and artboard.active == false and ui.popup[1] == nil then
+	if polygon.data[tm.polygon_loc] ~= nil and artboard.active == false and ui.popup[1] == nil and shape_grabber == false then
 		
 		local clone = polygon.data[tm.polygon_loc]
 		
@@ -1095,7 +1408,7 @@ function love.draw()
 		
 	end
 	
-	if polygon.data[tm.polygon_loc] ~= nil and artboard.active == false and ui.popup[1] == nil and #vertex_selection >= 1 then
+	if polygon.data[tm.polygon_loc] ~= nil and artboard.active == false and ui.popup[1] == nil and #vertex_selection >= 1 and shape_grabber == false then
 	
 		local clone = polygon.data[tm.polygon_loc]
 		
