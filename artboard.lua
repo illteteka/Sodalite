@@ -68,7 +68,7 @@ function artboard.init()
 	lg.clear()
 	lg.setCanvas()
 	
-	artboard.brush_size = math.max(math.floor(document_w / 32), 1)
+	artboard.brush_size = math.max(math.floor(document_w / 128), 1)
 
 end
 

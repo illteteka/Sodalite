@@ -553,6 +553,8 @@ end
 
 function ui.shapeSelectButton()
 	if document_w ~= 0 then
+		box_selection_x = 0
+		box_selection_y = 0
 		if ui.toolbar[ui.toolbar_shape].active then
 			vertex_selection_mode = false
 			vertex_selection = {}
@@ -585,6 +587,9 @@ end
 
 function ui.selectionButton()
 	if document_w ~= 0 then
+		box_selection_x = 0
+		box_selection_y = 0
+		
 		if ui.toolbar[ui.toolbar_select].active then
 			zoom_grabber = false
 			ui.toolbar[ui.toolbar_zoom].active = true
@@ -2922,7 +2927,7 @@ function ui.update(dt)
 	
 	end
 	
-	if select_grabber and ui_active == false then
+	if select_grabber and artboard.active == false and ui_active == false then
 	
 		if mx > 64 and my > 54 and mx < screen_width - 208 then
 		
@@ -2939,71 +2944,157 @@ function ui.update(dt)
 			
 			if mouse_switch == _RELEASE then
 			
-				-- Selection end
-				if box_selection_active then
+				if shape_grabber then
 				
-					local sx, sy, sx2, sy2 = (box_selection_x - camera_x), (box_selection_y - camera_y), (mx / camera_zoom) - camera_x, (my / camera_zoom) - camera_y
-					if sx2 < sx then sx, sx2 = sx2, sx end
-					if sy2 < sy then sy, sy2 = sy2, sy end
-					local sw, sh = math.floor(sx2 - sx), math.floor(sy2 - sy)
-					sx, sy = math.floor(sx), math.floor(sy)
-					local vertex_selection_starting = #vertex_selection
-					local select_success = false
-				
-					if polygon.data[tm.polygon_loc] ~= nil then
-		
-						local clone = polygon.data[tm.polygon_loc]
+					if box_selection_active then
+					
+						local sx, sy, sx2, sy2 = (box_selection_x - camera_x), (box_selection_y - camera_y), (mx / camera_zoom) - camera_x, (my / camera_zoom) - camera_y
+						if sx2 < sx then sx, sx2 = sx2, sx end
+						if sy2 < sy then sy, sy2 = sy2, sy end
+						local sw, sh = math.floor(sx2 - sx), math.floor(sy2 - sy)
+						sx, sy = math.floor(sx), math.floor(sy)
+						local shape_selection_starting = #shape_selection
+						local select_success = false
+					
+						local n = 1
 						
-						local j = 1
-						while j <= #clone.raw do
+						while n <= #ui.layer do
+						
+							local contains_all_points = true
 							
-							local tx, ty = clone.raw[j].x, clone.raw[j].y
+							if polygon.data[ui.layer[n].count] ~= nil then
 							
-							if tx >= sx and tx <= sx + sw and ty >= sy and ty <= sy + sh then
+								local clone = polygon.data[ui.layer[n].count]
+								local j = 1
+								while j <= #clone.raw do
+									
+									local tx, ty = clone.raw[j].x, clone.raw[j].y
+									
+									if not (tx >= sx and tx <= sx + sw and ty >= sy and ty <= sy + sh) then
+										contains_all_points = false
+										j = #clone.raw + 1
+									end
+									
+									j = j + 1
 								
-								local vert_exists = false
+								end
+							
+							else
+								contains_all_points = false
+							end
+							
+							if contains_all_points then
+							
+								local shape_exists = false
 								local k = 1
-								while k <= vertex_selection_starting do
-									if vertex_selection[k].index == j then
-										vert_exists = true
-										k = #vertex_selection + 1
+								while k <= shape_selection_starting do
+									if shape_selection[k].index == j then
+										shape_exists = true
+										k = #shape_selection + 1
 									end
 									k = k + 1
 								end
-								
-								if not vert_exists then
-								
-									local moved_point = {}
-									moved_point.index = j
-									moved_point.x = tx
-									moved_point.y = ty
-									table.insert(vertex_selection, moved_point)
+
+								if not shape_exists then
+
+									local copy_shape = {}
+									copy_shape.index = n
+									copy_shape.x = 0
+									copy_shape.y = 0
+									table.insert(shape_selection, copy_shape)
 									select_success = true
-									vertex_selection_mode = true
-								
+									shape_selection_mode = true
+									multi_shape_selection = true
+
 								end
-								
+							
 							end
 							
-							j = j + 1
-						
+							n = n + 1
+							
 						end
 						
-					end
-					
-					if select_success then
-					
-						ui.selectionButton()
+						if select_success then
+						
+							ui.selectionButton()
+						
+						end
 					
 					end
 				
+					box_selection_x, box_selection_y = 0, 0
+					ui_active = true
+					box_selection_active = false
+				
+				else
+					
+					if box_selection_active then
+					
+						local sx, sy, sx2, sy2 = (box_selection_x - camera_x), (box_selection_y - camera_y), (mx / camera_zoom) - camera_x, (my / camera_zoom) - camera_y
+						if sx2 < sx then sx, sx2 = sx2, sx end
+						if sy2 < sy then sy, sy2 = sy2, sy end
+						local sw, sh = math.floor(sx2 - sx), math.floor(sy2 - sy)
+						sx, sy = math.floor(sx), math.floor(sy)
+						local vertex_selection_starting = #vertex_selection
+						local select_success = false
+					
+						if polygon.data[tm.polygon_loc] ~= nil then
+			
+							local clone = polygon.data[tm.polygon_loc]
+							
+							local j = 1
+							while j <= #clone.raw do
+								
+								local tx, ty = clone.raw[j].x, clone.raw[j].y
+								
+								if tx >= sx and tx <= sx + sw and ty >= sy and ty <= sy + sh then
+									
+									local vert_exists = false
+									local k = 1
+									while k <= vertex_selection_starting do
+										if vertex_selection[k].index == j then
+											vert_exists = true
+											k = #vertex_selection + 1
+										end
+										k = k + 1
+									end
+									
+									if not vert_exists then
+									
+										local moved_point = {}
+										moved_point.index = j
+										moved_point.x = tx
+										moved_point.y = ty
+										table.insert(vertex_selection, moved_point)
+										select_success = true
+										vertex_selection_mode = true
+									
+									end
+									
+								end
+								
+								j = j + 1
+							
+							end
+							
+						end
+						
+						if select_success then
+						
+							ui.selectionButton()
+						
+						end
+					
+					end
+				
+					box_selection_x, box_selection_y = 0, 0
+					ui_active = true
+					box_selection_active = false
+					
 				end
 			
-				box_selection_x, box_selection_y = 0, 0
-				ui_active = true
-				box_selection_active = false
 			end
-		
+			
 		end
 	
 	end

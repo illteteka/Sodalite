@@ -738,7 +738,7 @@ function love.update(dt)
 
 	if ui.popup[1] == nil and document_w ~= 0 then
 	
-	if shape_grabber and artboard.active == false and not zoom_grabber and not color_grabber and ((ui_active == false) or (ui_off_mouse_down)) then
+	if shape_grabber and not select_grabber and artboard.active == false and not zoom_grabber and not color_grabber and ((ui_active == false) or (ui_off_mouse_down)) then
 	
 		if last_shape_grabbed ~= -1 then
 			double_click_timer = double_click_timer + (60 * dt)
@@ -922,7 +922,7 @@ function love.update(dt)
 	
 	if artboard.active == false and ((ui_active == false) or (ui_off_mouse_down)) then
 	
-		if shape_grabber == false then
+		if shape_grabber == false and not select_grabber then
 	
 			if polygon.data[tm.polygon_loc] ~= nil and input.ctrlCombo(a_key) and vertex_selection_mode == false then
 			
