@@ -43,6 +43,15 @@ u_key = _OFF
 t_key = _OFF
 r_key = _OFF
 e_key = _OFF
+num_1_key = _OFF
+num_2_key = _OFF
+num_3_key = _OFF
+num_4_key = _OFF
+num_5_key = _OFF
+num_6_key = _OFF
+num_7_key = _OFF
+num_8_key = _OFF
+num_9_key = _OFF
 space_key = _OFF
 tab_key = _OFF
 enter_key = _OFF
@@ -534,6 +543,16 @@ function love.update(dt)
 	y_key = input.pullSwitch(love.keyboard.isDown("y"), y_key)
 	z_key = input.pullSwitch(love.keyboard.isDown("z"), z_key)
 	
+	num_1_key = input.pullSwitch(love.keyboard.isDown("1"), num_1_key)
+	num_2_key = input.pullSwitch(love.keyboard.isDown("2"), num_2_key)
+	num_3_key = input.pullSwitch(love.keyboard.isDown("3"), num_3_key)
+	num_4_key = input.pullSwitch(love.keyboard.isDown("4"), num_4_key)
+	num_5_key = input.pullSwitch(love.keyboard.isDown("5"), num_5_key)
+	num_6_key = input.pullSwitch(love.keyboard.isDown("6"), num_6_key)
+	num_7_key = input.pullSwitch(love.keyboard.isDown("7"), num_7_key)
+	num_8_key = input.pullSwitch(love.keyboard.isDown("8"), num_8_key)
+	num_9_key = input.pullSwitch(love.keyboard.isDown("9"), num_9_key)
+	
 	up_key = input.pullSwitch(love.keyboard.isDown("up"), up_key)
 	down_key = input.pullSwitch(love.keyboard.isDown("down"), down_key)
 	left_key = input.pullSwitch(love.keyboard.isDown("left"), left_key)
@@ -734,6 +753,55 @@ function love.update(dt)
 	
 	end
 	
+	if (ui.popup[1] == nil) and (ui.context_menu[1] == nil) and (ui.active_textbox == "") then
+	
+		if num_1_key == _PRESS and ui_active == false then
+			ui.pickColorButton()
+			ui_active = true
+		end
+		
+		if num_2_key == _PRESS and ui_active == false then
+			ui.zoomButton()
+			ui_active = true
+		end
+		
+		if num_3_key == _PRESS and ui_active == false then
+			ui.gridButton()
+			ui_active = true
+		end
+		
+		if num_4_key == _PRESS and ui_active == false then
+			ui.selectionButton()
+			ui_active = true
+		end
+		
+		if num_5_key == _PRESS and ui_active == false then
+			ui.previewButton()
+			ui_active = true
+		end
+		
+		if num_6_key == _PRESS and ui_active == false then
+			ui.shapeSelectButton()
+			ui_active = true
+		end
+		
+		if num_7_key == _PRESS and ui_active == false then
+			ui.triangleButton()
+			ui_active = true
+		end
+		
+		if num_8_key == _PRESS and ui_active == false then
+			ui.ellipseButton()
+			ui_active = true
+		end
+		
+		if num_9_key == _PRESS and ui_active == false then
+			ui.artboardButton()
+			ui_active = true
+		end
+	
+	end
+	
 	ui_on_mouse_up = (ui_active == true) and (mouse_switch == _OFF)
 
 	if ui.popup[1] == nil and document_w ~= 0 then
@@ -922,7 +990,7 @@ function love.update(dt)
 	
 	if artboard.active == false and ((ui_active == false) or (ui_off_mouse_down)) then
 	
-		if shape_grabber == false and not select_grabber then
+		if shape_grabber == false and not select_grabber and not zoom_grabber then
 	
 			if polygon.data[tm.polygon_loc] ~= nil and input.ctrlCombo(a_key) and vertex_selection_mode == false then
 			
@@ -1253,6 +1321,21 @@ function love.draw()
 			lg.draw(artboard.canvas, 0, 0, 0, camera_zoom)
 		end
 	
+		polygon.draw(true)
+	
+		if not artboard.draw_top and artboard.canvas ~= nil then
+			local artcol = {1, 1, 1, artboard.opacity}
+			
+			lg.setColor(artcol)
+			lg.draw(artboard.canvas, 0, 0, 0, camera_zoom)
+		end
+	
+		if artboard.draw_top and artboard.canvas ~= nil then
+			local artcol = {1, 1, 1, artboard.opacity}
+			lg.setColor(artcol)
+			lg.draw(artboard.canvas, 0, 0, 0, camera_zoom)
+		end
+	
 		if ui.toolbar[ui.toolbar_grid].active == false then
 			lg.setColor(1,1,1,0.25)
 		
@@ -1272,15 +1355,6 @@ function love.draw()
 		lg.rectangle("line", 0, 0, document_w * camera_zoom, document_h * camera_zoom)
 		lg.setColor(c_white)
 	
-	end
-	
-	polygon.draw(true)
-	
-	if not artboard.draw_top and artboard.canvas ~= nil then
-		local artcol = {1, 1, 1, artboard.opacity}
-		
-		lg.setColor(artcol)
-		lg.draw(artboard.canvas, 0, 0, 0, camera_zoom)
 	end
 	
 	-- Draw lines while editing a shape

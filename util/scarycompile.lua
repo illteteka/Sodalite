@@ -14,7 +14,7 @@ for line in handle:lines() do
 			table.insert(BINS, line)
 		elseif string.match(line, ".lua") then
 			table.insert(LUAS, line)
-		elseif not (string.match(line, ".bat") or string.match(line, "util") or string.match(line, "compile")) then
+		elseif not (string.match(line, ".bat") or string.match(line, "util") or string.match(line, "compile") or string.match(line, "samples")) then
 			table.insert(DIRS, line)
 		end
 		

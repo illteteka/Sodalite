@@ -614,7 +614,7 @@ function polygon.draw(skip_in_preview)
 			-- Draw selected vertices
 			local verts_selected = vertex_selection[1] ~= nil
 			local mx, my = mouse_x, mouse_y
-			if ui.layer[i].count == tm.polygon_loc and verts_selected and skip_in_preview and shape_grabber == false then
+			if ui.layer[i].count == tm.polygon_loc and verts_selected and skip_in_preview and shape_grabber == false and artboard.active == false then
 			
 				-- Draw spr_vertex_mask on vertex locations
 				

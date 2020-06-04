@@ -129,16 +129,16 @@ function ui.init()
 	ui.addTitle("Help",     ".help")
 	
 	-- Add toolbar items
-	ui.toolbar_shape = ui.addTool("Shape Selection",      icon_cursorw,  ".main")
-	ui.toolbar_select = ui.addTool("Box Selection",      icon_select,  ".select")
-	ui.toolbar_grid = ui.addTool("Grid",          icon_grid,     ".grid")
-	ui.toolbar_zoom = ui.addTool("Zoom",          icon_zoom,     ".zoom")
-	ui.toolbar_pick = ui.addTool("Color Grabber", icon_pick,     ".pick")
-	ui.toolbar_preview = ui.addTool("Preview",       icon_look,     ".prev")
+	ui.toolbar_shape = ui.addTool("Shape Selection Tool (6)",      icon_cursorw,  ".main")
+	ui.toolbar_select = ui.addTool("Box Selection Tool (4)",      icon_select,  ".select")
+	ui.toolbar_grid = ui.addTool("Grid Tool (3)",          icon_grid,     ".grid")
+	ui.toolbar_zoom = ui.addTool("Zoom Tool (2)",          icon_zoom,     ".zoom")
+	ui.toolbar_pick = ui.addTool("Color Grabber (1)", icon_pick,     ".pick")
+	ui.toolbar_preview = ui.addTool("Preview Window (5)",       icon_look,     ".prev")
 	ui.addToolBreak()
-	ui.toolbar_polygon  = ui.addTool("Polygon",       icon_triangle, ".tri")
-	ui.toolbar_ellipse  = ui.addTool("Ellipse",       icon_circle,   ".circ")
-	ui.toolbar_artboard = ui.addTool("Free Draw",     icon_draw,     ".artb")
+	ui.toolbar_polygon  = ui.addTool("Polygon Tool (7)",       icon_triangle, ".tri")
+	ui.toolbar_ellipse  = ui.addTool("Ellipse Tool (8)",       icon_circle,   ".circ")
+	ui.toolbar_artboard = ui.addTool("Free Draw (9)",     icon_draw,     ".artb")
 	ui.addToolBreak()
 	ui.toolbar_undo = ui.addTool("Undo",          icon_undo,     ".undo")
 	ui.toolbar_redo = ui.addTool("Redo",          icon_redo,     ".redo")
@@ -553,6 +553,7 @@ end
 
 function ui.shapeSelectButton()
 	if document_w ~= 0 then
+		ui.active_textbox = ""
 		box_selection_x = 0
 		box_selection_y = 0
 		if ui.toolbar[ui.toolbar_shape].active then
@@ -589,8 +590,17 @@ function ui.selectionButton()
 	if document_w ~= 0 then
 		box_selection_x = 0
 		box_selection_y = 0
+		ui.active_textbox = ""
 		
 		if ui.toolbar[ui.toolbar_select].active then
+			if zoom_grabber then
+				love.mouse.setCursor()
+			end
+			
+			if shape_grabber then
+				love.mouse.setCursor(cursor_shape)
+			end
+			
 			zoom_grabber = false
 			ui.toolbar[ui.toolbar_zoom].active = true
 			local keep_grid = ui.toolbar[ui.toolbar_grid].active == false
@@ -611,6 +621,111 @@ function ui.selectionButton()
 			end
 		end
 	end
+end
+
+function ui.gridButton()
+
+	if document_w ~= 0 then
+		ui.active_textbox = ""
+		if ui.toolbar[ui.toolbar_grid].active then
+			love.mouse.setCursor()
+			zoom_grabber = false
+			ui.toolbar[ui.toolbar_zoom].active = true
+			select_grabber = false
+			ui.toolbar[ui.toolbar_select].active = true
+			ui.panelGrid()
+			ui.toolbar[ui.toolbar_grid].active = false
+		else
+			zoom_grabber = false
+			ui.toolbar[ui.toolbar_zoom].active = true
+			select_grabber = false
+			ui.toolbar[ui.toolbar_select].active = true
+			ui.panelReset()
+			ui.toolbar[ui.toolbar_grid].active = true
+		end
+	end
+
+end
+
+function ui.zoomButton()
+
+	if document_w ~= 0 then
+		ui.active_textbox = ""
+		if ui.toolbar[ui.toolbar_zoom].active then
+			select_grabber = false
+			ui.toolbar[ui.toolbar_select].active = true
+			zoom_grabber = true
+			ui.panelZoom()
+			ui.toolbar[ui.toolbar_zoom].active = false
+		else
+			love.mouse.setCursor()
+			local open_grid = ui.toolbar[ui.toolbar_grid].active == false
+			zoom_grabber = false
+			ui.panelReset()
+			ui.toolbar[ui.toolbar_zoom].active = true
+			if open_grid then
+				ui.panelGrid()
+				ui.toolbar[ui.toolbar_grid].active = false
+			end
+		end
+	end
+
+end
+
+function ui.pickColorButton()
+
+	if document_w ~= 0 then
+		ui.active_textbox = ""
+		select_grabber = false
+		ui.toolbar[ui.toolbar_select].active = true
+		color_grabber = true
+		love.mouse.setCursor(cursor_pick)
+		ui.toolbar[ui.toolbar_pick].active = false
+	end
+
+end
+
+function ui.previewButton()
+
+	if document_w ~= 0 then
+		ui.active_textbox = ""
+		ui.textbox_selection_origin = "preview"
+		ui.popupLoseFocus("preview")
+		ui.preview_active = not ui.preview_active
+	end
+
+end
+
+function ui.triangleButton()
+
+	if ui.toolbar[ui.toolbar_polygon].active then
+		ui.active_textbox = ""
+		artboard.active = false
+		polygon.kind = "polygon"
+		ui.panelPolygon()
+	end
+
+end
+
+function ui.ellipseButton()
+
+	if ui.toolbar[ui.toolbar_ellipse].active then
+		ui.active_textbox = ""
+		artboard.active = false
+		polygon.kind = "ellipse"
+		ui.panelEllipse()
+	end
+
+end
+
+function ui.artboardButton()
+
+	if ui.toolbar[ui.toolbar_artboard].active then
+		ui.active_textbox = ""
+		artboard.active = true
+		ui.panelArtboard()
+	end
+
 end
 
 function ui.addCMBreak()
@@ -1819,85 +1934,31 @@ function ui.update(dt)
 					
 				elseif tool.ref == ".grid" then
 				
-					if document_w ~= 0 then
-						if ui.toolbar[ui.toolbar_grid].active then
-							zoom_grabber = false
-							ui.toolbar[ui.toolbar_zoom].active = true
-							select_grabber = false
-							ui.toolbar[ui.toolbar_select].active = true
-							ui.panelGrid()
-							ui.toolbar[ui.toolbar_grid].active = false
-						else
-							zoom_grabber = false
-							ui.toolbar[ui.toolbar_zoom].active = true
-							select_grabber = false
-							ui.toolbar[ui.toolbar_select].active = true
-							ui.panelReset()
-							ui.toolbar[ui.toolbar_grid].active = true
-						end
-					end
+					ui.gridButton()
 					
 				elseif tool.ref == ".zoom" then
 					
-					if document_w ~= 0 then
-						if ui.toolbar[ui.toolbar_zoom].active then
-							select_grabber = false
-							ui.toolbar[ui.toolbar_select].active = true
-							zoom_grabber = true
-							ui.panelZoom()
-							ui.toolbar[ui.toolbar_zoom].active = false
-						else
-							local open_grid = ui.toolbar[ui.toolbar_grid].active == false
-							zoom_grabber = false
-							ui.panelReset()
-							ui.toolbar[ui.toolbar_zoom].active = true
-							if open_grid then
-								ui.panelGrid()
-								ui.toolbar[ui.toolbar_grid].active = false
-							end
-						end
-					end
+					ui.zoomButton()
 					
 				elseif tool.ref == ".pick" then
 				
-					if document_w ~= 0 then
-						select_grabber = false
-						ui.toolbar[ui.toolbar_select].active = true
-						color_grabber = true
-						love.mouse.setCursor(cursor_pick)
-						ui.toolbar[ui.toolbar_pick].active = false
-					end
+					ui.pickColorButton()
 					
 				elseif tool.ref == ".prev" then
 					
-					if document_w ~= 0 then
-						ui.textbox_selection_origin = "preview"
-						ui.popupLoseFocus("preview")
-						ui.preview_active = not ui.preview_active
-					end
+					ui.previewButton()
 					
 				elseif tool.ref == ".tri" then
 					
-					if ui.toolbar[ui.toolbar_polygon].active then
-						artboard.active = false
-						polygon.kind = "polygon"
-						ui.panelPolygon()
-					end
+					ui.triangleButton()
 					
 				elseif tool.ref == ".circ" then
 					
-					if ui.toolbar[ui.toolbar_ellipse].active then
-						artboard.active = false
-						polygon.kind = "ellipse"
-						ui.panelEllipse()
-					end
+					ui.ellipseButton()
 					
 				elseif tool.ref == ".artb" then
 					
-					if ui.toolbar[ui.toolbar_artboard].active then
-						artboard.active = true
-						ui.panelArtboard()
-					end
+					ui.artboardButton()
 					
 				elseif tool.ref == ".undo" then
 					
