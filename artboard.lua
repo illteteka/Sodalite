@@ -8,6 +8,7 @@ artboard.draw_top = false
 artboard.opacity = 1
 artboard.brush_size = 1
 artboard.edited = false
+artboard.export = nil
 
 artboard.step_location = 0
 artboard.length = 0
@@ -27,28 +28,35 @@ function recursivelyDelete( item )
 	love.filesystem.remove( item )
 end
 
-function artboard.init()
+function artboard.init(reinit)
 
-	-- Clear undo cache
-	if love.filesystem.getInfo("cache") == nil then
-		love.filesystem.createDirectory("cache")
-	else
-		recursivelyDelete("cache")
-		love.filesystem.createDirectory("cache")
-	end
+	if not reinit then
+		-- Clear undo cache
+		if love.filesystem.getInfo("cache") == nil then
+			love.filesystem.createDirectory("cache")
+		else
+			recursivelyDelete("cache")
+			love.filesystem.createDirectory("cache")
+		end
 	
-	artboard.edited = false
-	artboard.step_location = 0
-	artboard.length = 0
-	artboard.offset = 0
-	artboard.opacity = 1
+		artboard.edited = false
+		artboard.step_location = 0
+		artboard.length = 0
+		artboard.offset = 0
+		artboard.opacity = 1
+	end
 
 	-- Reset canvas and collect garbage
 	if artboard.canvas ~= nil then
 		artboard.canvas:release()
 	end
 	
+	if artboard.export ~= nil then
+		artboard.export:release()
+	end
+	
 	artboard.canvas = nil
+	artboard.export = nil
 	collectgarbage()
 	collectgarbage()
 
@@ -63,12 +71,24 @@ function artboard.init()
 	artboard.canvas = lg.newCanvas(artboard.w, artboard.h)
 	artboard.canvas:setFilter("nearest", "nearest")
 	
+	artboard.export = lg.newCanvas(artboard.w, artboard.h)
+	artboard.export:setFilter("nearest", "nearest")
+	
 	-- Clear canvas
 	lg.setCanvas(artboard.canvas)
 	lg.clear()
 	lg.setCanvas()
 	
+	lg.setCanvas(artboard.export)
+	lg.clear()
+	lg.setCanvas()
+	
 	artboard.brush_size = math.max(math.floor(document_w / 128), 1)
+	
+	if reinit then
+		artboard.step_location = artboard.step_location - 1
+		artboard.redo()
+	end
 
 end
 
@@ -142,6 +162,21 @@ function artboard.saveCache(export)
 	end
 	
 	local save_state = artboard.canvas:newImageData() 
+	save_state:encode("png", fname)
+	save_state = nil
+
+end
+
+function artboard.savePNG()
+
+	if love.filesystem.getInfo("cache") == nil then
+		love.filesystem.createDirectory("cache")
+	end
+	
+	local fname = ""
+	fname = "cache/export.png"
+	
+	local save_state = artboard.export:newImageData() 
 	save_state:encode("png", fname)
 	save_state = nil
 

@@ -213,9 +213,69 @@ function export.saveArtboard()
 		local save_png = io.open(prefix .. document_name .. ".png", "wb")
 		save_png:write(copy_str)
 		save_png:close()
+		love.filesystem.remove("cache/export.png")
 	
 	end
 	
+end
+
+function export.savePNG()
+
+	local old_zoom = camera_zoom
+	camera_zoom = 1
+	
+	lg.setCanvas(artboard.export)
+	lg.clear()
+	lg.push()
+	lg.setScissor(0, 0, artboard.w, artboard.h)
+	lg.translate(0, 0)
+	
+	if artboard.draw_top and artboard.canvas ~= nil and artboard.edited then
+		local artcol = {1, 1, 1, artboard.opacity}
+		lg.setColor(artcol)
+		lg.draw(artboard.canvas, 0, 0, 0, 1)
+	end
+
+	polygon.draw(false)
+
+	if not artboard.draw_top and artboard.canvas ~= nil and artboard.edited then
+		local artcol = {1, 1, 1, artboard.opacity}
+		
+		lg.setColor(artcol)
+		lg.draw(artboard.canvas, 0, 0, 0, 1)
+	end
+	
+	lg.pop()
+	
+	if (document_w < artboard.w) or (document_h < artboard.h) then
+		lg.setColor(0,0,0,0)
+		lg.setBlendMode("replace", "premultiplied")
+		lg.rectangle("fill", document_w + 1, 0, artboard.w - document_w, artboard.h)
+		lg.rectangle("fill", 0, document_h + 1, artboard.w, artboard.h - document_h)
+		lg.setBlendMode("alpha")
+	end
+	
+	lg.setCanvas()
+	
+	camera_zoom = old_zoom
+	
+	artboard.savePNG()
+	
+	local copy_png = io.open(love.filesystem.getSaveDirectory() .. "/cache/export.png", "rb")
+	local copy_str = copy_png:read("*a")
+	copy_png:close()
+	
+	local prefix = ""
+	if love ~= nil then
+		prefix = love.filesystem.getSourceBaseDirectory() .. "/"
+	end
+	
+	os.remove(prefix .. document_name .. ".png")
+	local save_png = io.open(prefix .. document_name .. "_export.png", "wb")
+	save_png:write(copy_str)
+	save_png:close()
+	love.filesystem.remove("cache/export.png")
+
 end
 
 return export

@@ -195,7 +195,7 @@ function ui.loadCM(x, y, ref)
 		ui.addCM("Save As...",  false, "f.as")
 		ui.addCMBreak()
 		ui.addCM("Export .svg", can_save, "f.svg")
-		ui.addCM("Export .png", false, "f.png")
+		ui.addCM("Export .png", can_save, "f.png")
 		ui.addCMBreak()
 		ui.addCM("Exit",        false, "f.exit")
 		ui.generateCM(x, y)
@@ -211,7 +211,7 @@ function ui.loadCM(x, y, ref)
 		
 	elseif ref == ".image" then
 	
-		ui.addCM("Document setup...", false, "i.setup")
+		ui.addCM("Document setup...", document_w ~= 0, "i.setup")
 		ui.addCMBreak()
 		ui.addCM("Center camera", document_w ~= 0, "i.center", ctrl_id .. "+G")
 		ui.addCM("Clear canvas", document_w ~= 0 and artboard.active, "i.clear", ctrl_id .. "+R")
@@ -243,7 +243,7 @@ function ui.loadPopup(ref)
 
 		ui.popup = {}
 		
-		if ref == "f.new" then
+		if ref == "f.new" or ref == "i.setup" then
 			storeMovedVertices()
 			vertex_selection_mode = false
 			vertex_selection = {}
@@ -252,13 +252,25 @@ function ui.loadPopup(ref)
 			shape_selection = {}
 			multi_shape_selection = false
 		
-			ui.addPopup("New document", "f.new", "col")
+			local start_w, start_h, start_name = 512, 512, "Untitled"
+			if ref == "i.setup" then
+				ui.addPopup("Document setup", "i.setup", "col")
+				start_w = document_w
+				start_h = document_h
+				start_name = document_name
+			else
+				ui.addPopup("New document", "f.new", "col")
+				if document_w ~= 0 then
+					start_w = document_w
+					start_h = document_h
+				end
+			end
 			ui.addPopup("Name:", "text", "col")
-			ui.addPopup("Untitled", "textbox", "row")
+			ui.addPopup(start_name, "textbox", "row")
 			ui.addPopup("Width:", "text", "col")
-			ui.addPopup("512", "number", "row")
+			ui.addPopup(start_w, "number", "row")
 			ui.addPopup("Height:", "text", "col")
-			ui.addPopup("512", "number", "row")
+			ui.addPopup(start_h, "number", "row")
 			ui.addPopup("OK", "ok", "col")
 			ui.addPopup("Cancel", "cancel", "row")
 			ui.generatePopup()
@@ -289,6 +301,10 @@ function ui.loadPopup(ref)
 		
 		if ref == "f.svg" then
 			export.saveSVG()
+		end
+		
+		if ref == "f.png" then
+			export.savePNG()
 		end
 		
 		if ref == "e.pcopy" then
@@ -1122,7 +1138,7 @@ function ui.keyboardHit(key)
 		local this_menu = ui.popup[ui.popup_sel_a][ui.popup_sel_b]
 		if string.len(key) == 1 then
 		
-			if ui.popup[1][1].kind == "f.new" then
+			if ui.popup[1][1].kind == "f.new" or ui.popup[1][1].kind == "i.setup" then
 			
 				if this_menu.kind == "number" then
 					if tonumber(key) ~= nil and string.len(this_menu.name) < 5 then
@@ -3046,7 +3062,7 @@ function ui.update(dt)
 		-- Scroll inputs with tab
 		if tab_key == _PRESS and ui.popup_sel_a ~= 0 and ui.popup_sel_b ~= 0 then
 			
-			if ui.popup[1][1].kind == "f.new" then
+			if ui.popup[1][1].kind == "f.new" or ui.popup[1][1].kind == "i.setup" then
 			
 				local oa = ui.popup_sel_a
 				ui.popupLoseFocus(ui.popup[1][1].kind)
@@ -3069,14 +3085,25 @@ function ui.update(dt)
 		
 			local pop_kind = ui.popup[1][1].kind
 			
-			if pop_kind == "f.new" and ui.popup_enter == false then
+			if (pop_kind == "f.new" or pop_kind == "i.setup") and ui.popup_enter == false then
 				-- OK button
 				ui.popupLoseFocus(ui.popup[1][1].kind)
 				document_name = ui.popup[2][2].name
 				document_w = tonumber(ui.popup[3][2].name)
 				document_h = tonumber(ui.popup[4][2].name)
 				
-				resetEditor(true, true)
+				if pop_kind == "i.setup" then
+					camera_zoom = 1
+					resetCamera()
+					artboard.init(true)
+					-- Exit popup
+					ui.popup = {}
+					ui_active = true
+					ui.context_menu = {}
+					ui.title_active = false
+				else
+					resetEditor(true, true)
+				end
 				updateTitle()
 			end
 			
@@ -3160,13 +3187,20 @@ function ui.update(dt)
 									ui.active_textbox = ui.popup[i][j].name
 									ui.textbox_selection_origin = "popup"
 									ui.popup_sel_a, ui.popup_sel_b = i, j
-								elseif kind == "ok" and ui.popup[1][1].kind == "f.new" then -- OK button for f.new (new document)
+								elseif kind == "ok" and (ui.popup[1][1].kind == "f.new" or ui.popup[1][1].kind == "i.setup") then -- OK button for f.new (new document)
 									ui.popupLoseFocus(ui.popup[1][1].kind)
 									document_name = ui.popup[2][2].name
 									document_w = tonumber(ui.popup[3][2].name)
 									document_h = tonumber(ui.popup[4][2].name)
 									
-									resetEditor(false, true)
+									if ui.popup[1][1].kind == "i.setup" then
+										camera_zoom = 1
+										resetCamera()
+										artboard.init(true)
+									else
+										resetEditor(false, true)
+									end
+									
 									updateTitle()
 									
 									exit_pop = true
