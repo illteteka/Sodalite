@@ -197,7 +197,7 @@ function ui.loadCM(x, y, ref)
 		ui.addCM("Export .svg", can_save, "f.svg")
 		ui.addCM("Export .png", can_save, "f.png")
 		ui.addCMBreak()
-		ui.addCM("Exit",        false, "f.exit")
+		ui.addCM("Exit",        true, "f.exit")
 		ui.generateCM(x, y)
 	
 	elseif ref == ".edit" then
@@ -384,6 +384,31 @@ function ui.loadPopup(ref)
 			else
 				artboard.redo()
 			end
+		end
+		
+		if ref == "f.exit" then
+		
+			if document_w ~= 0 then
+				safe_to_quit = false
+				storeMovedVertices()
+				vertex_selection_mode = false
+				vertex_selection = {}
+				storeMovedShapes()
+				shape_selection_mode = false
+				shape_selection = {}
+				multi_shape_selection = false
+			
+				ui.addPopup("Save?", "f.exit", "col")
+				ui.addPopup("Do you want to save changes to " .. document_name .. ".soda?", "text", "col")
+				ui.addPopup("Save", "save", "col")
+				ui.addPopup("Discard", "discard", "row")
+				ui.addPopup("Cancel", "cancel", "row")
+				ui.generatePopup()
+			else
+				safe_to_quit = true
+				love.event.quit()
+			end
+		
 		end
 	
 	end
@@ -3164,9 +3189,24 @@ function ui.update(dt)
 							end
 							bw = 35
 							bh = 25
+						elseif kind == "save" then
+							bx = math.floor(px + (pw / 2) - 20 - 22 - (pw / 6) - 4) - 8
+							by = math.floor(py + 25 + h + 6) - 3
+							bw = 44
+							bh = 25
+						elseif kind == "discard" then
+							bx = math.floor(px + (pw / 2) - 21 - 4 - 2) - 7
+							by = math.floor(py + 25 + h + 6) - 3
+							bw = 58
+							bh = 25
 						elseif kind == "cancel" then
-							bx = px + (pw / 2) + 32 - 19 - 8
-							by = py + 25 + h + 6 - 3
+							if ui.popup[1][1].kind == "f.exit" then
+								bx = math.floor(px + (pw / 2) - 21 + 32 + (pw / 6) - 4) - 8
+								by = math.floor(py + 25 + h + 6) - 3
+							else
+								bx = px + (pw / 2) + 32 - 19 - 8
+								by = py + 25 + h + 6 - 3
+							end
 							bw = 55
 							bh = 25
 						end
@@ -3204,10 +3244,23 @@ function ui.update(dt)
 									updateTitle()
 									
 									exit_pop = true
+								elseif kind == "save" then
+									safe_to_quit = true
+									export.saveLOL()
+									export.saveArtboard()
+									love.event.quit()
+									exit_pop = true
+								elseif kind == "discard" then
+									safe_to_quit = true
+									love.event.quit()
+									exit_pop = true
 								elseif kind == "ok" and ui.popup[1][1].kind == "h.about" then
 									ui.popupLoseFocus(ui.popup[1][1].kind)
 									exit_pop = true
 								elseif kind == "cancel" then
+									if ui.popup[1][1].kind == "f.exit" then
+										safe_to_quit = false
+									end
 									exit_pop = true
 								end
 								
@@ -4467,6 +4520,8 @@ function ui.draw()
 				if kind == "text" then
 					if ui.popup[1][1].kind == "h.about" then
 						lg.print(name, math.floor(px + pw - font:getWidth(name) - 24), math.floor(py + 25 + h))
+					elseif ui.popup[1][1].kind == "f.exit" then
+						lg.print(name, math.floor(px + 24), math.floor(py + 25 + h))
 					else
 						lg.print(name, math.floor(px + (pw / 2) - font:getWidth(name) - 12 + pxo), math.floor(py + 25 + h))
 					end
@@ -4496,10 +4551,27 @@ function ui.draw()
 					
 					ui.drawOutline(bx - 8, by - 3, 35, 25, true)
 					lg.print(name, bx, by)
+				elseif kind == "save" then
+					local bx, by
+					bx = math.floor(px + (pw / 2) - 20 - 22 - (pw / 6) - 4)
+					by = math.floor(py + 25 + h + 6)
+					ui.drawOutline(bx - 8, by - 3, 44, 25, true)
+					lg.print(name, bx, by)
+				elseif kind == "discard" then
+					local bx, by
+					bx = math.floor(px + (pw / 2) - 21 - 4 - 2)
+					by = math.floor(py + 25 + h + 6)
+					ui.drawOutline(bx - 7, by - 3, 58, 25, true)
+					lg.print(name, bx, by)
 				elseif kind == "cancel" then
 					local bx, by
-					bx = math.floor(px + (pw / 2) + 32 - 19)
-					by = math.floor(py + 25 + h + 6)
+					if ui.popup[1][1].kind == "f.exit" then
+						bx = math.floor(px + (pw / 2) - 21 + 32 + (pw / 6) - 4)
+						by = math.floor(py + 25 + h + 6)
+					else
+						bx = math.floor(px + (pw / 2) + 32 - 19)
+						by = math.floor(py + 25 + h + 6)
+					end
 					ui.drawOutline(bx - 8, by - 3, 55, 25, true)
 					lg.print(name, bx, by)
 				end
@@ -4571,6 +4643,26 @@ function ui.draw()
 			end
 		
 		end
+	
+	end
+	
+	-- Draw global message
+	if global_message_timer > 0 then
+	
+		local gmo = 1
+		if global_message_timer <= 60 then
+			gmo = (global_message_timer / 60)
+		end
+		
+		local gmx, gmy = (screen_width/2) - (font_big:getWidth(global_message)/2) - 104 + 32, screen_height - 48
+		gmx, gmy = math.floor(gmx), math.floor(gmy)
+		lg.setFont(font_big)
+		lg.setColor({0,0,0,gmo})
+		lg.print(global_message, gmx + 2, gmy + 2)
+		lg.setColor({1,1,1,gmo})
+		lg.print(global_message, gmx, gmy)
+		lg.setFont(font)
+		lg.setColor(c_white)
 	
 	end
 	

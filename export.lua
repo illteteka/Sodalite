@@ -69,6 +69,9 @@ function export.saveLOL()
 	
 	file:flush()
 	file:close()
+	
+	global_message = "Document saved to " .. prefix .. document_name .. ".soda"
+	global_message_timer = 60*5
 
 end
 
@@ -191,6 +194,9 @@ function export.saveSVG()
 
 	file:flush()
 	file:close()
+	
+	global_message = "Image exported to " .. prefix .. document_name .. ".svg"
+	global_message_timer = 60*5
 
 end
 
@@ -275,6 +281,9 @@ function export.savePNG()
 	save_png:write(copy_str)
 	save_png:close()
 	love.filesystem.remove("cache/export.png")
+	
+	global_message = "Image exported to " .. prefix .. document_name .. "_export.png"
+	global_message_timer = 60*5
 
 end
 

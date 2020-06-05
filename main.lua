@@ -134,6 +134,11 @@ last_shape_grabbed = -1
 double_click_timer = 0
 lock_preview_vertices = false
 
+global_message = ""
+global_message_timer = 0
+
+safe_to_quit = false
+
 function resetEditor(exit_popup, add_layer)
 
 	ui.preview_zoom = 1
@@ -402,6 +407,7 @@ function love.load()
 	love.window.setTitle("Sodalite")
 	
 	font = lg.newFont("opensans.ttf", 13)
+	font_big = lg.newFont("opensans.ttf", 23)
 	lg.setFont(font)
 	
 	grad_large = lg.newImage("textures/gradient_large.png")
@@ -546,6 +552,8 @@ function love.update(dt)
 	mouse_x_previous, mouse_y_previous = mouse_x, mouse_y
 	local mx, my = math.floor(love.mouse.getX() / camera_zoom), math.floor(love.mouse.getY() / camera_zoom)
 	mouse_x, mouse_y = mx, my
+	
+	global_message_timer = math.max(global_message_timer - (dt * 60), 0)
 
 	-- Update input
 	input.update(dt)
@@ -1636,8 +1644,15 @@ function drawRect(s,x,y,w,h)
 end
 
 function love.quit()
-	recursivelyDelete("cache")
-	--return true
+	if not safe_to_quit then
+		ui.loadPopup("f.exit")
+	end
+
+	if ui.popup[1] == nil and safe_to_quit then
+		recursivelyDelete("cache")
+	end
+	
+	return not (ui.popup[1] == nil and safe_to_quit)
 end
 
 function print_r ( t )
