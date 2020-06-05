@@ -264,6 +264,24 @@ function ui.loadPopup(ref)
 			ui.generatePopup()
 		end
 		
+		if ref == "h.about" then
+			storeMovedVertices()
+			vertex_selection_mode = false
+			vertex_selection = {}
+			storeMovedShapes()
+			shape_selection_mode = false
+			shape_selection = {}
+			multi_shape_selection = false
+		
+			ui.addPopup("About Sodalite", "h.about", "col")
+			ui.addPopup("Sodalite v0.1 beta (build 1)", "text", "col")
+			ui.addPopup("https://illteteka.itch.io/", "text", "col")
+			ui.addPopup("Sample artwork courtesy of Sunny Faucher and Chris Bradshaw", "text", "col")
+			ui.addPopup("Sodalite © 2020 Nick Gilmartin. All Rights Reserved.", "text", "col")
+			ui.addPopup("OK", "ok", "col")
+			ui.generatePopup()
+		end
+		
 		if ref == "f.save" then
 			export.saveLOL()
 			export.saveArtboard()
@@ -3049,7 +3067,9 @@ function ui.update(dt)
 		-- Accept input with enter
 		if enter_key == _PRESS then
 		
-			if ui.popup[1][1].kind == "f.new" and ui.popup_enter == false then
+			local pop_kind = ui.popup[1][1].kind
+			
+			if pop_kind == "f.new" and ui.popup_enter == false then
 				-- OK button
 				ui.popupLoseFocus(ui.popup[1][1].kind)
 				document_name = ui.popup[2][2].name
@@ -3058,6 +3078,16 @@ function ui.update(dt)
 				
 				resetEditor(true, true)
 				updateTitle()
+			end
+			
+			if pop_kind == "h.about" then
+				ui.popupLoseFocus(ui.popup[1][1].kind)
+				
+				-- Exit popup
+				ui.popup = {}
+				ui_active = true
+				ui.context_menu = {}
+				ui.title_active = false
 			end
 		
 		end
@@ -3098,8 +3128,13 @@ function ui.update(dt)
 							bw = 46
 							bh = 20
 						elseif kind == "ok" then
-							bx = px + (pw / 2) - 32 - 19 - 8
-							by = py + 25 + h + 6 - 3
+							if ui.popup[1][1].kind == "h.about" then
+								bx = math.floor(px + (pw / 2) - 9) - 8
+								by = math.floor(py + 25 + h + 6) - 3
+							else
+								bx = px + (pw / 2) - 32 - 19 - 8
+								by = py + 25 + h + 6 - 3
+							end
 							bw = 35
 							bh = 25
 						elseif kind == "cancel" then
@@ -3134,6 +3169,9 @@ function ui.update(dt)
 									resetEditor(false, true)
 									updateTitle()
 									
+									exit_pop = true
+								elseif kind == "ok" and ui.popup[1][1].kind == "h.about" then
+									ui.popupLoseFocus(ui.popup[1][1].kind)
 									exit_pop = true
 								elseif kind == "cancel" then
 									exit_pop = true
@@ -4368,6 +4406,11 @@ function ui.draw()
 		lg.print(ui.popup[1][1].name, px + 10, py + 3)
 		ui.drawOutline(px + 1, py + 25, pw - 2, ph - 26)
 		
+		if ui.popup[1][1].kind == "h.about" then
+			lg.setColor(c_white)
+			lg.draw(icon_sodalite, px + 22, py + 78 - 5)
+		end
+		
 		local i
 		local h = 12
 		for i = 2, #ui.popup do
@@ -4388,7 +4431,11 @@ function ui.draw()
 				end
 			
 				if kind == "text" then
-					lg.print(name, px + (pw / 2) - font:getWidth(name) - 12 + pxo, py + 25 + h)
+					if ui.popup[1][1].kind == "h.about" then
+						lg.print(name, math.floor(px + pw - font:getWidth(name) - 24), math.floor(py + 25 + h))
+					else
+						lg.print(name, math.floor(px + (pw / 2) - font:getWidth(name) - 12 + pxo), math.floor(py + 25 + h))
+					end
 				elseif kind == "textbox" then
 					lg.setColor(c_off_white)
 					lg.rectangle("fill", px + (pw / 2) - 5 + pxo, py + 25 + h - 1, 251, 20)
@@ -4405,14 +4452,20 @@ function ui.draw()
 					lg.print(name, px + (pw / 2) + pxo, py + 25 + h)
 				elseif kind == "ok" then
 					local bx, by
-					bx = px + (pw / 2) - 32 - 19
-					by = py + 25 + h + 6
+					if ui.popup[1][1].kind == "h.about" then
+						bx = math.floor(px + (pw / 2) - 9)
+						by = math.floor(py + 25 + h + 6)
+					else
+						bx = math.floor(px + (pw / 2) - 32 - 19)
+						by = math.floor(py + 25 + h + 6)
+					end
+					
 					ui.drawOutline(bx - 8, by - 3, 35, 25, true)
 					lg.print(name, bx, by)
 				elseif kind == "cancel" then
 					local bx, by
-					bx = px + (pw / 2) + 32 - 19
-					by = py + 25 + h + 6
+					bx = math.floor(px + (pw / 2) + 32 - 19)
+					by = math.floor(py + 25 + h + 6)
 					ui.drawOutline(bx - 8, by - 3, 55, 25, true)
 					lg.print(name, bx, by)
 				end
