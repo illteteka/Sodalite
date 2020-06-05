@@ -112,6 +112,38 @@ ui.mouse_y_previous = -1
 ui.mouse_lock_x = -1
 ui.mouse_lock_y = -1
 
+ui.tooltip_active = -1
+ui.tooltip_text = ""
+ui.tooltip_timer = 0
+ui.tooltip_x = 0
+ui.tooltip_y = 0
+ui.tooltip_disable = false
+TIP_TOOLBAR_SHAPE = 0
+TIP_TOOLBAR_SELECT = 1
+TIP_TOOLBAR_GRID = 2
+TIP_TOOLBAR_ZOOM = 3
+TIP_TOOLBAR_PICK = 4
+TIP_TOOLBAR_PREVIEW = 5
+TIP_TOOLBAR_POLYGON = 6
+TIP_TOOLBAR_ELLIPSE = 7
+TIP_TOOLBAR_FREEDRAW = 8
+TIP_TOOLBAR_UNDO = 9
+TIP_TOOLBAR_REDO = 10
+TIP_ADD_LAYER = 11
+TIP_DELETE_LAYER = 12
+TIP_GRID_SNAP = 13
+TIP_ZOOM_IN = 14
+TIP_ZOOM_OUT = 15
+TIP_ZOOM_RESET = 16
+TIP_ZOOM_FIT = 17
+TIP_FREEDRAW_ORDER = 18
+TIP_PREV_ZOOM_IN = 19
+TIP_PREV_ZOOM_OUT = 20
+TIP_PREV_ZOOM_RESET = 21
+TIP_PREV_ZOOM_FIT = 22
+TIP_PREV_FREEDRAW = 23
+TIP_PREV_BG = 24
+
 function ui.init()
 	-- Add palette sliders
 	ui.addPS("R")
@@ -129,19 +161,19 @@ function ui.init()
 	ui.addTitle("Help",     ".help")
 	
 	-- Add toolbar items
-	ui.toolbar_shape = ui.addTool("Shape Selection Tool (6)",      icon_cursorw,  ".main")
-	ui.toolbar_select = ui.addTool("Box Selection Tool (4)",      icon_select,  ".select")
-	ui.toolbar_grid = ui.addTool("Grid Tool (3)",          icon_grid,     ".grid")
-	ui.toolbar_zoom = ui.addTool("Zoom Tool (2)",          icon_zoom,     ".zoom")
-	ui.toolbar_pick = ui.addTool("Color Grabber (1)", icon_pick,     ".pick")
-	ui.toolbar_preview = ui.addTool("Preview Window (5)",       icon_look,     ".prev")
+	ui.toolbar_shape = ui.addTool(TIP_TOOLBAR_SHAPE,         icon_cursorw,  ".main")
+	ui.toolbar_select = ui.addTool(TIP_TOOLBAR_SELECT,       icon_select,  ".select")
+	ui.toolbar_grid = ui.addTool(TIP_TOOLBAR_GRID,           icon_grid,     ".grid")
+	ui.toolbar_zoom = ui.addTool(TIP_TOOLBAR_ZOOM,           icon_zoom,     ".zoom")
+	ui.toolbar_pick = ui.addTool(TIP_TOOLBAR_PICK,           icon_pick,     ".pick")
+	ui.toolbar_preview = ui.addTool(TIP_TOOLBAR_PREVIEW,     icon_look,     ".prev")
 	ui.addToolBreak()
-	ui.toolbar_polygon  = ui.addTool("Polygon Tool (7)",       icon_triangle, ".tri")
-	ui.toolbar_ellipse  = ui.addTool("Ellipse Tool (8)",       icon_circle,   ".circ")
-	ui.toolbar_artboard = ui.addTool("Free Draw (9)",     icon_draw,     ".artb")
+	ui.toolbar_polygon  = ui.addTool(TIP_TOOLBAR_POLYGON,    icon_triangle, ".tri")
+	ui.toolbar_ellipse  = ui.addTool(TIP_TOOLBAR_ELLIPSE,    icon_circle,   ".circ")
+	ui.toolbar_artboard = ui.addTool(TIP_TOOLBAR_FREEDRAW,   icon_draw,     ".artb")
 	ui.addToolBreak()
-	ui.toolbar_undo = ui.addTool("Undo",          icon_undo,     ".undo")
-	ui.toolbar_redo = ui.addTool("Redo",          icon_redo,     ".redo")
+	ui.toolbar_undo = ui.addTool(TIP_TOOLBAR_UNDO,           icon_undo,     ".undo")
+	ui.toolbar_redo = ui.addTool(TIP_TOOLBAR_REDO,           icon_redo,     ".redo")
 end
 
 function ui.loadCM(x, y, ref)
@@ -179,7 +211,7 @@ function ui.loadCM(x, y, ref)
 	
 		ui.addCM("Document setup...", false, "i.setup")
 		ui.addCMBreak()
-		ui.addCM("Center camera", document_w ~= 0, "i.center", ctrl_id .. "+Space")
+		ui.addCM("Center camera", document_w ~= 0, "i.center", ctrl_id .. "+G")
 		ui.addCM("Clear canvas", document_w ~= 0 and artboard.active, "i.clear", ctrl_id .. "+R")
 		ui.generateCM(x, y)
 		
@@ -332,7 +364,7 @@ end
 function ui.addTool(name, icon, ref)
 
 	local item = {}
-	item.name = name
+	item.tooltip = name
 	item.icon = icon
 	item.ref = ref
 	item.active = true
@@ -473,6 +505,78 @@ function ui.panelReset()
 	ui.secondary_panel = nil
 	ui.secondary_panel = {}
 
+end
+
+function ui.setTooltip(tool)
+
+	if tool ~= ui.tooltip_active then
+		ui.tooltip_timer = 0
+		ui.tooltip_text = ui.getTooltip(tool)
+		ui.tooltip_active = tool
+		ui.tooltip_x = love.mouse.getX()
+		ui.tooltip_y = love.mouse.getY()
+	end
+	
+	ui.tooltip_disable = false
+
+end
+
+function ui.getTooltip(x)
+	if x == TIP_TOOLBAR_SHAPE then
+		return "Shape Selection Tool (6)"
+	elseif x == TIP_TOOLBAR_SELECT then
+		return "Box Selection Tool (4)"
+	elseif x == TIP_TOOLBAR_GRID then
+		return "Grid Tool (3)"
+	elseif x == TIP_TOOLBAR_ZOOM then
+		return "Zoom Tool (2)"
+	elseif x == TIP_TOOLBAR_PICK then
+		return "Color Grabber (1)"
+	elseif x == TIP_TOOLBAR_PREVIEW then
+		return "Preview Window (5)"
+	elseif x == TIP_TOOLBAR_POLYGON then
+		return "Polygon Tool (7)"
+	elseif x == TIP_TOOLBAR_ELLIPSE then
+		return "Ellipse Tool (8)"
+	elseif x == TIP_TOOLBAR_FREEDRAW then
+		return "Free draw (9)"
+	elseif x == TIP_TOOLBAR_UNDO then
+		return "Undo"
+	elseif x == TIP_TOOLBAR_REDO then
+		return "Redo"
+	elseif x == TIP_ADD_LAYER then
+		return "Add a new layer"
+	elseif x == TIP_DELETE_LAYER then
+		return "Delete the current layer"
+	elseif x == TIP_GRID_SNAP then
+		return "Toggle grid snapping"
+	elseif x == TIP_ZOOM_IN then
+		return "Zoom In"
+	elseif x == TIP_ZOOM_OUT then
+		return "Zoom Out"
+	elseif x == TIP_ZOOM_RESET then
+		return "Reset camera zoom and position"
+	elseif x == TIP_ZOOM_FIT then
+		return "Fit the document to the program window"
+	elseif x == TIP_FREEDRAW_ORDER then
+		if artboard.draw_top then
+			return "Swap the position of the drawing canvas, canvas is currently below the document"
+		else
+			return "Swap the position of the drawing canvas, canvas is currently above the document"
+		end
+	elseif x == TIP_PREV_ZOOM_IN then
+		return "Zoom In"
+	elseif x == TIP_PREV_ZOOM_OUT then
+		return "Zoom Out"
+	elseif x == TIP_PREV_ZOOM_RESET then
+		return "Reset camera zoom and position"
+	elseif x == TIP_PREV_ZOOM_FIT then
+		return "Fit the document to the preview window"
+	elseif x == TIP_PREV_FREEDRAW then
+		return "Toggle the visibility of the drawing canvas"
+	elseif x == TIP_PREV_BG then
+		return "Preview window background color, paste a palette color here to change colors"
+	end
 end
 
 function ui.panelGrid()
@@ -1369,6 +1473,20 @@ function ui.update(dt)
 	local col_title_bar = false
 	local col_cont_menu = false
 	
+	if ui.tooltip_active ~= -1 then
+		ui.tooltip_timer = math.min(ui.tooltip_timer + (60 * dt), 60)
+		if ui.tooltip_timer < 51 then
+			ui.tooltip_x = love.mouse.getX()
+			ui.tooltip_y = love.mouse.getY()
+		end
+		
+		if mouse_switch == _PRESS or rmb_switch == _PRESS then
+			ui.tooltip_active = -1
+		end
+	end
+	
+	ui.tooltip_disable = true
+	
 	-- Check collision on title bar
 	if my < 24 then
 	
@@ -1623,6 +1741,16 @@ function ui.update(dt)
 	local layx, layy = screen_width - 208, 352
 	local layw = 208 - 2 - 16
 	local layh = screen_height - 403
+	
+	-- tooltips for add/delete
+	if (mx >= layx + 4) and (mx <= layx + 4 + 24) and (my >= layy + 13) and (my <= layy + 13 + 24) then
+		ui.setTooltip(TIP_ADD_LAYER)
+	end
+	
+	if (mx >= layx + 4 + 24 + 4) and (mx <= layx + 4 + 24 + 24 + 4) and (my >= layy + 13) and (my <= layy + 13 + 24) then
+		ui.setTooltip(TIP_DELETE_LAYER)
+	end
+	
 	if (mouse_switch == _PRESS) and (mx >= screen_width - 208) and (my >= layy) then
 	
 		ui.preview_palette_enabled = false
@@ -1875,7 +2003,7 @@ function ui.update(dt)
 	end
 	
 	-- Check toolbar collision
-	if (mouse_switch == _PRESS) and ((mx >= 8) and (mx < 56) and (my >= 54)) and (not ui_active) then
+	if ((mx >= 8) and (mx < 56) and (my >= 54)) and (not ui_active) then
 		
 		local add_one_because_top_is_even = 0
 		ui.preview_palette_enabled = false
@@ -1913,67 +2041,74 @@ function ui.update(dt)
 				check_success = false
 			end
 			
-			local tool = ui.toolbar[key]
-			local ignore_tool_active = (tool.ref == ".grid") or (tool.ref == ".pick") or (tool.ref == ".zoom") or (tool.ref == ".select") or (tool.ref == ".main")
-			if (tool.ref ~= nil) and (tool.ref == ".prev") and document_w ~= 0 then
-				tool.active = true
+			if check_success and ui.toolbar[key].tooltip ~= nil then
+				ui.setTooltip(ui.toolbar[key].tooltip)
 			end
 			
-			if (tool.active or ignore_tool_active) and (tool.ref ~= nil) and (check_success) and (ui.popup[1] == nil) and (ui.context_menu[1] == nil) then
-			
-				ui.toolbar_clicked = key
-			
-				-- Toolbar actions go here
-				if tool.ref == ".main" then
-					
-					ui.shapeSelectButton()
-					
-				elseif tool.ref == ".select" then
-					
-					ui.selectionButton()
-					
-				elseif tool.ref == ".grid" then
+			if (mouse_switch == _PRESS) then
+				local tool = ui.toolbar[key]
+				local ignore_tool_active = (tool.ref == ".grid") or (tool.ref == ".pick") or (tool.ref == ".zoom") or (tool.ref == ".select") or (tool.ref == ".main")
+				if (tool.ref ~= nil) and (tool.ref == ".prev") and document_w ~= 0 then
+					tool.active = true
+				end
 				
-					ui.gridButton()
-					
-				elseif tool.ref == ".zoom" then
-					
-					ui.zoomButton()
-					
-				elseif tool.ref == ".pick" then
+				if (tool.active or ignore_tool_active) and (tool.ref ~= nil) and (check_success) and (ui.popup[1] == nil) and (ui.context_menu[1] == nil) then
 				
-					ui.pickColorButton()
+					ui.toolbar_clicked = key
+				
+					-- Toolbar actions go here
+					if tool.ref == ".main" then
+						
+						ui.shapeSelectButton()
+						
+					elseif tool.ref == ".select" then
+						
+						ui.selectionButton()
+						
+					elseif tool.ref == ".grid" then
 					
-				elseif tool.ref == ".prev" then
+						ui.gridButton()
+						
+					elseif tool.ref == ".zoom" then
+						
+						ui.zoomButton()
+						
+					elseif tool.ref == ".pick" then
 					
-					ui.previewButton()
-					
-				elseif tool.ref == ".tri" then
-					
-					ui.triangleButton()
-					
-				elseif tool.ref == ".circ" then
-					
-					ui.ellipseButton()
-					
-				elseif tool.ref == ".artb" then
-					
-					ui.artboardButton()
-					
-				elseif tool.ref == ".undo" then
-					
-					if artboard.active == false then
-						editorUndo()
-					else
-						artboard.undo()
-					end
-					
-				elseif tool.ref == ".redo" then
-					
-					if artboard.active == false then
-						editorRedo()
-					else
-						artboard.redo()
+						ui.pickColorButton()
+						
+					elseif tool.ref == ".prev" then
+						
+						ui.previewButton()
+						
+					elseif tool.ref == ".tri" then
+						
+						ui.triangleButton()
+						
+					elseif tool.ref == ".circ" then
+						
+						ui.ellipseButton()
+						
+					elseif tool.ref == ".artb" then
+						
+						ui.artboardButton()
+						
+					elseif tool.ref == ".undo" then
+						
+						if artboard.active == false then
+							editorUndo()
+						else
+							artboard.undo()
+						end
+						
+					elseif tool.ref == ".redo" then
+						
+						if artboard.active == false then
+							editorRedo()
+						else
+							artboard.redo()
+						end
+						
 					end
 					
 				end
@@ -2287,11 +2422,20 @@ function ui.update(dt)
 			
 			else
 			
+				if (mx >= panel_x) and (mx <= panel_x + 23) and (my >= 27) and (my <= 27 + 23) then
+				
+					if ui.primary_panel[i].id == "art.position" then
+						ui.setTooltip(TIP_FREEDRAW_ORDER)
+					end
+				
+				end
+			
 				if (mouse_switch == _PRESS and ui_active == false and (mx >= panel_x) and (mx <= panel_x + 23) and (my >= 27) and (my <= 27 + 23)) then
 					ui.primary_clicked = i
 					hit_button = i
 					
 					if ui.primary_panel[i].id == "art.position" then
+						ui.tooltip_active = -1
 						if ui.primary_panel[i].icon == icon_art_above then
 							artboard.draw_top = false
 							ui.primary_panel[i].icon = icon_art_below
@@ -2392,6 +2536,30 @@ function ui.update(dt)
 			
 			else
 			
+				if (mx >= panel_x) and (mx <= panel_x + 23) and (my >= 27) and (my <= 27 + 23) then
+				
+					if ui.secondary_panel[i].id == "grid.snap" then
+						ui.setTooltip(TIP_GRID_SNAP)
+					end
+					
+					if ui.secondary_panel[i].id == "zoom.in" then
+						ui.setTooltip(TIP_ZOOM_IN)
+					end
+					
+					if ui.secondary_panel[i].id == "zoom.out" then
+						ui.setTooltip(TIP_ZOOM_OUT)
+					end
+					
+					if ui.secondary_panel[i].id == "zoom.reset" then
+						ui.setTooltip(TIP_ZOOM_RESET)
+					end
+					
+					if ui.secondary_panel[i].id == "zoom.fit" then
+						ui.setTooltip(TIP_ZOOM_FIT)
+					end
+				
+				end
+			
 				if (mouse_switch == _PRESS and ui_active == false and (mx >= panel_x) and (mx <= panel_x + 23) and (my >= 27) and (my <= 27 + 23)) then
 					ui.secondary_clicked = i
 					hit_button = i
@@ -2451,6 +2619,20 @@ function ui.update(dt)
 	end
 	
 	-- Interaction for preview window
+	if ui.preview_textbox_locked then
+		if ui.preview_textbox_mode == "px" then
+			local larger_window_bound = math.max(document_w, document_h)
+			local txt_num = larger_window_bound * ui.preview_zoom
+			local txt_num_string = "" .. txt_num
+			if string.len(txt_num_string) > 5 then
+				txt_num = math.floor(txt_num)
+			end
+			ui.preview_textbox = txt_num
+		elseif ui.preview_textbox_mode == "%" then
+			ui.preview_textbox = math.floor(ui.preview_zoom * 100)
+		end
+	end
+	
 	if ui.preview_active and not ui_active and ui.popup[1] == nil then
 		
 		local rx, ry, rw, rh = ui.preview_x, ui.preview_y, ui.preview_w, ui.preview_h
@@ -2499,20 +2681,6 @@ function ui.update(dt)
 			end
 		end
 		
-		if ui.preview_textbox_locked then
-			if ui.preview_textbox_mode == "px" then
-				local larger_window_bound = math.max(document_w, document_h)
-				local txt_num = larger_window_bound * ui.preview_zoom
-				local txt_num_string = "" .. txt_num
-				if string.len(txt_num_string) > 5 then
-					txt_num = math.floor(txt_num)
-				end
-				ui.preview_textbox = txt_num
-			elseif ui.preview_textbox_mode == "%" then
-				ui.preview_textbox = math.floor(ui.preview_zoom * 100)
-			end
-		end
-		
 		-- Only show cursors when in bounds of the preview window
 		if pmx >= -grab and pmx <= rw + grab and pmy >= -grab and pmy <= rh + grab and not ui.preview_dragging and not color_grabber and not zoom_grabber and not select_grabber then
 		
@@ -2547,6 +2715,43 @@ function ui.update(dt)
 				love.mouse.setCursor()
 				ui.preview_drag_corner = -1
 				drag_titlebar = (my <= ui.preview_y + 25)
+			end
+			
+			-- Preview tooltips
+			local ix, iy = rx + 36, ry + rh - 50
+
+			-- Move vars to be near the button positions
+			ix = ix + 49
+			iy = iy + 24
+
+			-- Zoom In
+			if (mx >= ix) and (mx <= ix + 24) and (my >= iy) and (my <= iy + 24) then
+				ui.setTooltip(TIP_PREV_ZOOM_IN)
+			end
+
+			-- Zoom Out
+			if (mx >= ix + 28) and (mx <= ix + 24 + 28) and (my >= iy) and (my <= iy + 24) then
+				ui.setTooltip(TIP_PREV_ZOOM_OUT)
+			end
+
+			-- Reset scale
+			if (mx >= ix + 56) and (mx <= ix + 24 + 56) and (my >= iy) and (my <= iy + 24) then
+				ui.setTooltip(TIP_PREV_ZOOM_RESET)
+			end
+
+			-- Fit to window
+			if (mx >= ix + 84) and (mx <= ix + 24 + 84) and (my >= iy) and (my <= iy + 24) then
+				ui.setTooltip(TIP_PREV_ZOOM_FIT)
+			end
+
+			-- Toggle artboard
+			if (mx >= ix + 112) and (mx <= ix + 24 + 112) and (my >= iy) and (my <= iy + 24) then
+				ui.setTooltip(TIP_PREV_FREEDRAW)
+			end
+
+			-- Background color
+			if (mx >= rx + rw - 26) and (mx <= rx + rw - 3) and (my >= iy) and (my <= iy + 23) then
+				ui.setTooltip(TIP_PREV_BG)
 			end
 			
 			if mouse_switch == _PRESS then
@@ -3170,6 +3375,11 @@ function ui.update(dt)
 		ui.preview_palette_enabled = false
 	end
 	
+	if ui.tooltip_disable then
+		ui.tooltip_active = -1
+		ui.tooltip_timer = 0
+	end
+	
 	return ui_active
 
 end
@@ -3441,6 +3651,10 @@ function ui.draw()
 		btn_state = BTN_HIGHLIGHT_OFF
 	end
 	
+	if document_w == 0 then
+		btn_state = BTN_GRAY
+	end
+	
 	ui.drawButtonOutline(btn_state, layx + 4, layy + 13, 24, 24)
 	lg.setColor(c_white)
 	lg.draw(icon_add,   layx + 4, layy + 13)
@@ -3456,6 +3670,10 @@ function ui.draw()
 	
 	if (mouse_switch ~= _OFF) and (ui.lyr_button_active == 2) then
 		btn_state = BTN_HIGHLIGHT_OFF
+	end
+	
+	if document_w == 0 then
+		btn_state = BTN_GRAY
 	end
 	
 	ui.drawButtonOutline(btn_state, layx + 4 + 24 + 4, layy + 13, 24, 24)
@@ -4261,6 +4479,24 @@ function ui.draw()
 		
 		end
 	
+	end
+	
+	-- Draw tooltip
+	if ui.tooltip_timer >= 51 and not splash_active then
+		local tx, ty = ui.tooltip_x + 12, ui.tooltip_y + 18
+		local tool_width = font:getWidth(ui.tooltip_text) + 12
+		
+		if tx + tool_width >= screen_width then
+			tx = screen_width - tool_width - 8
+		end
+		
+		lg.setColor(c_white)
+		lg.rectangle("fill", tx, ty, tool_width, 21)
+		lg.setColor(c_black)
+		lg.setLineWidth(1)
+		lg.rectangle("line", tx, ty, tool_width, 21)
+		lg.print(ui.tooltip_text, tx + 5, ty + 1)
+		lg.setColor(c_white)
 	end
 	
 end

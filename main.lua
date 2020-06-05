@@ -43,6 +43,7 @@ u_key = _OFF
 t_key = _OFF
 r_key = _OFF
 e_key = _OFF
+g_key = _OFF
 num_1_key = _OFF
 num_2_key = _OFF
 num_3_key = _OFF
@@ -530,6 +531,7 @@ function love.update(dt)
 	c_key = input.pullSwitch(love.keyboard.isDown("c"), c_key)
 	d_key = input.pullSwitch(love.keyboard.isDown("d"), d_key)
 	e_key = input.pullSwitch(love.keyboard.isDown("e"), e_key)
+	g_key = input.pullSwitch(love.keyboard.isDown("g"), g_key)
 	i_key = input.pullSwitch(love.keyboard.isDown("i"), i_key)
 	o_key = input.pullSwitch(love.keyboard.isDown("o"), o_key)
 	n_key = input.pullSwitch(love.keyboard.isDown("n"), n_key)
@@ -753,49 +755,49 @@ function love.update(dt)
 	
 	end
 	
-	if (ui.popup[1] == nil) and (ui.context_menu[1] == nil) and (ui.active_textbox == "") then
+	if (ui.popup[1] == nil) and (ui.context_menu[1] == nil) and (ui.active_textbox == "") and mouse_switch == _OFF then
 	
-		if num_1_key == _PRESS and ui_active == false then
+		if num_1_key == _PRESS then
 			ui.pickColorButton()
 			ui_active = true
 		end
 		
-		if num_2_key == _PRESS and ui_active == false then
+		if num_2_key == _PRESS then
 			ui.zoomButton()
 			ui_active = true
 		end
 		
-		if num_3_key == _PRESS and ui_active == false then
+		if num_3_key == _PRESS then
 			ui.gridButton()
 			ui_active = true
 		end
 		
-		if num_4_key == _PRESS and ui_active == false then
+		if num_4_key == _PRESS then
 			ui.selectionButton()
 			ui_active = true
 		end
 		
-		if num_5_key == _PRESS and ui_active == false then
+		if num_5_key == _PRESS then
 			ui.previewButton()
 			ui_active = true
 		end
 		
-		if num_6_key == _PRESS and ui_active == false then
+		if num_6_key == _PRESS then
 			ui.shapeSelectButton()
 			ui_active = true
 		end
 		
-		if num_7_key == _PRESS and ui_active == false then
+		if num_7_key == _PRESS then
 			ui.triangleButton()
 			ui_active = true
 		end
 		
-		if num_8_key == _PRESS and ui_active == false then
+		if num_8_key == _PRESS then
 			ui.ellipseButton()
 			ui_active = true
 		end
 		
-		if num_9_key == _PRESS and ui_active == false then
+		if num_9_key == _PRESS then
 			ui.artboardButton()
 			ui_active = true
 		end
@@ -1292,7 +1294,7 @@ function love.update(dt)
 		end
 	end
 	
-	if input.ctrlCombo(space_key) then
+	if input.ctrlCombo(g_key) then
 		resetCamera()
 	end
 	-- End camera controls
@@ -1326,12 +1328,6 @@ function love.draw()
 		if not artboard.draw_top and artboard.canvas ~= nil then
 			local artcol = {1, 1, 1, artboard.opacity}
 			
-			lg.setColor(artcol)
-			lg.draw(artboard.canvas, 0, 0, 0, camera_zoom)
-		end
-	
-		if artboard.draw_top and artboard.canvas ~= nil then
-			local artcol = {1, 1, 1, artboard.opacity}
 			lg.setColor(artcol)
 			lg.draw(artboard.canvas, 0, 0, 0, camera_zoom)
 		end

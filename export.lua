@@ -7,6 +7,7 @@ function export.saveLOL()
 		prefix = love.filesystem.getSourceBaseDirectory() .. "/"
 	end
 
+	os.remove(prefix .. document_name .. ".soda")
 	local file = io.open(prefix .. document_name .. ".soda", "w")
 	file:write("Sodalite v0.1 beta\n")
 	file:write(document_w .. "," .. document_h .. ";\n")
@@ -78,6 +79,7 @@ function export.saveSVG()
 		prefix = love.filesystem.getSourceBaseDirectory() .. "/"
 	end
 	
+	os.remove(prefix .. document_name .. ".svg")
 	local file = io.open(prefix .. document_name .. ".svg", "w")
 	
 	file:write('<?xml version="1.0" encoding="UTF-8" ?>')
@@ -207,6 +209,7 @@ function export.saveArtboard()
 			prefix = love.filesystem.getSourceBaseDirectory() .. "/"
 		end
 		
+		os.remove(prefix .. document_name .. ".png")
 		local save_png = io.open(prefix .. document_name .. ".png", "wb")
 		save_png:write(copy_str)
 		save_png:close()
