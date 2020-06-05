@@ -132,6 +132,7 @@ v_out2 = nil
 
 last_shape_grabbed = -1
 double_click_timer = 0
+lock_preview_vertices = false
 
 function resetEditor(exit_popup, add_layer)
 
@@ -276,6 +277,26 @@ function editorSelectAll()
 	
 	end
 
+end
+
+function editorSelectAllShapes()
+
+	shape_selection = {}
+			
+	local n = 1
+	while n <= #ui.layer do
+		if ui.layer[n].visible then
+			local copy_shape = {}
+			copy_shape.index = n
+			copy_shape.x = 0
+			copy_shape.y = 0
+			table.insert(shape_selection, copy_shape)
+			shape_selection_mode = true
+			multi_shape_selection = true
+		end
+		n = n + 1
+	end
+	
 end
 
 function storeMovedVertices()
@@ -806,6 +827,17 @@ function love.update(dt)
 	
 	ui_on_mouse_up = (ui_active == true) and (mouse_switch == _OFF)
 
+	local ignore_click_from_preview = false
+		
+	if ui.preview_active then
+		local uimx, uimy = love.mouse.getX(), love.mouse.getY()
+		local upx, upy, upw, uph = ui.preview_x, ui.preview_y, ui.preview_w, ui.preview_h
+		
+		if uimx >= upx and uimx <= upx + upw and uimy >= upy and uimy <= upy + uph then
+			ignore_click_from_preview = true
+		end
+	end
+	
 	if ui.popup[1] == nil and document_w ~= 0 then
 	
 	if shape_grabber and not select_grabber and artboard.active == false and not zoom_grabber and not color_grabber and ((ui_active == false) or (ui_off_mouse_down)) then
@@ -823,8 +855,14 @@ function love.update(dt)
 		if love.mouse.getCursor() == nil then
 			love.mouse.setCursor(cursor_shape)
 		end
+		
+		if polygon.data[tm.polygon_loc] ~= nil and input.ctrlCombo(a_key) then
+			
+			editorSelectAllShapes()
+		
+		end
 	
-		if (mouse_switch == _PRESS) then
+		if (mouse_switch == _PRESS) and not ignore_click_from_preview then
 		
 			local use_shape_sel = shape_selection[1] ~= nil
 			local test_x, test_y = mx - math.floor(camera_x), my - math.floor(camera_y)
@@ -990,9 +1028,13 @@ function love.update(dt)
 	
 	end
 	
+	if mouse_switch == _PRESS and ignore_click_from_preview and vertex_selection_mode then
+		lock_preview_vertices = true
+	end
+	
 	if artboard.active == false and ((ui_active == false) or (ui_off_mouse_down)) then
 	
-		if shape_grabber == false and not select_grabber and not zoom_grabber then
+		if shape_grabber == false and not select_grabber and not zoom_grabber and not color_grabber then
 	
 			if polygon.data[tm.polygon_loc] ~= nil and input.ctrlCombo(a_key) and vertex_selection_mode == false then
 			
@@ -1029,7 +1071,7 @@ function love.update(dt)
 			
 			end
 			
-			if mouse_switch == _ON and selection_and_ui_active == false then
+			if mouse_switch == _ON and selection_and_ui_active == false and lock_preview_vertices == false then
 			
 				ui_off_mouse_down = true
 			
@@ -1073,6 +1115,8 @@ function love.update(dt)
 			end
 			
 			if mouse_switch == _RELEASE then
+			
+				lock_preview_vertices = false
 			
 				if selection_and_ui_active then
 					selection_and_ui_active = false

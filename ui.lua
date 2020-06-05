@@ -180,7 +180,9 @@ function ui.loadCM(x, y, ref)
 
 	ui.context_menu = {}
 	local can_select_all = false
-	can_select_all = (artboard.active == false) and (polygon.data[tm.polygon_loc] ~= nil) and (vertex_selection_mode == false)
+	local can_select_all_verts = shape_grabber == false and (vertex_selection_mode == false)
+	local can_select_all_shapes = shape_grabber
+	can_select_all = (can_select_all_verts or can_select_all_shapes) and not select_grabber and not zoom_grabber and not color_grabber and (polygon.data[tm.polygon_loc] ~= nil) and (artboard.active == false)
 	local can_save = tm.data[1] ~= nil and document_w ~= 0
 	local can_paste_color = false
 	can_paste_color = (palette.canPaste and palette.copy ~= nil) --or (ui.preview_action ~= "background" and palette.canPaste and palette.copy ~= nil and ui.preview_palette_enabled)
@@ -310,7 +312,11 @@ function ui.loadPopup(ref)
 		end
 		
 		if ref == "s.all" then
-			editorSelectAll()
+			if shape_grabber then
+				editorSelectAllShapes()
+			else
+				editorSelectAll()
+			end
 		end
 		
 		if ref == "s.de" then
