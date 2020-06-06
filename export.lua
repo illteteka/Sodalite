@@ -1,5 +1,18 @@
 local export = {}
 
+function export.mac(mac)
+	local cam = mac:reverse()
+	s1 = string.find(cam, "/")
+	cam = cam:sub(s1+1)
+	s1 = string.find(cam, "/")
+	cam = cam:sub(s1+1)
+	s1 = string.find(cam, "/")
+	cam = cam:sub(s1+1)
+	s1 = string.find(cam, "/")
+	cam = cam:sub(s1+1)
+	return cam:reverse() .. "/"
+end
+
 function export.test(file)
 
 	local ext = ""
@@ -13,6 +26,7 @@ function export.test(file)
 	
 	local prefix = ""
 	prefix = love.filesystem.getSourceBaseDirectory() .. "/"
+	if mac_string then prefix = export.mac(prefix) end
 	local f_exists = false
 	local f=io.open(prefix .. document_name .. ext,"r")
 	if f~=nil then io.close(f) f_exists = true else f_exists = false end
@@ -27,8 +41,9 @@ function export.saveLOL()
 	local prefix = ""
 	if love ~= nil then
 		prefix = love.filesystem.getSourceBaseDirectory() .. "/"
+		if mac_string then prefix = export.mac(prefix) end
 	end
-
+	
 	os.remove(prefix .. document_name .. ".soda")
 	local file = io.open(prefix .. document_name .. ".soda", "w")
 	file:write("Sodalite v0.1 beta\n")
@@ -102,6 +117,7 @@ function export.saveSVG()
 	local prefix = ""
 	if love ~= nil then
 		prefix = love.filesystem.getSourceBaseDirectory() .. "/"
+		if mac_string then prefix = export.mac(prefix) end
 	end
 	
 	os.remove(prefix .. document_name .. ".svg")
@@ -235,6 +251,7 @@ function export.saveArtboard()
 		local prefix = ""
 		if love ~= nil then
 			prefix = love.filesystem.getSourceBaseDirectory() .. "/"
+			if mac_string then prefix = export.mac(prefix) end
 		end
 		
 		os.remove(prefix .. document_name .. ".png")
@@ -296,6 +313,7 @@ function export.savePNG()
 	local prefix = ""
 	if love ~= nil then
 		prefix = love.filesystem.getSourceBaseDirectory() .. "/"
+		if mac_string then prefix = export.mac(prefix) end
 	end
 	
 	os.remove(prefix .. document_name .. ".png")

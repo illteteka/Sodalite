@@ -22,6 +22,7 @@ two_button = _OFF
 ctrl_name = "ctrl"
 ctrl_id = "Ctrl"
 ctrl_cursor = "b"
+mac_string = false
 
 a_key = _OFF
 lctrl_key = _OFF
@@ -401,6 +402,7 @@ function love.load()
 		ctrl_name = "gui"
 		ctrl_id = "Cmd"
 		ctrl_cursor = "w"
+		mac_string = true
 	end
 
 	math.randomseed(os.time())
