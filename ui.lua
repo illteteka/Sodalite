@@ -112,6 +112,8 @@ ui.mouse_y_previous = -1
 ui.mouse_lock_x = -1
 ui.mouse_lock_y = -1
 
+ui.cm_color_area = -1
+
 ui.tooltip_active = -1
 ui.tooltip_text = ""
 ui.tooltip_timer = 0
@@ -185,14 +187,14 @@ function ui.loadCM(x, y, ref)
 	can_select_all = (can_select_all_verts or can_select_all_shapes) and not select_grabber and not zoom_grabber and not color_grabber and (polygon.data[tm.polygon_loc] ~= nil) and (artboard.active == false)
 	local can_save = tm.data[1] ~= nil and document_w ~= 0
 	local can_paste_color = false
-	can_paste_color = (palette.canPaste and palette.copy ~= nil) --or (ui.preview_action ~= "background" and palette.canPaste and palette.copy ~= nil and ui.preview_palette_enabled)
+	can_paste_color = (palette.copy ~= nil) and ui.cm_color_area ~= -1
 	
 	if ref == ".file" then
 	
 		ui.addCM("New",          true, "f.new", ctrl_id .. "+N")
 		ui.addCMBreak()
 		ui.addCM("Save",        can_save, "f.save", ctrl_id .. "+S")
-		ui.addCM("Save As...",  false, "f.as")
+		ui.addCM("Save As...",  can_save, "f.as")
 		ui.addCMBreak()
 		ui.addCM("Export .svg", can_save, "f.svg")
 		ui.addCM("Export .png", can_save, "f.png")
@@ -205,7 +207,7 @@ function ui.loadCM(x, y, ref)
 		ui.addCM("Undo", ui.toolbar[ui.toolbar_undo].active, "e.undo", ctrl_id .. "+Z")
 		ui.addCM("Redo", ui.toolbar[ui.toolbar_redo].active, "e.redo", ctrl_id .. "+Y or Shift+" .. ctrl_id .. "+Z")
 		ui.addCMBreak()
-		ui.addCM("Copy palette color",  palette.canPaste, "e.pcopy", ctrl_id .. "+C")
+		ui.addCM("Copy palette color",  ui.cm_color_area ~= -1, "e.pcopy", ctrl_id .. "+C")
 		ui.addCM("Paste palette color", can_paste_color, "e.ppaste", ctrl_id .. "+V")
 		ui.generateCM(x, y)
 		
@@ -243,7 +245,7 @@ function ui.loadPopup(ref)
 
 		ui.popup = {}
 		
-		if ref == "f.new" or ref == "i.setup" then
+		if ref == "f.new" or ref == "i.setup" or ref == "f.as" then
 			storeMovedVertices()
 			vertex_selection_mode = false
 			vertex_selection = {}
@@ -255,6 +257,11 @@ function ui.loadPopup(ref)
 			local start_w, start_h, start_name = 512, 512, "Untitled"
 			if ref == "i.setup" then
 				ui.addPopup("Document setup", "i.setup", "col")
+				start_w = document_w
+				start_h = document_h
+				start_name = document_name
+			elseif ref == "f.as" then
+				ui.addPopup("Save As", "f.as", "col")
 				start_w = document_w
 				start_h = document_h
 				start_name = document_name
@@ -309,7 +316,7 @@ function ui.loadPopup(ref)
 		
 		if ref == "e.pcopy" then
 		
-			if ui.preview_action == "background" then
+			if ui.cm_color_area == 2 then
 
 				local new_col = {ui.preview_bg_color[1], ui.preview_bg_color[2], ui.preview_bg_color[3], ui.preview_bg_color[4]}
 				palette.copy = new_col
@@ -325,7 +332,7 @@ function ui.loadPopup(ref)
 		
 		if ref == "e.ppaste" then
 		
-			if ui.preview_action == "background" then
+			if ui.cm_color_area == 2 then
 
 				local new_col = {palette.copy[1], palette.copy[2], palette.copy[3], palette.copy[4]}
 				ui.preview_bg_color = new_col
@@ -1163,7 +1170,7 @@ function ui.keyboardHit(key)
 		local this_menu = ui.popup[ui.popup_sel_a][ui.popup_sel_b]
 		if string.len(key) == 1 then
 		
-			if ui.popup[1][1].kind == "f.new" or ui.popup[1][1].kind == "i.setup" then
+			if ui.popup[1][1].kind == "f.new" or ui.popup[1][1].kind == "i.setup" or ui.popup[1][1].kind == "f.as" then
 			
 				if this_menu.kind == "number" then
 					if tonumber(key) ~= nil and string.len(this_menu.name) < 5 then
@@ -1654,6 +1661,24 @@ function ui.update(dt)
 	if mouse_switch == _PRESS and col_cont_menu == false and col_title_bar == false then
 		ui.context_menu = {}
 		ui.title_active = false
+	end
+	
+	if mouse_switch == _PRESS and ui_active == false then
+	
+		local color_area = -1
+		if mx >= screen_width - 201 and mx <= screen_width - 10 and my >= 208 and my <= 208 + 95 then
+			color_area = 1
+		end
+		
+		local px, py, pw, ph = ui.preview_x, ui.preview_y, ui.preview_w, ui.preview_h
+		local ix, iy = px + 36 + 49, py + ph - 50 + 24
+		-- Background color
+		if (mx >= px + pw - 26) and (mx <= px + pw - 3) and (my >= iy) and (my <= iy + 23) then
+			color_area = 2
+		end
+		
+		ui.cm_color_area = color_area
+	
 	end
 	
 	ui.allow_keyboard_input = (ui.textbox_selection_origin ~= "")
@@ -3087,7 +3112,7 @@ function ui.update(dt)
 		-- Scroll inputs with tab
 		if tab_key == _PRESS and ui.popup_sel_a ~= 0 and ui.popup_sel_b ~= 0 then
 			
-			if ui.popup[1][1].kind == "f.new" or ui.popup[1][1].kind == "i.setup" then
+			if ui.popup[1][1].kind == "f.new" or ui.popup[1][1].kind == "i.setup" or ui.popup[1][1].kind == "f.as" then
 			
 				local oa = ui.popup_sel_a
 				ui.popupLoseFocus(ui.popup[1][1].kind)
@@ -3110,14 +3135,14 @@ function ui.update(dt)
 		
 			local pop_kind = ui.popup[1][1].kind
 			
-			if (pop_kind == "f.new" or pop_kind == "i.setup") and ui.popup_enter == false then
+			if (pop_kind == "f.new" or pop_kind == "i.setup" or pop_kind == "f.as") and ui.popup_enter == false then
 				-- OK button
 				ui.popupLoseFocus(ui.popup[1][1].kind)
 				document_name = ui.popup[2][2].name
 				document_w = tonumber(ui.popup[3][2].name)
 				document_h = tonumber(ui.popup[4][2].name)
 				
-				if pop_kind == "i.setup" then
+				if pop_kind == "i.setup" or pop_kind == "f.as" then
 					camera_zoom = 1
 					resetCamera()
 					artboard.init(true)
@@ -3129,6 +3154,12 @@ function ui.update(dt)
 				else
 					resetEditor(true, true)
 				end
+				
+				if pop_kind == "f.as" then
+					export.saveLOL()
+					export.saveArtboard()
+				end
+				
 				updateTitle()
 			end
 			
@@ -3140,6 +3171,21 @@ function ui.update(dt)
 				ui_active = true
 				ui.context_menu = {}
 				ui.title_active = false
+			end
+			
+			if pop_kind == "f.exit" then
+			
+				safe_to_quit = true
+				export.saveLOL()
+				export.saveArtboard()
+				love.event.quit()
+				
+				-- Exit popup
+				ui.popup = {}
+				ui_active = true
+				ui.context_menu = {}
+				ui.title_active = false
+			
 			end
 		
 		end
@@ -3221,24 +3267,30 @@ function ui.update(dt)
 							if mx_box and my_box then
 								
 								popup_clicked = true
+								local pop_kind = ui.popup[1][1].kind
 								
 								if kind == "textbox" or kind == "number" then
-									ui.popupLoseFocus(ui.popup[1][1].kind)
+									ui.popupLoseFocus(pop_kind)
 									ui.active_textbox = ui.popup[i][j].name
 									ui.textbox_selection_origin = "popup"
 									ui.popup_sel_a, ui.popup_sel_b = i, j
-								elseif kind == "ok" and (ui.popup[1][1].kind == "f.new" or ui.popup[1][1].kind == "i.setup") then -- OK button for f.new (new document)
-									ui.popupLoseFocus(ui.popup[1][1].kind)
+								elseif kind == "ok" and (pop_kind == "f.new" or pop_kind == "i.setup" or pop_kind == "f.as") then -- OK button for f.new (new document)
+									ui.popupLoseFocus(pop_kind)
 									document_name = ui.popup[2][2].name
 									document_w = tonumber(ui.popup[3][2].name)
 									document_h = tonumber(ui.popup[4][2].name)
 									
-									if ui.popup[1][1].kind == "i.setup" then
+									if pop_kind == "i.setup" or pop_kind == "f.as" then
 										camera_zoom = 1
 										resetCamera()
 										artboard.init(true)
 									else
 										resetEditor(false, true)
+									end
+									
+									if pop_kind == "f.as" then
+										export.saveLOL()
+										export.saveArtboard()
 									end
 									
 									updateTitle()
@@ -3254,11 +3306,11 @@ function ui.update(dt)
 									safe_to_quit = true
 									love.event.quit()
 									exit_pop = true
-								elseif kind == "ok" and ui.popup[1][1].kind == "h.about" then
-									ui.popupLoseFocus(ui.popup[1][1].kind)
+								elseif kind == "ok" and pop_kind == "h.about" then
+									ui.popupLoseFocus(pop_kind)
 									exit_pop = true
 								elseif kind == "cancel" then
-									if ui.popup[1][1].kind == "f.exit" then
+									if pop_kind == "f.exit" then
 										safe_to_quit = false
 									end
 									exit_pop = true
