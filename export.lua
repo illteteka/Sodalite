@@ -1,5 +1,27 @@
 local export = {}
 
+function export.test(file)
+
+	local ext = ""
+	if file == OVERWRITE_LOL then
+		ext = ".soda"
+	elseif file == OVERWRITE_SVG then
+		ext = ".svg"
+	elseif file == OVERWRITE_PNG then
+		ext = "_export.png"
+	end
+	
+	local prefix = ""
+	prefix = love.filesystem.getSourceBaseDirectory() .. "/"
+	local f_exists = false
+	local f=io.open(prefix .. document_name .. ext,"r")
+	if f~=nil then io.close(f) f_exists = true else f_exists = false end
+	overwrite_name = document_name .. ext
+	overwrite_type = file
+	return f_exists
+
+end
+
 function export.saveLOL()
 
 	local prefix = ""

@@ -138,9 +138,19 @@ global_message = ""
 global_message_timer = 0
 
 safe_to_quit = false
+can_overwrite = false
+is_trying_to_quit = false
+overwrite_name = ""
+overwrite_type = 0
+OVERWRITE_LOL = 0
+OVERWRITE_SVG = 1
+OVERWRITE_PNG = 2
+
+bad_is_dev = false
 
 function resetEditor(exit_popup, add_layer)
 
+	can_overwrite = false
 	ui.preview_zoom = 1
 	ui.preview_window_x = 0
 	ui.preview_window_y = 0
@@ -395,7 +405,6 @@ function love.load()
 
 	math.randomseed(os.time())
 	-- Check if being run in dev environment, set vsync on
-	local bad_is_dev = false
 	local a = io.open(".git/config")
 	bad_is_dev = a ~= nil
 	if bad_is_dev then io.close(a) end
@@ -1275,10 +1284,16 @@ function love.update(dt)
 			
 			-- Only make a save file if the vector data has been edited
 			if tm.data[1] ~= nil then
-				export.saveLOL()
+				local test_save = export.test(OVERWRITE_LOL)
+				if test_save and can_overwrite == false then
+					ui.loadPopup("f.overwrite")
+				else
+					export.saveLOL()
+					export.saveArtboard()
+					can_overwrite = true
+				end
 			end
 			
-			export.saveArtboard()
 		end
 	
 	end
@@ -1645,6 +1660,8 @@ end
 
 function love.quit()
 	if not safe_to_quit then
+		is_trying_to_quit = true
+		overwrite_type = OVERWRITE_LOL
 		ui.loadPopup("f.exit")
 	end
 

@@ -283,6 +283,25 @@ function ui.loadPopup(ref)
 			ui.generatePopup()
 		end
 		
+		if ref == "f.overwrite" then
+		
+			storeMovedVertices()
+			vertex_selection_mode = false
+			vertex_selection = {}
+			storeMovedShapes()
+			shape_selection_mode = false
+			shape_selection = {}
+			multi_shape_selection = false
+			
+			ui.addPopup("Confirm Save", "f.overwrite", "col")
+			ui.addPopup(overwrite_name .. " already exists. Do you want to overwrite it?", "text", "col")
+			ui.addPopup("Overwrite", "overwrite", "col")
+			ui.addPopup("Rename", "rename", "row")
+			ui.addPopup("Cancel", "cancel", "row")
+			ui.generatePopup()
+		
+		end
+		
 		if ref == "h.about" then
 			storeMovedVertices()
 			vertex_selection_mode = false
@@ -302,16 +321,34 @@ function ui.loadPopup(ref)
 		end
 		
 		if ref == "f.save" then
-			export.saveLOL()
-			export.saveArtboard()
+			local test_save = export.test(OVERWRITE_LOL)
+			if test_save and can_overwrite == false then
+				ui.loadPopup("f.overwrite")
+			else
+				export.saveLOL()
+				export.saveArtboard()
+				can_overwrite = true
+			end
 		end
 		
 		if ref == "f.svg" then
-			export.saveSVG()
+			local test_save = export.test(OVERWRITE_SVG)
+			if test_save and can_overwrite == false then
+				ui.loadPopup("f.overwrite")
+			else
+				export.saveSVG()
+				can_overwrite = true
+			end
 		end
 		
 		if ref == "f.png" then
-			export.savePNG()
+			local test_save = export.test(OVERWRITE_PNG)
+			if test_save and can_overwrite == false then
+				ui.loadPopup("f.overwrite")
+			else
+				export.savePNG()
+				can_overwrite = true
+			end
 		end
 		
 		if ref == "e.pcopy" then
@@ -396,7 +433,9 @@ function ui.loadPopup(ref)
 		if ref == "f.exit" then
 		
 			if document_w ~= 0 then
+				is_trying_to_quit = true
 				safe_to_quit = false
+				overwrite_type = OVERWRITE_LOL
 				storeMovedVertices()
 				vertex_selection_mode = false
 				vertex_selection = {}
@@ -1047,13 +1086,13 @@ function ui.popupLoseFocus(kind)
 				local myshape = polygon.data[tm.polygon_loc]
 				
 				if tbox.id == "ellipse.seg" then
-					local old_seg = myshape.segments
+					local old_seg = ui.primary_text_orig
 					myshape.segments = tonumber(tbox.value)
 					tm.store(TM_ELLIPSE_SEG, old_seg, myshape.segments)
 					tm.step()
 					polygon.segments = tonumber(tbox.value)
 				elseif tbox.id == "ellipse.ang" then
-					local old_ang = myshape._angle
+					local old_ang = ui.primary_text_orig
 					myshape._angle = tonumber(tbox.value)
 					tm.store(TM_ELLIPSE_ANGLE, old_ang, myshape._angle)
 					tm.step()
@@ -3139,6 +3178,7 @@ function ui.update(dt)
 				-- OK button
 				ui.popupLoseFocus(ui.popup[1][1].kind)
 				document_name = ui.popup[2][2].name
+				can_overwrite = false
 				document_w = tonumber(ui.popup[3][2].name)
 				document_h = tonumber(ui.popup[4][2].name)
 				
@@ -3156,8 +3196,34 @@ function ui.update(dt)
 				end
 				
 				if pop_kind == "f.as" then
-					export.saveLOL()
-					export.saveArtboard()
+					local test_save = export.test(overwrite_type)
+					if test_save then
+						ui.popup = {}
+						ui_active = true
+						ui.context_menu = {}
+						ui.title_active = false
+						
+						ui.loadPopup("f.overwrite")
+					else
+					
+						if overwrite_type == OVERWRITE_LOL then
+							export.saveLOL()
+							export.saveArtboard()
+							can_overwrite = true
+						elseif overwrite_type == OVERWRITE_SVG then
+							export.saveSVG()
+							can_overwrite = true
+						elseif overwrite_type == OVERWRITE_PNG then
+							export.savePNG()
+							can_overwrite = true
+						end
+						
+						if is_trying_to_quit then
+							safe_to_quit = true
+							love.event.quit()
+						end
+						
+					end
 				end
 				
 				updateTitle()
@@ -3175,17 +3241,62 @@ function ui.update(dt)
 			
 			if pop_kind == "f.exit" then
 			
-				safe_to_quit = true
-				export.saveLOL()
-				export.saveArtboard()
-				love.event.quit()
+				local test_save = export.test(OVERWRITE_LOL)
+
+				if test_save and can_overwrite == false then
+				
+					is_trying_to_quit = true
+					
+					ui.popup = {}
+					ui_active = true
+					ui.context_menu = {}
+					ui.title_active = false
+					
+					ui.loadPopup("f.overwrite")
+					
+				else
+				
+					export.saveLOL()
+					export.saveArtboard()
+					can_overwrite = true
+					
+					-- Exit popup
+					ui.popup = {}
+					ui_active = true
+					ui.context_menu = {}
+					ui.title_active = false
+					
+					safe_to_quit = true
+					love.event.quit()
+					
+				end
+			
+			end
+			
+			if pop_kind == "f.overwrite" then
+				if overwrite_type == OVERWRITE_LOL then
+					export.saveLOL()
+					export.saveArtboard()
+					can_overwrite = true
+				elseif overwrite_type == OVERWRITE_SVG then
+					export.saveSVG()
+					can_overwrite = true
+				elseif overwrite_type == OVERWRITE_PNG then
+					export.savePNG()
+					can_overwrite = true
+				end
+				
+				if is_trying_to_quit then
+					safe_to_quit = true
+					love.event.quit()
+				end
 				
 				-- Exit popup
 				ui.popup = {}
 				ui_active = true
 				ui.context_menu = {}
 				ui.title_active = false
-			
+					
 			end
 		
 		end
@@ -3202,6 +3313,7 @@ function ui.update(dt)
 				ui.preview_palette_enabled = false
 				local px, py, pw, ph, pxo = ui.popup_x, ui.popup_y, ui.popup_w, ui.popup_h, ui.popup_x_offset
 				local popup_clicked = false
+				local load_next_popup = ""
 			
 				local i
 				local h = 12
@@ -3245,9 +3357,22 @@ function ui.update(dt)
 							by = math.floor(py + 25 + h + 6) - 3
 							bw = 58
 							bh = 25
+						elseif kind == "overwrite" then
+							bx = math.floor(px + (pw / 2) - 62 - (pw / 6)) - 8
+							by = math.floor(py + 25 + h + 6) - 3
+							bw = 75
+							bh = 25
+						elseif kind == "rename" then
+							bx = math.floor(px + (pw / 2) - 25) - 7
+							by = math.floor(py + 25 + h + 6) - 3
+							bw = 64
+							bh = 25
 						elseif kind == "cancel" then
 							if ui.popup[1][1].kind == "f.exit" then
 								bx = math.floor(px + (pw / 2) - 21 + 32 + (pw / 6) - 4) - 8
+								by = math.floor(py + 25 + h + 6) - 3
+							elseif ui.popup[1][1].kind == "f.overwrite" then
+								bx = math.floor(px + (pw / 2) + 4 + (pw / 6)) - 8
 								by = math.floor(py + 25 + h + 6) - 3
 							else
 								bx = px + (pw / 2) + 32 - 19 - 8
@@ -3277,6 +3402,7 @@ function ui.update(dt)
 								elseif kind == "ok" and (pop_kind == "f.new" or pop_kind == "i.setup" or pop_kind == "f.as") then -- OK button for f.new (new document)
 									ui.popupLoseFocus(pop_kind)
 									document_name = ui.popup[2][2].name
+									can_overwrite = false
 									document_w = tonumber(ui.popup[3][2].name)
 									document_h = tonumber(ui.popup[4][2].name)
 									
@@ -3289,28 +3415,86 @@ function ui.update(dt)
 									end
 									
 									if pop_kind == "f.as" then
-										export.saveLOL()
-										export.saveArtboard()
+										local test_save = export.test(overwrite_type)
+										if test_save then
+											load_next_popup = "f.overwrite"
+										else
+										
+											if overwrite_type == OVERWRITE_LOL then
+												export.saveLOL()
+												export.saveArtboard()
+												can_overwrite = true
+											elseif overwrite_type == OVERWRITE_SVG then
+												export.saveSVG()
+												can_overwrite = true
+											elseif overwrite_type == OVERWRITE_PNG then
+												export.savePNG()
+												can_overwrite = true
+											end
+											
+											if is_trying_to_quit then
+												safe_to_quit = true
+												love.event.quit()
+											end
+											
+										end
 									end
 									
 									updateTitle()
 									
 									exit_pop = true
 								elseif kind == "save" then
-									safe_to_quit = true
-									export.saveLOL()
-									export.saveArtboard()
-									love.event.quit()
+									local test_save = export.test(OVERWRITE_LOL)
+									if test_save then
+										load_next_popup = "f.overwrite"
+										is_trying_to_quit = true
+									else
+									
+										export.saveLOL()
+										export.saveArtboard()
+										can_overwrite = true
+										
+										if is_trying_to_quit then
+											safe_to_quit = true
+											love.event.quit()
+										end
+										
+									end
 									exit_pop = true
 								elseif kind == "discard" then
 									safe_to_quit = true
 									love.event.quit()
 									exit_pop = true
+								elseif kind == "overwrite" then
+									
+									if overwrite_type == OVERWRITE_LOL then
+										export.saveLOL()
+										export.saveArtboard()
+										can_overwrite = true
+									elseif overwrite_type == OVERWRITE_SVG then
+										export.saveSVG()
+										can_overwrite = true
+									elseif overwrite_type == OVERWRITE_PNG then
+										export.savePNG()
+										can_overwrite = true
+									end
+									
+									if is_trying_to_quit then
+										safe_to_quit = true
+										love.event.quit()
+									end
+									
+									exit_pop = true
+									
+								elseif kind == "rename" then
+									load_next_popup = "f.as"
+									exit_pop = true
 								elseif kind == "ok" and pop_kind == "h.about" then
 									ui.popupLoseFocus(pop_kind)
 									exit_pop = true
 								elseif kind == "cancel" then
-									if pop_kind == "f.exit" then
+									is_trying_to_quit = false
+									if pop_kind == "f.exit" or pop_kind == "f.overwrite" or pop_kind == "f.as" then
 										safe_to_quit = false
 									end
 									exit_pop = true
@@ -3334,6 +3518,10 @@ function ui.update(dt)
 					ui_active = true
 					ui.context_menu = {}
 					ui.title_active = false
+					
+					if load_next_popup ~= "" then
+						ui.loadPopup(load_next_popup)
+					end
 				end
 				
 			end
@@ -4572,7 +4760,7 @@ function ui.draw()
 				if kind == "text" then
 					if ui.popup[1][1].kind == "h.about" then
 						lg.print(name, math.floor(px + pw - font:getWidth(name) - 24), math.floor(py + 25 + h))
-					elseif ui.popup[1][1].kind == "f.exit" then
+					elseif ui.popup[1][1].kind == "f.exit" or ui.popup[1][1].kind == "f.overwrite" then
 						lg.print(name, math.floor(px + 24), math.floor(py + 25 + h))
 					else
 						lg.print(name, math.floor(px + (pw / 2) - font:getWidth(name) - 12 + pxo), math.floor(py + 25 + h))
@@ -4603,6 +4791,18 @@ function ui.draw()
 					
 					ui.drawOutline(bx - 8, by - 3, 35, 25, true)
 					lg.print(name, bx, by)
+				elseif kind == "overwrite" then
+					local bx, by
+					bx = math.floor(px + (pw / 2) - 62 - (pw / 6))
+					by = math.floor(py + 25 + h + 6)
+					ui.drawOutline(bx - 8, by - 3, 75, 25, true)
+					lg.print(name, bx, by)
+				elseif kind == "rename" then
+					local bx, by
+					bx = math.floor(px + (pw / 2) - 25)
+					by = math.floor(py + 25 + h + 6)
+					ui.drawOutline(bx - 7, by - 3, 64, 25, true)
+					lg.print(name, bx, by)
 				elseif kind == "save" then
 					local bx, by
 					bx = math.floor(px + (pw / 2) - 20 - 22 - (pw / 6) - 4)
@@ -4619,6 +4819,9 @@ function ui.draw()
 					local bx, by
 					if ui.popup[1][1].kind == "f.exit" then
 						bx = math.floor(px + (pw / 2) - 21 + 32 + (pw / 6) - 4)
+						by = math.floor(py + 25 + h + 6)
+					elseif ui.popup[1][1].kind == "f.overwrite" then
+						bx = math.floor(px + (pw / 2) + 4 + (pw / 6))
 						by = math.floor(py + 25 + h + 6)
 					else
 						bx = math.floor(px + (pw / 2) + 32 - 19)
