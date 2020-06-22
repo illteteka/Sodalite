@@ -23,7 +23,6 @@ ctrl_name = "ctrl"
 ctrl_id = "Ctrl"
 ctrl_cursor = "b"
 mac_string = false
-slash_dir = "/"
 
 a_key = _OFF
 lctrl_key = _OFF
@@ -404,10 +403,6 @@ function love.load()
 		ctrl_id = "Cmd"
 		ctrl_cursor = "w"
 		mac_string = true
-	end
-	
-	if love.system.getOS() == "Windows" then
-		slash_dir = "\\"
 	end
 
 	math.randomseed(os.time())

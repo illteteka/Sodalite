@@ -1275,8 +1275,13 @@ function ui.keyboardHit(key)
 			
 			if ui.primary_textbox ~= -1 then
 			
+				local textbox_input_max = 5
+				if tbox.id == "art.opacity" then
+					textbox_input_max = 3
+				end
+			
 				local allowed_keys = (tonumber(key) ~= nil)
-				if allowed_keys and string.len(tbox.value) < 5 then
+				if allowed_keys and string.len(tbox.value) < textbox_input_max then
 					tbox.value = tbox.value .. key					
 				end
 				
