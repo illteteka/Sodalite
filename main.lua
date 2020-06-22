@@ -23,6 +23,7 @@ ctrl_name = "ctrl"
 ctrl_id = "Ctrl"
 ctrl_cursor = "b"
 mac_string = false
+empty_document = true
 
 a_key = _OFF
 lctrl_key = _OFF

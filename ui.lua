@@ -185,7 +185,17 @@ function ui.loadCM(x, y, ref)
 	local can_select_all_verts = shape_grabber == false and (vertex_selection_mode == false)
 	local can_select_all_shapes = shape_grabber
 	can_select_all = (can_select_all_verts or can_select_all_shapes) and not select_grabber and not zoom_grabber and not color_grabber and (polygon.data[tm.polygon_loc] ~= nil) and (artboard.active == false)
-	local can_save = tm.data[1] ~= nil and document_w ~= 0
+	
+	if empty_document then
+	
+		if tm.data[1] ~= nil and document_w ~= 0 then
+			empty_document = false
+		end
+	
+	end
+	
+	local can_save = not empty_document
+	
 	local can_paste_color = false
 	can_paste_color = (palette.copy ~= nil) and ui.cm_color_area ~= -1
 	

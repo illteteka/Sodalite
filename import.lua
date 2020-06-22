@@ -48,6 +48,8 @@ function import.open(file)
 		palette.updateAccentColor()
 		updateTitle()
 		
+		empty_document = false
+		
 		splash_active = false
 	end
 
