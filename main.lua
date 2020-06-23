@@ -81,6 +81,8 @@ box_selection_x = 0
 box_selection_y = 0
 selection_mouse_x = 0
 selection_mouse_y = 0
+selection_rmb = false
+selection_previously_active = false
 
 document_name = "Untitled"
 document_w = 0
@@ -720,7 +722,7 @@ function love.update(dt)
 		cas = camera_zoom
 	end
 	
-	local ui_active
+	local ui_active = false
 	
 	if color_grabber then
 	
@@ -819,7 +821,7 @@ function love.update(dt)
 		end
 		
 		if num_4_key == _PRESS then
-			ui.selectionButton()
+			ui.selectionButton(true, true)
 			ui_active = true
 		end
 		
@@ -1646,7 +1648,7 @@ function love.draw()
 	
 	end
 	
-	if select_grabber and mouse_switch == _ON and box_selection_active then
+	if select_grabber and box_selection_active then
 	
 		local sx, sy, sx2, sy2 = (box_selection_x - camera_x) * camera_zoom, (box_selection_y - camera_y) * camera_zoom, (mx - camera_x) * camera_zoom, (my - camera_y) * camera_zoom
 		if sx2 < sx then sx, sx2 = sx2, sx end

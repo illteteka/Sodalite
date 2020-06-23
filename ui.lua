@@ -811,13 +811,18 @@ function ui.shapeSelectButton()
 	end
 end
 
-function ui.selectionButton()
+function ui.selectionButton(button_mode, set_selection)
 	if document_w ~= 0 then
 		box_selection_x = 0
 		box_selection_y = 0
 		ui.active_textbox = ""
 		
-		if ui.toolbar[ui.toolbar_select].active then
+		local start_selection = false
+		
+		start_selection = button_mode and ui.toolbar[ui.toolbar_select].active
+		if not start_selection and not button_mode then start_selection = set_selection end
+		
+		if start_selection then
 			if zoom_grabber then
 				love.mouse.setCursor()
 			end
@@ -835,7 +840,7 @@ function ui.selectionButton()
 			end
 			select_grabber = true
 			ui.toolbar[ui.toolbar_select].active = false
-		else
+		else -- start selection
 			local open_grid = ui.toolbar[ui.toolbar_grid].active == false
 			ui.panelReset()
 			select_grabber = false
@@ -845,6 +850,7 @@ function ui.selectionButton()
 				ui.toolbar[ui.toolbar_grid].active = false
 			end
 		end
+		
 	end
 end
 
@@ -2232,7 +2238,7 @@ function ui.update(dt)
 						
 					elseif tool.ref == ".select" then
 						
-						ui.selectionButton()
+						ui.selectionButton(true, true)
 						
 					elseif tool.ref == ".grid" then
 					
@@ -3600,22 +3606,47 @@ function ui.update(dt)
 	
 	end
 	
-	if select_grabber and artboard.active == false and ui_active == false then
+	if artboard.active == false then
 	
-		if mx > 64 and my > 54 and mx < screen_width - 208 then
+		local mouse_var = mouse_switch
+		if selection_rmb then mouse_var = rmb_switch end
 		
-			if mouse_switch == _PRESS then
+		if mx > 64 and my > 54 and mx < screen_width - 208 then
+	
+			if not zoom_grabber and rmb_switch == _PRESS then
+				
+				if not ui.toolbar[ui.toolbar_select].active then
+					selection_previously_active = true
+				else
+					selection_previously_active = false
+				end
+				
+				ui.selectionButton(false, true)
+				selection_rmb = true
+				
+			end
+			
+			if selection_rmb then mouse_var = rmb_switch end
+	
+			if mouse_var == _PRESS and ui_active == false and select_grabber then
 				box_selection_x = mx / camera_zoom
 				box_selection_y = my / camera_zoom
 				box_selection_active = true
 				ui_active = true
 			end
-			
-			if mouse_switch == _ON then
+		
+		end
+		
+		if select_grabber then
+		
+			if mouse_var == _ON then
 				ui_active = true
 			end
 			
-			if mouse_switch == _RELEASE then
+			local use_rmb = false
+			use_rmb = selection_rmb and rmb_switch == _RELEASE
+			
+			if mouse_var == _RELEASE or use_rmb then
 			
 				if shape_grabber then
 				
@@ -3689,8 +3720,19 @@ function ui.update(dt)
 						
 						if select_success then
 						
-							ui.selectionButton()
+							ui.selectionButton(true, true)
 						
+						end
+						
+						if use_rmb then
+							if not selection_previously_active then
+								ui.selectionButton(false, false)
+							end
+							
+							box_selection_x, box_selection_y = 0, 0
+							ui_active = true
+							box_selection_active = false
+							selection_rmb = false
 						end
 					
 					end
@@ -3754,8 +3796,19 @@ function ui.update(dt)
 						
 						if select_success then
 						
-							ui.selectionButton()
+							ui.selectionButton(true, true)
 						
+						end
+						
+						if use_rmb then
+							if not selection_previously_active then
+								ui.selectionButton(false, false)
+							end
+							
+							box_selection_x, box_selection_y = 0, 0
+							ui_active = true
+							box_selection_active = false
+							selection_rmb = false
 						end
 					
 					end
@@ -3767,7 +3820,7 @@ function ui.update(dt)
 				end
 			
 			end
-			
+		
 		end
 	
 	end
@@ -3777,7 +3830,7 @@ function ui.update(dt)
 	-- Make ui active if interacting with palette/layer window
 	ui_active = ui_active or (mx >= screen_width - 208)
 	
-	if mouse_switch == _PRESS and ui_active == false then
+	if mouse_var == _PRESS and ui_active == false then
 		ui.preview_action = ""
 		ui.preview_palette_enabled = false
 	end
