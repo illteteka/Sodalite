@@ -29,13 +29,14 @@ function import.open(file)
 	end
 	
 	if (file_ext == FILE_EXTENSION) then
+		local old_w, old_h = document_w, document_h
 		local file_contents = file:read("string")
 		-- Reset import vars
 		line_count = 0
 		file_state = "SETUP"
 		file_pos = 0
 		
-		resetEditor(true, false)
+		resetEditor(true, false, false)
 		import.read(file_contents)
 		
 		artboard.init()
@@ -44,7 +45,10 @@ function import.open(file)
 		ui.preview_window_y = 0
 
 		camera_zoom = 1
-		resetCamera()
+		if old_w ~= document_w or old_h ~= document_h then
+			camera_zoom = 1
+			resetCamera()
+		end
 		palette.updateAccentColor()
 		updateTitle()
 		

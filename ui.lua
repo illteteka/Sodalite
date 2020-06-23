@@ -3198,8 +3198,6 @@ function ui.update(dt)
 				document_h = tonumber(ui.popup[4][2].name)
 				
 				if pop_kind == "i.setup" or pop_kind == "f.as" then
-					camera_zoom = 1
-					resetCamera()
 					artboard.init(true)
 					-- Exit popup
 					ui.popup = {}
@@ -3207,7 +3205,7 @@ function ui.update(dt)
 					ui.context_menu = {}
 					ui.title_active = false
 				else
-					resetEditor(true, true)
+					resetEditor(true, true, true)
 				end
 				
 				if pop_kind == "f.as" then
@@ -3422,11 +3420,9 @@ function ui.update(dt)
 									document_h = tonumber(ui.popup[4][2].name)
 									
 									if pop_kind == "i.setup" or pop_kind == "f.as" then
-										camera_zoom = 1
-										resetCamera()
 										artboard.init(true)
 									else
-										resetEditor(false, true)
+										resetEditor(false, true, true)
 									end
 									
 									if pop_kind == "f.as" then

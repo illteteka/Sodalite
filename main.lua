@@ -150,15 +150,17 @@ OVERWRITE_PNG = 2
 
 bad_is_dev = false
 
-function resetEditor(exit_popup, add_layer)
+function resetEditor(exit_popup, add_layer, reset_cam)
 
 	can_overwrite = false
 	ui.preview_zoom = 1
 	ui.preview_window_x = 0
 	ui.preview_window_y = 0
 
-	camera_zoom = 1
-	resetCamera()
+	if reset_cam then
+		camera_zoom = 1
+		resetCamera()
+	end
 	
 	vertex_selection_mode = false
 	vertex_selection = {}
