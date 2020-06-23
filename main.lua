@@ -100,6 +100,8 @@ mouse_wheel_x = 0
 mouse_wheel_y = 0
 mouse_x_offset = -1
 mouse_y_offset = -1
+middle_x = -1
+middle_y = -1
 
 scrub_timer = 0
 hz_key = 0
@@ -1351,6 +1353,25 @@ function love.update(dt)
 			camera_moved = true
 		end
 	
+	end
+
+	if mouse_wheel_x == 0 and mouse_wheel_y == 0 then
+
+		if middle_switch == _PRESS then
+			middle_x = mx
+			middle_y = my
+		end
+
+		if middle_switch == _ON then
+			camera_x = camera_x + mx - middle_x
+			camera_y = camera_y + my - middle_y
+
+			middle_x = mx
+			middle_y = my
+		end
+
+	else
+		middle_switch = _RELEASE
 	end
 	
 	if camera_moved and camera_round == 0 and w_key == _OFF and s_key == _OFF and a_key == _OFF and d_key == _OFF then

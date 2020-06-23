@@ -1446,11 +1446,6 @@ function ui.swapLayer(new, use_my)
 		skip_tm = true
 	end
 
-	if artboard.active == false and polygon.data[tm.polygon_loc] ~= nil and polygon.data[tm.polygon_loc].kind == "ellipse" then
-		polygon.kind = "ellipse"
-		ui.panelEllipse()
-	end
-
 	-- To reduce undo/redo ram usage, change previous swap to new layer instead of making another swap
 	if (not skip_tm) and (_tm_copy.action == TM_PICK_LAYER) and (_tm_copy.created_layer == false) and (_tm_copy.trash_layer == false) then
 		_tm_copy.new = tm.polygon_loc
@@ -1884,7 +1879,7 @@ function ui.update(dt)
 	-- Check collision on layer menu
 	local layx, layy = screen_width - 208, 352
 	local layw = 208 - 2 - 16
-	local layh = screen_height - 403
+	local layh = screen_height - 403 - 48
 	
 	-- tooltips for add/delete
 	if (mx >= layx + 4) and (mx <= layx + 4 + 24) and (my >= layy + 13) and (my <= layy + 13 + 24) then
@@ -1899,7 +1894,7 @@ function ui.update(dt)
 	
 		ui.preview_palette_enabled = false
 		-- Scroll bar
-		if (mx >= screen_width - 16) and (my >= layy + 41 + 14) and (my <= 14 + screen_height - 34) then
+		if (mx >= screen_width - 16) and (my >= layy + 41 + 14) and (my <= 14 + screen_height - 34 - 48) then
 			ui.lyr_scroll = true
 		end
 		
@@ -1911,7 +1906,7 @@ function ui.update(dt)
 		end
 		
 		-- Bottom scroll button
-		if (mx >= screen_width - 16) and (mx <= screen_width - 1) and (my >= screen_height - 24) and (my <= screen_height - 10) then
+		if (mx >= screen_width - 16) and (mx <= screen_width - 1) and (my >= screen_height - 24 - 48) and (my <= screen_height - 10 - 48) then
 			ui.lyr_dir = "down"
 			ui.lyr_spd = 1
 			ui.scrollButton()
@@ -2020,6 +2015,36 @@ function ui.update(dt)
 			
 	end
 	
+	if (mouse_switch == _ON) and ui.lyr_clicked ~= 0 then
+	
+		local layer_element_size = math.max((25 * #ui.layer), 0)
+		
+		if layer_element_size > layh then
+		
+			-- Scroll layer window when placing a layer outside of bounds
+			local scrolling = false
+			
+			if (my <= 392) then
+				ui.lyr_dir = "up"
+				ui.lyr_spd = 3
+				scrolling = true
+			end
+			
+			if (my >= screen_height - 10 - 48) then
+				ui.lyr_dir = "down"
+				ui.lyr_spd = 3
+				scrolling = true
+			end
+			
+			if not scrolling then
+				ui.lyr_dir = ""
+				ui.lyr_timer = 0
+			end
+		
+		end
+	
+	end
+	
 	if (mouse_switch == _RELEASE) and ui.lyr_button_active ~= -1 then
 		ui.lyr_button_active = -1
 	end
@@ -2049,9 +2074,9 @@ function ui.update(dt)
 		local y_test = (moffset + scroll_offset)
 		local layer_top = math.floor((moffset + scroll_offset) / 25) * 25
 		local layer_num = layer_amt - math.floor((moffset + scroll_offset) / 25)
-	
+		
 		-- Make it so we can't swap with layers that are not visible on screen (above the layer window)
-		if (my >= 392-6) then
+		if (my >= 392-6) and (my <= screen_height - 52) then
 	
 			-- If layer move is within bounds
 			if (layer_num >= 0 and layer_num <= layer_amt) then
@@ -3768,7 +3793,7 @@ end
 
 function ui.scrollButton()
 
-	local layh = screen_height - 376
+	local layh = screen_height - 403 - 48
 	local layer_amt = #ui.layer
 	local layer_element_size = math.max((25 * layer_amt) - layh - 1, 0)
 	local calc_pos
@@ -4011,7 +4036,7 @@ function ui.draw()
 	-- Draw layer menu
 	local layx, layy = screen_width - 208, 352
 	local layw = 208 - 2 - 16
-	local layh = screen_height - 403
+	local layh = screen_height - 403 - 48
 	
 	-- Fill area
 	lg.setColor(col_box)
@@ -4168,9 +4193,9 @@ function ui.draw()
 		local moffset = my - 392
 		local y_test = (moffset + scroll_offset)
 		local layer_top = math.floor((moffset + scroll_offset) / 25) * 25
-		local layer_num = layer_amt - math.floor((moffset + scroll_offset) / 25)	
+		local layer_num = layer_amt - math.floor((moffset + scroll_offset) / 25)
 		
-		if (my >= 392 - 6) and (my <= screen_height - 6) then -- Keep within bounds of layer selector
+		if (my >= 392 - 6) and (my <= screen_height - 52) then -- Keep within bounds of layer selector
 		
 			if layer_num >= 0 and layer_num <= layer_amt then
 			
@@ -4200,37 +4225,26 @@ function ui.draw()
 			
 			end
 			
-			-- Scroll layer window when placing a layer outside of bounds
-			if (my >= 392 - 6) and (my <= 392) then
-				ui.lyr_dir = "up"
-				ui.lyr_spd = 3
-			end
-			
-			if (my >= screen_height - 10) then
-				ui.lyr_dir = "down"
-				ui.lyr_spd = 3
-			end
-			
 		end
 	
 	end
 	
 	-- Draw layer slider
 	ui.drawOutline(screen_width - 16, layy + 41, 15, 14, true)
-	ui.drawOutline(screen_width - 16, screen_height - 24, 15, 14, true)
+	ui.drawOutline(screen_width - 16, screen_height - 24 - 48, 15, 14, true)
 	
 	lg.setColor(c_white)
 	lg.draw(tex_gradient,   screen_width - 16, layy + 41 + 14, 0, 1, layh - 28)
 	lg.draw(spr_arrow_up,   screen_width - 12, layy + 41 + 4)
-	lg.draw(spr_arrow_down, screen_width - 12, screen_height - 24 + 4)
+	lg.draw(spr_arrow_down, screen_width - 12, screen_height - 24 + 4 - 48)
 	
 	-- Scroll button
 	lg.setColor(col_box)
-	local scroll_len = screen_height - 38 - (layy + 41 + 14)
+	local scroll_len = screen_height - 38 - (layy + 41 + 14) - 48
 	lg.rectangle("fill", screen_width - 16, layy + 41 + 14 + math.floor(scroll_len * ui.lyr_scroll_percent), 15, 14)
 	ui.drawOutline(screen_width - 16, layy + 41 + 14 + math.floor(scroll_len * ui.lyr_scroll_percent), 15, 14, true)
 	
-	ui.drawOutline(layx + 1, layy + 10 + 29, layw, screen_height - layy - 20 - 29)
+	ui.drawOutline(layx + 1, layy + 10 + 29, layw, screen_height - layy - 20 - 29 - 48)
 	
 	if draw_l then
 		
@@ -4320,6 +4334,15 @@ function ui.draw()
 			
 		end
 	end
+	
+	-- Draw info section
+	local info_x, info_y = screen_width - 199, screen_height - 54
+	local infomx, infomy = math.floor((love.mouse.getX() / camera_zoom) - camera_x), math.floor((love.mouse.getY() / camera_zoom) - camera_y)
+	
+	lg.setColor(c_black)
+	lg.print("Size: " .. document_w .. ", " .. document_h, info_x, info_y)
+	lg.print("Mouse: " .. infomx .. ", " .. infomy, info_x, info_y + 15)
+	lg.print("Zoom: " .. math.floor(camera_zoom * 100) .. "%", info_x, info_y + 30)
 	
 	-- Draw active toolbar shortcuts
 	local ix, iy
