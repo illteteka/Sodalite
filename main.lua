@@ -138,6 +138,7 @@ v_out2 = nil
 
 last_shape_grabbed = -1
 double_click_timer = 0
+double_click_timer_deselect = 0
 lock_preview_vertices = false
 
 global_message = ""

@@ -2060,6 +2060,13 @@ function ui.update(dt)
 		ui_active = true
 	end
 	
+	if (mx >= layx + 1) and (mx <= layx + layw + 16) and (my >= layy + 40) and (my <= layy + 40 + layh) and mouse_wheel_y ~= 0 then
+		local layer_element_size = math.max((25 * #ui.layer), 0)
+		ui.lyr_scroll_percent = ui.lyr_scroll_percent - (mouse_wheel_y/layer_element_size * 60 * (layer_element_size/13) * dt)
+		ui.lyr_scroll_percent = lume.clamp(ui.lyr_scroll_percent, 0, 1)
+		mouse_wheel_y = 0
+	end
+	
 	if (ui.lyr_scroll) and ((mouse_switch == _OFF) or (mouse_switch == _RELEASE)) then
 		ui.lyr_scroll = false
 	end
@@ -3604,6 +3611,38 @@ function ui.update(dt)
 			love.mouse.setCursor()
 		end
 	
+	end
+	
+	if ui_active == false and mx > 64 and my > 54 and mx < screen_width - 208 then
+		if double_click_timer_deselect ~= 0 then
+		
+			double_click_timer_deselect = double_click_timer_deselect + (60 * dt)
+		
+			if double_click_timer_deselect > 30 then
+				double_click_timer_deselect = 0
+			end
+		
+		end
+		
+		if rmb_switch == _PRESS then
+		
+			if double_click_timer_deselect > 0 and double_click_timer_deselect < 14 then
+			
+				vertex_selection_mode = false
+				vertex_selection = {}
+				
+				shape_selection_mode = false
+				shape_selection = {}
+				multi_shape_selection = false
+				
+				double_click_timer_deselect = 0
+			else
+				double_click_timer_deselect = 0
+			end
+		
+			double_click_timer_deselect = double_click_timer_deselect + (60 * dt)
+		
+		end
 	end
 	
 	if artboard.active == false then
