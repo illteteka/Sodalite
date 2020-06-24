@@ -11,6 +11,7 @@ TM_ADD_ELLIPSE   = 7
 TM_ELLIPSE_SEG   = 8
 TM_ELLIPSE_ANGLE = 9
 TM_MOVE_SHAPE    = 10
+TM_CLONE_LAYER   = 11
 
 function tm.init()
 
@@ -120,6 +121,12 @@ function tm.store(action, a, b, c, d, e)
 			moment.x = b
 			moment.y = c
 			
+		elseif (action == TM_CLONE_LAYER) then
+		
+			moment.action = TM_CLONE_LAYER
+			moment.original = a
+			moment.new = b
+		
 		end
 		
 		if tm.data[tm.location] == nil then
@@ -170,6 +177,8 @@ function tm.print()
 			akind = "TM_ELLIPSE_ANGLE"
 		elseif aa == TM_MOVE_SHAPE then
 			akind = "TM_MOVE_SHAPE"
+		elseif aa == TM_CLONE_LAYER then
+			akind = "TM_CLONE_LAYER"
 		end
 		print("action " .. akind)
 		print_r(tm.data[i])

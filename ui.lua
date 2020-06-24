@@ -145,6 +145,7 @@ TIP_PREV_ZOOM_RESET = 21
 TIP_PREV_ZOOM_FIT = 22
 TIP_PREV_FREEDRAW = 23
 TIP_PREV_BG = 24
+TIP_CLONE_LAYER = 25
 
 function ui.init()
 	-- Add palette sliders
@@ -669,6 +670,8 @@ function ui.getTooltip(x)
 		return "Add a new layer"
 	elseif x == TIP_DELETE_LAYER then
 		return "Delete the current layer"
+	elseif x == TIP_CLONE_LAYER then
+		return "Duplicate the current layer"
 	elseif x == TIP_GRID_SNAP then
 		return "Toggle grid snapping"
 	elseif x == TIP_ZOOM_IN then
@@ -1893,6 +1896,10 @@ function ui.update(dt)
 	end
 	
 	if (mx >= layx + 4 + 24 + 4) and (mx <= layx + 4 + 24 + 24 + 4) and (my >= layy + 13) and (my <= layy + 13 + 24) then
+		ui.setTooltip(TIP_CLONE_LAYER)
+	end
+	
+	if (mx >= layx + 4 + 24 + 4 + 24 + 4) and (mx <= layx + 4 + 24 + 24 + 4 + 24) and (my >= layy + 13) and (my <= layy + 13 + 24) then
 		ui.setTooltip(TIP_DELETE_LAYER)
 	end
 	
@@ -1944,8 +1951,96 @@ function ui.update(dt)
 				ui.lyr_button_active = 1
 			end
 			
-			-- Delete layer button
+			-- Clone layer button
 			if (mx >= layx + 4 + 24 + 4) and (mx <= layx + 4 + 24 + 24 + 4) and (my >= layy + 13) and (my <= layy + 13 + 24) then
+				
+				if polygon.data[tm.polygon_loc] ~= nil then
+				
+					storeMovedVertices()
+					vertex_selection_mode = false
+					vertex_selection = {}
+					
+					storeMovedShapes()
+					shape_selection_mode = false
+					shape_selection = {}
+					multi_shape_selection = false
+					
+					local old_layer = tm.polygon_loc
+					tm.polygon_loc = #ui.layer + #ui.layer_trash + 1
+					
+					tm.store(TM_CLONE_LAYER, old_layer, tm.polygon_loc)
+					tm.step()
+					
+					ui.addLayer()
+					
+					local clone_index = ui.layer[#ui.layer].count
+					local tbl_clone = {}
+					local old_copy = polygon.data[old_layer]
+					tbl_clone.kind = old_copy.kind
+					tbl_clone.color = {}
+					table.insert(tbl_clone.color, old_copy.color[1])
+					table.insert(tbl_clone.color, old_copy.color[2])
+					table.insert(tbl_clone.color, old_copy.color[3])
+					table.insert(tbl_clone.color, old_copy.color[4])
+					
+					tbl_clone.cache = {}
+					tbl_clone.raw = {}
+					
+					if tbl_clone.kind == "ellipse" then
+					
+						tbl_clone.segments = old_copy.segments
+						tbl_clone._angle = old_copy._angle
+					
+					end
+					
+					local clc = 1
+					while clc <= #old_copy.cache do
+						local old_cache = old_copy.cache[clc]
+						local cache_tbl = {}
+						table.insert(cache_tbl, old_cache[1])
+						table.insert(cache_tbl, old_cache[2])
+						table.insert(tbl_clone.cache, cache_tbl)
+						clc = clc + 1
+					end
+					
+					local clc = 1
+					while clc <= #old_copy.raw do
+						local old_raw = old_copy.raw[clc]
+						local raw_tbl = {}
+						
+						if old_raw.x ~= nil then
+							raw_tbl.x = old_raw.x
+						end
+						
+						if old_raw.y ~= nil then
+							raw_tbl.y = old_raw.y
+						end
+						
+						if old_raw.va ~= nil then
+							raw_tbl.va = old_raw.va
+						end
+						
+						if old_raw.vb ~= nil then
+							raw_tbl.vb = old_raw.vb
+						end
+						
+						table.insert(tbl_clone.raw, raw_tbl)
+						clc = clc + 1
+					end
+					
+					table.insert(polygon.data, tm.polygon_loc, tbl_clone)
+					
+					palette.updateAccentColor()
+					ui.lyr_scroll_percent = 0
+					
+				end
+				
+				ui.lyr_button_active = 3
+				
+			end
+			
+			-- Delete layer button
+			if (mx >= layx + 4 + 24 + 4 + 24 + 4) and (mx <= layx + 4 + 24 + 24 + 4 + 24) and (my >= layy + 13) and (my <= layy + 13 + 24) then
 				
 				if (#ui.layer > 1) then
 					storeMovedVertices()
@@ -4161,7 +4256,7 @@ function ui.draw()
 	local btn_state = BTN_DEFAULT
 
 	local mouse_hover_tool = false
-	mouse_hover_tool = ((mx >= layx + 4 + 24 + 4) and (mx <= layx + 4 + 23 + 24 + 4) and (my >= layy + 13) and (my <= layy + 13 + 23))
+	mouse_hover_tool = ((mx >= layx + 4 + 24 + 4 + 24) and (mx <= layx + 4 + 23 + 24 + 4 + 24) and (my >= layy + 13) and (my <= layy + 13 + 23))
 	
 	if mouse_hover_tool and (ui.lyr_button_active == -1) then
 		btn_state = BTN_HIGHLIGHT_ON
@@ -4175,9 +4270,30 @@ function ui.draw()
 		btn_state = BTN_GRAY
 	end
 	
+	ui.drawButtonOutline(btn_state, layx + 4 + 24 + 4 + 24 + 4, layy + 13, 24, 24)
+	lg.setColor(c_white)
+	lg.draw(icon_trash, layx + 4 + 24 + 4 + 24 + 4, layy + 13)
+	
+	local btn_state = BTN_DEFAULT
+
+	local mouse_hover_tool = false
+	mouse_hover_tool = ((mx >= layx + 4 + 24 + 4) and (mx <= layx + 4 + 23 + 24 + 4) and (my >= layy + 13) and (my <= layy + 13 + 23))
+	
+	if mouse_hover_tool and (ui.lyr_button_active == -1) then
+		btn_state = BTN_HIGHLIGHT_ON
+	end
+	
+	if (mouse_switch ~= _OFF) and (ui.lyr_button_active == 3) then
+		btn_state = BTN_HIGHLIGHT_OFF
+	end
+	
+	if document_w == 0 then
+		btn_state = BTN_GRAY
+	end
+	
 	ui.drawButtonOutline(btn_state, layx + 4 + 24 + 4, layy + 13, 24, 24)
 	lg.setColor(c_white)
-	lg.draw(icon_trash, layx + 4 + 24 + 4, layy + 13)
+	lg.draw(icon_clone, layx + 4 + 24 + 4, layy + 13)
 	
 	-- Draw layers in window
 	local layer_amt = #ui.layer

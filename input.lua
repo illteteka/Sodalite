@@ -9,18 +9,6 @@ mouse_switch = _OFF
 rmb_switch = _OFF
 middle_switch = _OFF
 
-function input.printSwitch(x)
-	if x == _OFF then
-		return "off"
-	elseif math.floor(x) == _PRESS then
-		return "pressed"
-	elseif math.floor(x) == _RELEASE then
-		return "released"
-	else
-		return "on"
-	end
-end
-
 function input.combo(a, b)
 	return (a == _ON and b == _PRESS) or (a == _PRESS and b == _ON) or (a == _PRESS and b == _PRESS)
 end

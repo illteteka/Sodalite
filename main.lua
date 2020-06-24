@@ -474,6 +474,8 @@ function love.load()
 	icon_magnet = lg.newImage("textures/icon_magnet.png")
 	icon_splash = lg.newImage("textures/splash.png")
 	icon_select = lg.newImage("textures/icon_selection.png")
+	icon_polyline = lg.newImage("textures/icon_polyline.png")
+	icon_clone = lg.newImage("textures/icon_clone.png")
 	icon_sodalite = lg.newImage("textures/icon_sodalite.png")
 	
 	cursor_typing = love.mouse.getSystemCursor("ibeam")
