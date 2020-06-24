@@ -298,6 +298,11 @@ function polygon.redo()
 
 			end
 		
+		elseif moment[1].action == TM_CLONE_LAYER then
+		
+			ui.layerCloneButton(false)
+			palette.updateAccentColor()
+		
 		end
 	
 	end
@@ -404,6 +409,13 @@ function polygon.undo()
 				end
 
 			end
+		
+		elseif moment[1].action == TM_CLONE_LAYER then
+		
+			tm.polygon_loc = moment[1].original
+			table.remove(ui.layer)
+			table.remove(polygon.data)
+			palette.updateAccentColor()
 		
 		end
 		

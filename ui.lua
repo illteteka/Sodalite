@@ -962,6 +962,79 @@ function ui.artboardButton()
 
 end
 
+function ui.layerCloneButton(use_tm)
+
+	local old_layer = tm.polygon_loc
+	tm.polygon_loc = #ui.layer + #ui.layer_trash + 1
+
+	if use_tm then
+		tm.store(TM_CLONE_LAYER, old_layer, tm.polygon_loc)
+		tm.step()
+	end
+
+	ui.addLayer()
+
+	local clone_index = ui.layer[#ui.layer].count
+	local tbl_clone = {}
+	local old_copy = polygon.data[old_layer]
+	tbl_clone.kind = old_copy.kind
+	tbl_clone.color = {}
+	table.insert(tbl_clone.color, old_copy.color[1])
+	table.insert(tbl_clone.color, old_copy.color[2])
+	table.insert(tbl_clone.color, old_copy.color[3])
+	table.insert(tbl_clone.color, old_copy.color[4])
+
+	tbl_clone.cache = {}
+	tbl_clone.raw = {}
+
+	if tbl_clone.kind == "ellipse" then
+
+		tbl_clone.segments = old_copy.segments
+		tbl_clone._angle = old_copy._angle
+
+	end
+
+	local clc = 1
+	while clc <= #old_copy.cache do
+		local old_cache = old_copy.cache[clc]
+		local cache_tbl = {}
+		table.insert(cache_tbl, old_cache[1])
+		table.insert(cache_tbl, old_cache[2])
+		table.insert(tbl_clone.cache, cache_tbl)
+		clc = clc + 1
+	end
+
+	local clc = 1
+	while clc <= #old_copy.raw do
+		local old_raw = old_copy.raw[clc]
+		local raw_tbl = {}
+		
+		if old_raw.x ~= nil then
+			raw_tbl.x = old_raw.x
+		end
+		
+		if old_raw.y ~= nil then
+			raw_tbl.y = old_raw.y
+		end
+		
+		if old_raw.va ~= nil then
+			raw_tbl.va = old_raw.va
+		end
+		
+		if old_raw.vb ~= nil then
+			raw_tbl.vb = old_raw.vb
+		end
+		
+		table.insert(tbl_clone.raw, raw_tbl)
+		clc = clc + 1
+	end
+
+	table.insert(polygon.data, tm.polygon_loc, tbl_clone)
+
+	palette.updateAccentColor()
+
+end
+
 function ui.addCMBreak()
 
 	local item = {}
@@ -1965,72 +2038,8 @@ function ui.update(dt)
 					shape_selection = {}
 					multi_shape_selection = false
 					
-					local old_layer = tm.polygon_loc
-					tm.polygon_loc = #ui.layer + #ui.layer_trash + 1
+					ui.layerCloneButton(true)
 					
-					tm.store(TM_CLONE_LAYER, old_layer, tm.polygon_loc)
-					tm.step()
-					
-					ui.addLayer()
-					
-					local clone_index = ui.layer[#ui.layer].count
-					local tbl_clone = {}
-					local old_copy = polygon.data[old_layer]
-					tbl_clone.kind = old_copy.kind
-					tbl_clone.color = {}
-					table.insert(tbl_clone.color, old_copy.color[1])
-					table.insert(tbl_clone.color, old_copy.color[2])
-					table.insert(tbl_clone.color, old_copy.color[3])
-					table.insert(tbl_clone.color, old_copy.color[4])
-					
-					tbl_clone.cache = {}
-					tbl_clone.raw = {}
-					
-					if tbl_clone.kind == "ellipse" then
-					
-						tbl_clone.segments = old_copy.segments
-						tbl_clone._angle = old_copy._angle
-					
-					end
-					
-					local clc = 1
-					while clc <= #old_copy.cache do
-						local old_cache = old_copy.cache[clc]
-						local cache_tbl = {}
-						table.insert(cache_tbl, old_cache[1])
-						table.insert(cache_tbl, old_cache[2])
-						table.insert(tbl_clone.cache, cache_tbl)
-						clc = clc + 1
-					end
-					
-					local clc = 1
-					while clc <= #old_copy.raw do
-						local old_raw = old_copy.raw[clc]
-						local raw_tbl = {}
-						
-						if old_raw.x ~= nil then
-							raw_tbl.x = old_raw.x
-						end
-						
-						if old_raw.y ~= nil then
-							raw_tbl.y = old_raw.y
-						end
-						
-						if old_raw.va ~= nil then
-							raw_tbl.va = old_raw.va
-						end
-						
-						if old_raw.vb ~= nil then
-							raw_tbl.vb = old_raw.vb
-						end
-						
-						table.insert(tbl_clone.raw, raw_tbl)
-						clc = clc + 1
-					end
-					
-					table.insert(polygon.data, tm.polygon_loc, tbl_clone)
-					
-					palette.updateAccentColor()
 					ui.lyr_scroll_percent = 0
 					
 				end
