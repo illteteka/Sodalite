@@ -4112,6 +4112,31 @@ function ui.draw()
 	lg.setColor(c_white)
 	lg.draw(grad_large, 0, 1, 0, screen_width/256, 23)
 	
+	-- Draw vertex and shape selection positions when selecting
+	if vertex_selection[1] ~= nil then
+		local tx, ty = 94 + 5, screen_height - 50 + 1
+		local select_text = ""
+		
+		local i = 1
+		while i <= #vertex_selection do
+		
+			local this_vert = polygon.data[tm.polygon_loc].raw[vertex_selection[i].index]
+			select_text = select_text .. "[" .. vertex_selection[i].index .. "]: (" .. this_vert.x .. ", " .. this_vert.y .. ")"
+			if i + 1 <= #vertex_selection then
+				select_text = select_text .. ", "
+			end
+			i = i + 1
+		
+		end
+		
+		local tool_width = font:getWidth(select_text) + 12
+		lg.setColor(c_background[1], c_background[2], c_background[3], 0.6)
+		lg.rectangle("fill", tx - 5, ty - 1, tool_width, 21)
+		lg.setColor(c_white)
+		lg.print(select_text, tx + 1, ty - 1)
+		lg.setColor(c_white)
+	end
+	
 	-- Draw title bar
 	
 	-- Draw background color of menu item
