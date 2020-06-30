@@ -7,6 +7,7 @@ lume = require "lume"
 import = require "import"
 export = require "export"
 artboard = require "artboard"
+autosave = require "autosave"
 
 lg = love.graphics
 screen_width = 1280
@@ -153,6 +154,8 @@ OVERWRITE_LOL = 0
 OVERWRITE_SVG = 1
 OVERWRITE_PNG = 2
 
+PROJECT_MAX_FILENAME_LEN = 20
+
 bad_is_dev = false
 
 function resetEditor(exit_popup, add_layer, reset_cam)
@@ -205,6 +208,10 @@ function resetEditor(exit_popup, add_layer, reset_cam)
 	ui.toolbar[ui.toolbar_zoom].active = true
 	ui.toolbar[ui.toolbar_select].active = true
 	ui.toolbar[ui.toolbar_shape].active = true
+	
+	if autosave.timer == 0 then
+		autosave.timer = autosave.INTERVAL
+	end
 
 end
 
@@ -405,7 +412,7 @@ function storeMovedShapes()
 end
 
 function love.load()
-
+	
 	if love.system.getOS() == "OS X" then
 		ctrl_name = "gui"
 		ctrl_id = "Cmd"
@@ -513,6 +520,7 @@ function love.load()
 	h_out3:send("_lt",4)
 	h_out3:send("_off",8)
 	
+	autosave.init()
 	ui.init()
 	palette.init()
 	tm.init()
@@ -575,6 +583,7 @@ function love.update(dt)
 	mouse_x, mouse_y = mx, my
 	
 	global_message_timer = math.max(global_message_timer - (dt * 60), 0)
+	autosave.timer = math.max(autosave.timer - (dt * 60), 0)
 
 	-- Update input
 	input.update(dt)
@@ -1397,6 +1406,15 @@ function love.update(dt)
 		resetCamera()
 	end
 	-- End camera controls
+	
+	end
+	
+	if ui_active == false and ui.popup[1] == nil and document_w ~= 0 and mouse_switch == _OFF and rmb_switch == _OFF and autosave.timer == 0 then
+	
+		if tm.data[1] ~= nil then
+			export.saveLOL(true, false)
+			autosave.timer = autosave.INTERVAL
+		end
 	
 	end
 	

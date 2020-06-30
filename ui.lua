@@ -1307,7 +1307,7 @@ function ui.keyboardHit(key)
 					if tonumber(key) ~= nil and string.len(this_menu.name) < 5 then
 						this_menu.name = this_menu.name .. key
 					end
-				elseif string.len(this_menu.name) < 20 then
+				elseif string.len(this_menu.name) < PROJECT_MAX_FILENAME_LEN then
 					this_menu.name = this_menu.name .. key
 				end
 				
@@ -5184,14 +5184,14 @@ function ui.draw()
 		if global_message_timer <= 60 then
 			gmo = (global_message_timer / 60)
 		end
-		
-		local gmx, gmy = (screen_width/2) - (font_big:getWidth(global_message)/2) - 104 + 32, screen_height - 48
-		gmx, gmy = math.floor(gmx), math.floor(gmy)
+	
+		local gmx, gmy = 64+16, screen_height - ((font_big:getWidth(global_message)/(screen_width-64-208-32)) * 48) - 24
+		gmy = math.floor(gmy)
 		lg.setFont(font_big)
 		lg.setColor({0,0,0,gmo})
-		lg.print(global_message, gmx + 2, gmy + 2)
+		lg.printf(global_message, gmx + 2, gmy + 2, screen_width-64-208-32, "center")
 		lg.setColor({1,1,1,gmo})
-		lg.print(global_message, gmx, gmy)
+		lg.printf(global_message, gmx, gmy, screen_width-64-208-32, "center")
 		lg.setFont(font)
 		lg.setColor(c_white)
 	

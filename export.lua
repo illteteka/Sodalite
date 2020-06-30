@@ -36,79 +36,110 @@ function export.test(file)
 
 end
 
-function export.saveLOL()
+function export.saveLOL(auto, quit)
 
 	local prefix = ""
+	local suffix = ""
+	local autoprefix = ""
+	local abort = false
+	
 	if love ~= nil then
-		prefix = love.filesystem.getSourceBaseDirectory() .. "/"
-		if mac_string then prefix = export.mac(prefix) end
+		if not auto then
+			prefix = love.filesystem.getSourceBaseDirectory() .. "/"
+			if mac_string then prefix = export.mac(prefix) end
+		else
+			autoprefix = autosave.today .. " " .. os.date("%H") .. "-" .. os.date("%M") .. "-" .. os.date("%S") .. " "
+			prefix = love.filesystem.getSaveDirectory() .. "/Autosave/1 " .. autosave.today .. "/"
+			
+			if (love.filesystem.getInfo( "Autosave/1 " .. autosave.today )) == nil then
+				abort = true
+			end
+			
+			if quit then
+				suffix = "_exit"
+			end
+		end
 	end
 	
-	os.remove(prefix .. document_name .. ".soda")
-	local file = io.open(prefix .. document_name .. ".soda", "w")
-	file:write("Sodalite v0.1 beta\n")
-	file:write(document_w .. "," .. document_h .. ";\n")
+	if not abort then
 	
-	local i = 1
-	while i <= #ui.layer do
-	
-		if polygon.data[ui.layer[i].count] ~= nil then
+		os.remove(prefix .. autoprefix .. document_name .. suffix .. ".soda")
+		local file = io.open(prefix .. autoprefix .. document_name .. suffix .. ".soda", "w")
+		file:write("Sodalite v0.1 beta\n")
+		file:write(document_w .. "," .. document_h .. ";\n")
 		
-			local clone = polygon.data[ui.layer[i].count]
+		local i = 1
+		while i <= #ui.layer do
+		
+			if polygon.data[ui.layer[i].count] ~= nil then
 			
-			if ui.layer[i].visible then
-				file:write("1,")
-			else
-				file:write("0,")
-			end
-			
-			file:write(ui.layer[i].name .. "," .. clone.kind .. "," .. math.floor(clone.color[1]*255) .. "," .. math.floor(clone.color[2]*255) .. "," .. math.floor(clone.color[3]*255) .. "," .. math.floor(clone.color[4]*255) .. ":")
-			
-			local j = 1
-			while j <= #clone.raw do
+				local clone = polygon.data[ui.layer[i].count]
 				
-				local raw_copy = clone.raw[j]
-				
-				file:write(raw_copy.x .. ",")
-				file:write(raw_copy.y)
-				
-				if raw_copy.va ~= nil then
-					file:write("," .. raw_copy.va)
-				end
-				
-				if raw_copy.vb ~= nil then
-					file:write("," .. raw_copy.vb)
-				end
-				
-				if clone.segments ~= nil and j == 1 then
-					file:write("," .. clone.segments)
-				end
-				
-				if clone._angle ~= nil and j == 1 then
-					file:write("," .. clone._angle)
-				end
-				
-				if i == #ui.layer and j == #clone.raw then
-					file:write(";")
-				elseif j == #clone.raw then
-					file:write(";\n")
+				if ui.layer[i].visible then
+					file:write("1,")
 				else
-					file:write(":")
+					file:write("0,")
 				end
 				
-				j = j + 1
+				file:write(ui.layer[i].name .. "," .. clone.kind .. "," .. math.floor(clone.color[1]*255) .. "," .. math.floor(clone.color[2]*255) .. "," .. math.floor(clone.color[3]*255) .. "," .. math.floor(clone.color[4]*255) .. ":")
+				
+				local j = 1
+				while j <= #clone.raw do
+					
+					local raw_copy = clone.raw[j]
+					
+					file:write(raw_copy.x .. ",")
+					file:write(raw_copy.y)
+					
+					if raw_copy.va ~= nil then
+						file:write("," .. raw_copy.va)
+					end
+					
+					if raw_copy.vb ~= nil then
+						file:write("," .. raw_copy.vb)
+					end
+					
+					if clone.segments ~= nil and j == 1 then
+						file:write("," .. clone.segments)
+					end
+					
+					if clone._angle ~= nil and j == 1 then
+						file:write("," .. clone._angle)
+					end
+					
+					if i == #ui.layer and j == #clone.raw then
+						file:write(";")
+					elseif j == #clone.raw then
+						file:write(";\n")
+					else
+						file:write(":")
+					end
+					
+					j = j + 1
+				end
+			
 			end
 		
+			i = i + 1
+		end
+		
+		file:flush()
+		file:close()
+		
+		if not auto then
+			global_message = "Document saved to " .. prefix .. document_name .. ".soda"
+		else
+			global_message = "Document autosaved to " .. prefix .. autoprefix .. document_name .. ".soda"
+		end
+		
+		global_message_timer = 60*5
+		
+		if quit then
+			global_message = ""
+			global_message_timer = 0
 		end
 	
-		i = i + 1
 	end
-	
-	file:flush()
-	file:close()
-	
-	global_message = "Document saved to " .. prefix .. document_name .. ".soda"
-	global_message_timer = 60*5
 
 end
 

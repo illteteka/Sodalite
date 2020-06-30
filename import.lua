@@ -12,6 +12,7 @@ function import.open(file)
 	local fname = file:getFilename()
 	local file_dot = string.find(fname,"%.")
 	local file_ext = ""
+	local old_dname = document_name
 	
 	if file_dot ~= nil then
 	
@@ -24,11 +25,24 @@ function import.open(file)
 			dname = dname:sub(sl + 1)
 		end
 		
-		document_name = dname
+		document_name = dname:sub(0,20)
 	
 	end
 	
 	if (file_ext == FILE_EXTENSION) then
+		if tm.data[1] ~= nil then
+			local new_doc = document_name
+			document_name = old_dname
+			
+			if autosave.timer < autosave.INTERVAL - autosave.BACKUP_INTERVAL then
+				export.saveLOL(true, true)
+			end
+			
+			document_name = new_doc
+			
+			autosave.timer = 0
+		end
+	
 		local old_w, old_h = document_w, document_h
 		local file_contents = file:read("string")
 		-- Reset import vars
