@@ -54,12 +54,12 @@ function import.open(file)
 		import.read(file_contents)
 		
 		artboard.init()
-		ui.preview_zoom = 1
-		ui.preview_window_x = 0
-		ui.preview_window_y = 0
 
-		camera_zoom = 1
 		if old_w ~= document_w or old_h ~= document_h then
+			ui.preview_zoom = 1
+			ui.preview_window_x = 0
+			ui.preview_window_y = 0
+		
 			camera_zoom = 1
 			resetCamera()
 		end

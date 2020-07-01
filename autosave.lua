@@ -69,6 +69,11 @@ function autosave.init()
 		
 	end
 	
+	-- Create autosave dir for today if it doesn't exist
+	if #autosave_dir == 0 then
+		love.filesystem.createDirectory("Autosave/" .. "1 " .. autosave.today)
+	end
+	
 	if move_up_autosave_folders then
 	
 		for i = #autosave_dir, 1, -1 do
