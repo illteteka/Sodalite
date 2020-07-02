@@ -433,6 +433,8 @@ function love.load()
 	love.keyboard.setKeyRepeat(true)
 	love.window.setTitle("Sodalite")
 	
+	export.testSave()
+	
 	font = lg.newFont("opensans.ttf", 13)
 	font_big = lg.newFont("opensans.ttf", 23)
 	lg.setFont(font)

@@ -1,16 +1,21 @@
 local export = {}
 
 function export.mac(mac)
-	local cam = mac:reverse()
-	s1 = string.find(cam, "/")
-	cam = cam:sub(s1+1)
-	s1 = string.find(cam, "/")
-	cam = cam:sub(s1+1)
-	s1 = string.find(cam, "/")
-	cam = cam:sub(s1+1)
-	s1 = string.find(cam, "/")
-	cam = cam:sub(s1+1)
-	return cam:reverse() .. "/"
+	local is_fused = string.find(mac, ".app")
+	if is_fused == nil then
+		return mac
+	else
+		local cam = mac:reverse()
+		local s1 = string.find(cam, "/")
+		cam = cam:sub(s1+1)
+		s1 = string.find(cam, "/")
+		cam = cam:sub(s1+1)
+		s1 = string.find(cam, "/")
+		cam = cam:sub(s1+1)
+		s1 = string.find(cam, "/")
+		cam = cam:sub(s1+1)
+		return cam:reverse() .. "/"
+	end
 end
 
 function export.test(file)
@@ -33,6 +38,27 @@ function export.test(file)
 	overwrite_name = document_name .. ext
 	overwrite_type = file
 	return f_exists
+
+end
+
+function export.testSave()
+
+	local prefix = ""
+	local fs_name = "fs.store"
+	
+	prefix = love.filesystem.getSourceBaseDirectory() .. "/"
+	if mac_string then prefix = export.mac(prefix) end
+	
+	os.remove(prefix .. fs_name)
+	local file = io.open(prefix .. fs_name, "w")
+	local test_call = pcall(function() file:write("load\n") end)
+	
+	if not test_call then
+		love.window.setTitle("CAN NOT SAVE")
+	else
+		os.remove(prefix .. fs_name)
+		file:close()
+	end
 
 end
 

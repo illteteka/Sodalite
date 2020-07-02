@@ -25,6 +25,11 @@ function import.open(file)
 			dname = dname:sub(sl + 1)
 		end
 		
+		while (string.find(dname,"/")) do
+			local sl = string.find(dname,"/")
+			dname = dname:sub(sl + 1)
+		end
+		
 		document_name = dname:sub(0,20)
 	
 	end
