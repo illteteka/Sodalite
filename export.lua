@@ -18,6 +18,10 @@ function export.mac(mac)
 	end
 end
 
+function export.windows(str)
+	return str:gsub("/", "\\")
+end
+
 function export.test(file)
 
 	local ext = ""
@@ -48,16 +52,17 @@ function export.testSave()
 	
 	prefix = love.filesystem.getSourceBaseDirectory() .. "/"
 	if mac_string then prefix = export.mac(prefix) end
+	if win_string then prefix = export.windows(prefix) end
 	
 	os.remove(prefix .. fs_name)
 	local file = io.open(prefix .. fs_name, "w")
 	local test_call = pcall(function() file:write("load\n") end)
 	
 	if not test_call then
-		love.window.setTitle("CAN NOT SAVE")
+		fs_enable_save = false
 	else
-		os.remove(prefix .. fs_name)
 		file:close()
+		os.remove(prefix .. fs_name)
 	end
 
 end
@@ -151,6 +156,8 @@ function export.saveLOL(auto, quit)
 		
 		file:flush()
 		file:close()
+		
+		if win_string then prefix = export.windows(prefix) end
 		
 		if not auto then
 			global_message = "Document saved to " .. prefix .. document_name .. ".soda"
@@ -290,6 +297,8 @@ function export.saveSVG()
 	file:flush()
 	file:close()
 	
+	if win_string then prefix = export.windows(prefix) end
+	
 	global_message = "Image exported to " .. prefix .. document_name .. ".svg"
 	global_message_timer = 60*5
 
@@ -378,6 +387,8 @@ function export.savePNG()
 	save_png:write(copy_str)
 	save_png:close()
 	love.filesystem.remove("cache/export.png")
+	
+	if win_string then prefix = export.windows(prefix) end
 	
 	global_message = "Image exported to " .. prefix .. document_name .. "_export.png"
 	global_message_timer = 60*5

@@ -24,6 +24,8 @@ ctrl_name = "ctrl"
 ctrl_id = "Ctrl"
 ctrl_cursor = "b"
 mac_string = false
+win_string = false
+fs_enable_save = true
 empty_document = true
 
 a_key = _OFF
@@ -217,7 +219,11 @@ function resetEditor(exit_popup, add_layer, reset_cam)
 end
 
 function updateTitle()
-	love.window.setTitle(document_name .. " - Sodalite")
+	if fs_enable_save then
+		love.window.setTitle(document_name .. " - Sodalite")
+	else
+		love.window.setTitle("DOCUMENT SAVING DISABLED! - Sodalite")
+	end
 end
 
 function updateCamera(w, h, zo, zn)
@@ -420,6 +426,10 @@ function love.load()
 		ctrl_cursor = "w"
 		mac_string = true
 	end
+	
+	if love.system.getOS() == "Windows" then
+		win_string = true
+	end
 
 	math.randomseed(os.time())
 	-- Check if being run in dev environment, set vsync on
@@ -431,9 +441,14 @@ function love.load()
 	lg.setLineWidth(1)
 	lg.setLineStyle("rough")
 	love.keyboard.setKeyRepeat(true)
-	love.window.setTitle("Sodalite")
 	
 	export.testSave()
+	
+	if fs_enable_save then
+		love.window.setTitle("Sodalite")
+	else
+		love.window.setTitle("DOCUMENT SAVING DISABLED! - Sodalite")
+	end
 	
 	font = lg.newFont("opensans.ttf", 13)
 	font_big = lg.newFont("opensans.ttf", 23)
