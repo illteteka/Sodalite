@@ -803,6 +803,8 @@ function ui.shapeSelectButton()
 			multi_shape_selection = false
 			local open_grid = ui.toolbar[ui.toolbar_grid].active == false
 			ui.panelReset()
+			zoom_grabber = false
+			ui.toolbar[ui.toolbar_zoom].active = true
 			shape_grabber = false
 			love.mouse.setCursor()
 			ui.toolbar[ui.toolbar_shape].active = true
@@ -816,6 +818,9 @@ end
 
 function ui.selectionButton(button_mode, set_selection)
 	if document_w ~= 0 then
+		ui.textbox_selection_origin = "preview"
+		ui.popupLoseFocus("preview")
+	
 		box_selection_x = 0
 		box_selection_y = 0
 		ui.active_textbox = ""
@@ -860,6 +865,9 @@ end
 function ui.gridButton()
 
 	if document_w ~= 0 then
+		ui.textbox_selection_origin = "preview"
+		ui.popupLoseFocus("preview")
+	
 		ui.active_textbox = ""
 		if ui.toolbar[ui.toolbar_grid].active then
 			love.mouse.setCursor()
@@ -884,6 +892,9 @@ end
 function ui.zoomButton()
 
 	if document_w ~= 0 then
+		ui.textbox_selection_origin = "preview"
+		ui.popupLoseFocus("preview")
+	
 		ui.active_textbox = ""
 		if ui.toolbar[ui.toolbar_zoom].active then
 			select_grabber = false
@@ -909,6 +920,9 @@ end
 function ui.pickColorButton()
 
 	if document_w ~= 0 then
+		ui.textbox_selection_origin = "preview"
+		ui.popupLoseFocus("preview")
+	
 		ui.active_textbox = ""
 		select_grabber = false
 		ui.toolbar[ui.toolbar_select].active = true
@@ -933,6 +947,9 @@ end
 function ui.triangleButton()
 
 	if ui.toolbar[ui.toolbar_polygon].active then
+		ui.textbox_selection_origin = "preview"
+		ui.popupLoseFocus("preview")
+	
 		ui.active_textbox = ""
 		artboard.active = false
 		polygon.kind = "polygon"
@@ -944,6 +961,9 @@ end
 function ui.ellipseButton()
 
 	if ui.toolbar[ui.toolbar_ellipse].active then
+		ui.textbox_selection_origin = "preview"
+		ui.popupLoseFocus("preview")
+	
 		ui.active_textbox = ""
 		artboard.active = false
 		polygon.kind = "ellipse"
@@ -955,6 +975,9 @@ end
 function ui.artboardButton()
 
 	if ui.toolbar[ui.toolbar_artboard].active then
+		ui.textbox_selection_origin = "preview"
+		ui.popupLoseFocus("preview")
+	
 		ui.active_textbox = ""
 		artboard.active = true
 		ui.panelArtboard()
@@ -3694,7 +3717,11 @@ function ui.update(dt)
 	
 	if zoom_grabber and ui_active == false then
 	
-		if mx > 64 and my > 54 and mx < screen_width - 208 then
+		local within_ui_bounds = mx > 64 and my > 54 and mx < screen_width - 208
+		local preview_bounds = not (mx > ui.preview_x and mx < ui.preview_x + ui.preview_w and my > ui.preview_y and my < ui.preview_y + ui.preview_h and ui.preview_active)
+		local popup_bounds = ui.popup[1] == nil
+	
+		if within_ui_bounds and preview_bounds and popup_bounds then
 			love.mouse.setCursor(cursor_zoom)
 		
 			if mouse_switch == _PRESS then
@@ -4822,8 +4849,10 @@ function ui.draw()
 		lg.rectangle("fill", rx, ry, rw, rh)
 		lg.setColor(c_white)
 		local toolbar_color = grad_active
+		local prev_buttons_enabled = true
 		if ui.popup[1] ~= nil then
 			toolbar_color = grad_inactive
+			prev_buttons_enabled = false
 		end
 		lg.draw(toolbar_color, rx, ry + 1, 0, rw/256, 23)
 		
@@ -4907,11 +4936,11 @@ function ui.draw()
 		local mouse_hover_tool = false
 		mouse_hover_tool = ((mx >= ix) and (mx <= ix + 23) and (my >= iy) and (my <= iy + 23))
 		
-		if mouse_hover_tool and (ui.preview_button_active == -1) then
+		if mouse_hover_tool and (ui.preview_button_active == -1) and prev_buttons_enabled then
 			btn_state = BTN_HIGHLIGHT_ON
 		end
 		
-		if (mouse_switch ~= _OFF) and (ui.preview_button_active == 1) then
+		if (mouse_switch ~= _OFF) and (ui.preview_button_active == 1) and prev_buttons_enabled then
 			btn_state = BTN_HIGHLIGHT_OFF
 		end
 		ui.drawButtonOutline(btn_state, ix, iy, 24, 24)
@@ -4924,11 +4953,11 @@ function ui.draw()
 		local mouse_hover_tool = false
 		mouse_hover_tool = ((mx >= ix + 28) and (mx <= ix + 23 + 28) and (my >= iy) and (my <= iy + 23))
 		
-		if mouse_hover_tool and (ui.preview_button_active == -1) then
+		if mouse_hover_tool and (ui.preview_button_active == -1) and prev_buttons_enabled then
 			btn_state = BTN_HIGHLIGHT_ON
 		end
 		
-		if (mouse_switch ~= _OFF) and (ui.preview_button_active == 2) then
+		if (mouse_switch ~= _OFF) and (ui.preview_button_active == 2) and prev_buttons_enabled then
 			btn_state = BTN_HIGHLIGHT_OFF
 		end
 		ui.drawButtonOutline(btn_state, ix + 28, iy, 24, 24)
@@ -4941,11 +4970,11 @@ function ui.draw()
 		local mouse_hover_tool = false
 		mouse_hover_tool = ((mx >= ix + 56) and (mx <= ix + 23 + 56) and (my >= iy) and (my <= iy + 23))
 		
-		if mouse_hover_tool and (ui.preview_button_active == -1) then
+		if mouse_hover_tool and (ui.preview_button_active == -1) and prev_buttons_enabled then
 			btn_state = BTN_HIGHLIGHT_ON
 		end
 		
-		if (mouse_switch ~= _OFF) and (ui.preview_button_active == 3) then
+		if (mouse_switch ~= _OFF) and (ui.preview_button_active == 3) and prev_buttons_enabled then
 			btn_state = BTN_HIGHLIGHT_OFF
 		end
 		ui.drawButtonOutline(btn_state, ix + 56, iy, 24, 24)
@@ -4958,11 +4987,11 @@ function ui.draw()
 		local mouse_hover_tool = false
 		mouse_hover_tool = ((mx >= ix + 84) and (mx <= ix + 23 + 84) and (my >= iy) and (my <= iy + 23))
 		
-		if mouse_hover_tool and (ui.preview_button_active == -1) then
+		if mouse_hover_tool and (ui.preview_button_active == -1) and prev_buttons_enabled then
 			btn_state = BTN_HIGHLIGHT_ON
 		end
 		
-		if (mouse_switch ~= _OFF) and (ui.preview_button_active == 4) then
+		if (mouse_switch ~= _OFF) and (ui.preview_button_active == 4) and prev_buttons_enabled then
 			btn_state = BTN_HIGHLIGHT_OFF
 		end
 		ui.drawButtonOutline(btn_state, ix + 84, iy, 24, 24)
@@ -4975,11 +5004,11 @@ function ui.draw()
 		local mouse_hover_tool = false
 		mouse_hover_tool = ((mx >= ix + 112) and (mx <= ix + 23 + 112) and (my >= iy) and (my <= iy + 23))
 		
-		if mouse_hover_tool and (ui.preview_button_active == -1) then
+		if mouse_hover_tool and (ui.preview_button_active == -1) and prev_buttons_enabled then
 			btn_state = BTN_HIGHLIGHT_ON
 		end
 		
-		if (mouse_switch ~= _OFF) and (ui.preview_button_active == 5) then
+		if (mouse_switch ~= _OFF) and (ui.preview_button_active == 5) and prev_buttons_enabled then
 			btn_state = BTN_HIGHLIGHT_OFF
 		end
 		ui.drawButtonOutline(btn_state, ix + 112, iy, 24, 24)
