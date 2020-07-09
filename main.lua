@@ -442,6 +442,10 @@ function love.load()
 	lg.setLineStyle("rough")
 	love.keyboard.setKeyRepeat(true)
 	
+	font = lg.newFont("opensans.ttf", 13)
+	font_big = lg.newFont("opensans.ttf", 23)
+	lg.setFont(font)
+	
 	export.testSave()
 	
 	if fs_enable_save then
@@ -449,10 +453,6 @@ function love.load()
 	else
 		love.window.setTitle("DOCUMENT SAVING DISABLED! - Sodalite")
 	end
-	
-	font = lg.newFont("opensans.ttf", 13)
-	font_big = lg.newFont("opensans.ttf", 23)
-	lg.setFont(font)
 	
 	grad_large = lg.newImage("textures/gradient_large.png")
 	grad_active = lg.newImage("textures/gradient_active.png")
@@ -806,7 +806,9 @@ function love.update(dt)
 		ui_active = ui.update(dt)
 	end
 	
-	if mouse_switch == _OFF and (ui_active == false) then
+	local disabled_prompt = (ui.popup[1] ~= nil and ui.popup[1][1].kind == "save.disabled")
+	
+	if mouse_switch == _OFF and (ui_active == false) and not disabled_prompt then
 	
 		if input.ctrlCombo(n_key) then
 			splash_active = false
@@ -1321,16 +1323,20 @@ function love.update(dt)
 		
 		if document_w ~= 0 and input.ctrlCombo(s_key) then
 			
-			-- Only make a save file if the vector data has been edited
-			if tm.data[1] ~= nil then
-				local test_save = export.test(OVERWRITE_LOL)
-				if test_save and can_overwrite == false then
-					ui.loadPopup("f.overwrite")
-				else
-					export.saveLOL()
-					export.saveArtboard()
-					can_overwrite = true
+			if fs_enable_save then
+			
+				-- Only make a save file if the vector data has been edited
+				if tm.data[1] ~= nil then
+					local test_save = export.test(OVERWRITE_LOL)
+					if test_save and can_overwrite == false then
+						ui.loadPopup("f.overwrite")
+					else
+						export.saveLOL()
+						export.saveArtboard()
+						can_overwrite = true
+					end
 				end
+			
 			end
 			
 		end
@@ -1429,9 +1435,14 @@ function love.update(dt)
 	
 	if ui_active == false and ui.popup[1] == nil and document_w ~= 0 and mouse_switch == _OFF and rmb_switch == _OFF and autosave.timer == 0 then
 	
-		if tm.data[1] ~= nil then
-			export.saveLOL(true, false)
+		if fs_enable_save then
+	
+			if tm.data[1] ~= nil then
+				export.saveLOL(true, false)
+			end
+			
 			autosave.timer = autosave.INTERVAL
+		
 		end
 	
 	end
@@ -1726,10 +1737,18 @@ function drawRect(s,x,y,w,h)
 end
 
 function love.quit()
-	if not safe_to_quit then
-		is_trying_to_quit = true
-		overwrite_type = OVERWRITE_LOL
-		ui.loadPopup("f.exit")
+	if fs_enable_save then
+	
+		if not safe_to_quit then
+			is_trying_to_quit = true
+			overwrite_type = OVERWRITE_LOL
+			ui.loadPopup("f.exit")
+		end
+	
+	else
+	
+		safe_to_quit = true
+	
 	end
 
 	if ui.popup[1] == nil and safe_to_quit then

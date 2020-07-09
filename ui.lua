@@ -195,7 +195,7 @@ function ui.loadCM(x, y, ref)
 	
 	end
 	
-	local can_save = not empty_document
+	local can_save = not empty_document and fs_enable_save
 	
 	local can_paste_color = false
 	can_paste_color = (palette.copy ~= nil) and ui.cm_color_area ~= -1
@@ -309,6 +309,21 @@ function ui.loadPopup(ref)
 			ui.addPopup("Overwrite", "overwrite", "col")
 			ui.addPopup("Rename", "rename", "row")
 			ui.addPopup("Cancel", "cancel", "row")
+			ui.generatePopup()
+		
+		end
+		
+		if ref == "save.disabled" then
+		
+			ui.addPopup("DOCUMENT SAVING DISABLED!", "save.disabled", "col")    
+			ui.addPopup("Document saving has been disabled for this session as Sodalite", "text", "col")
+			ui.addPopup("lacks the necessary permissions on this device to save documents.", "text", "col")
+			ui.addPopup("If you are experiencing this error, please go to the", "text", "col")
+			ui.addPopup("troubleshooting section of https://illteteka.itch.io/sodalite", "text", "col")
+			ui.addPopup("or contact nick.novelline@gmail.com with information", "text", "col")
+			ui.addPopup("about your OS and computer setup.", "text", "col")
+			ui.addPopup("Continue without saving", "continue", "col")
+			ui.addPopup("Exit", "exit", "row")
 			ui.generatePopup()
 		
 		end
@@ -443,7 +458,7 @@ function ui.loadPopup(ref)
 		
 		if ref == "f.exit" then
 		
-			if document_w ~= 0 then
+			if document_w ~= 0 and fs_enable_save then
 				is_trying_to_quit = true
 				safe_to_quit = false
 				overwrite_type = OVERWRITE_LOL
@@ -1116,7 +1131,12 @@ function ui.generatePopup()
 	
 	end
 	
-	ui.popup_w = w + 120
+	if ui.popup[1][1].kind == "save.disabled" then
+		ui.popup_w = w + 40
+		h = h - 35
+	else
+		ui.popup_w = w + 120
+	end
 	ui.popup_h = h
 	
 	ui.popup_x_offset = -(((ui.popup_w/2) + (w/2)) / 4)
@@ -1713,8 +1733,10 @@ function ui.update(dt)
 	
 	ui.tooltip_disable = true
 	
+	local disabled_prompt = (ui.popup[1] ~= nil and ui.popup[1][1].kind == "save.disabled")
+	
 	-- Check collision on title bar
-	if my < 24 then
+	if my < 24 and not disabled_prompt then
 	
 		local i
 		local title_len = 12
@@ -3407,6 +3429,19 @@ function ui.update(dt)
 				updateTitle()
 			end
 			
+			if pop_kind == "save.disabled" then
+			
+				safe_to_quit = true
+				love.event.quit()
+				
+				-- Exit popup
+				ui.popup = {}
+				ui_active = true
+				ui.context_menu = {}
+				ui.title_active = false
+			
+			end
+			
 			if pop_kind == "h.about" then
 				ui.popupLoseFocus(ui.popup[1][1].kind)
 				
@@ -3545,6 +3580,16 @@ function ui.update(dt)
 							by = math.floor(py + 25 + h + 6) - 3
 							bw = 64
 							bh = 25
+						elseif kind == "continue" then
+							bx = math.floor(px + (pw / 2) - 107) - 8
+							by = math.floor(py + h + 6 - 10) - 3
+							bw = 163
+							bh = 25
+						elseif kind == "exit" then
+							bx = math.floor(px + (pw / 2) + 84) - 7
+							by = math.floor(py + h + 6 - 10) - 3
+							bw = 38
+							bh = 25
 						elseif kind == "cancel" then
 							if ui.popup[1][1].kind == "f.exit" then
 								bx = math.floor(px + (pw / 2) - 21 + 32 + (pw / 6) - 4) - 8
@@ -3662,6 +3707,14 @@ function ui.update(dt)
 									
 									exit_pop = true
 									
+								elseif kind == "continue" then
+									splash_active = true
+									exit_pop = true
+								elseif kind == "exit" then
+									is_trying_to_quit = false
+									safe_to_quit = true
+									love.event.quit()
+									exit_pop = true
 								elseif kind == "rename" then
 									load_next_popup = "f.as"
 									exit_pop = true
@@ -5065,6 +5118,8 @@ function ui.draw()
 				if kind == "text" then
 					if ui.popup[1][1].kind == "h.about" then
 						lg.print(name, math.floor(px + pw - font:getWidth(name) - 24), math.floor(py + 25 + h))
+					elseif ui.popup[1][1].kind == "save.disabled" then
+						lg.print(name, px + 22, math.floor(py + 25 + 3 + h*1.5/2))
 					elseif ui.popup[1][1].kind == "f.exit" or ui.popup[1][1].kind == "f.overwrite" then
 						lg.print(name, math.floor(px + 24), math.floor(py + 25 + h))
 					else
@@ -5108,6 +5163,18 @@ function ui.draw()
 					by = math.floor(py + 25 + h + 6)
 					ui.drawOutline(bx - 7, by - 3, 64, 25, true)
 					lg.print(name, bx, by)
+				elseif kind == "continue" then
+					local bx, by
+					bx = math.floor(px + (pw / 2) - 107)
+					by = math.floor(py + h + 6 - 10)
+					ui.drawOutline(bx - 8, by - 3, 163, 25, true)
+					lg.print(name, bx, by)
+				elseif kind == "exit" then
+					local bx, by
+					bx = math.floor(px + (pw / 2) + 61 + 17 + 6)
+					by = math.floor(py + h + 6 - 10)
+					ui.drawOutline(bx - 7, by - 3, 38, 25, true)
+					lg.print(name, bx + 1, by)
 				elseif kind == "save" then
 					local bx, by
 					bx = math.floor(px + (pw / 2) - 20 - 22 - (pw / 6) - 4)

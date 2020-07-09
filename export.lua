@@ -60,6 +60,8 @@ function export.testSave()
 	
 	if not test_call then
 		fs_enable_save = false
+		splash_active = false
+		ui.loadPopup("save.disabled")
 	else
 		file:close()
 		os.remove(prefix .. fs_name)

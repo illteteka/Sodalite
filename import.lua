@@ -40,7 +40,9 @@ function import.open(file)
 			document_name = old_dname
 			
 			if autosave.timer < autosave.INTERVAL - autosave.BACKUP_INTERVAL then
-				export.saveLOL(true, true)
+				if fs_enable_save then
+					export.saveLOL(true, true)
+				end
 			end
 			
 			document_name = new_doc
