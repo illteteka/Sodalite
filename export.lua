@@ -98,7 +98,7 @@ function export.saveLOL(auto, quit)
 	
 		os.remove(prefix .. autoprefix .. document_name .. suffix .. ".soda")
 		local file = io.open(prefix .. autoprefix .. document_name .. suffix .. ".soda", "w")
-		file:write("Sodalite v0.1 beta\n")
+		file:write("Sodalite v0.2 beta\n")
 		file:write(document_w .. "," .. document_h .. ";\n")
 		
 		local i = 1
