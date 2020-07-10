@@ -142,6 +142,7 @@ v_out2 = nil
 last_shape_grabbed = -1
 double_click_timer = 0
 double_click_timer_deselect = 0
+double_click_timer_rename = 0
 lock_preview_vertices = false
 
 global_message = ""
@@ -835,7 +836,7 @@ function love.update(dt)
 	
 	end
 	
-	if (ui.popup[1] == nil) and (ui.context_menu[1] == nil) and (ui.active_textbox == "") and mouse_switch == _OFF then
+	if (ui.popup[1] == nil) and (ui.context_menu[1] == nil) and (ui.active_textbox == "") and mouse_switch == _OFF and ui.textbox_selection_origin ~= "rename" then
 	
 		if num_1_key == _PRESS then
 			ui.pickColorButton()
@@ -897,7 +898,7 @@ function love.update(dt)
 		end
 	end
 	
-	if ui.popup[1] == nil and document_w ~= 0 then
+	if ui.popup[1] == nil and document_w ~= 0 and ui.textbox_selection_origin ~= "rename" then
 	
 	if shape_grabber and not select_grabber and artboard.active == false and not zoom_grabber and not color_grabber and ((ui_active == false) or (ui_off_mouse_down)) then
 	

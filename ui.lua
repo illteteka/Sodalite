@@ -31,6 +31,8 @@ ui.input_cursor_visible = false
 
 ui.active_textbox = ""
 ui.textbox_selection_origin = ""
+ui.textbox_rename_layer = -1
+ui.rename_click = false
 
 ui.allow_keyboard_input = false
 
@@ -160,6 +162,7 @@ function ui.init()
 	ui.addTitle("File",     ".file")
 	ui.addTitle("Edit",     ".edit")
 	ui.addTitle("Image",   ".image")
+	ui.addTitle("Layer",   ".layer")
 	ui.addTitle("Select",  ".select")
 	ui.addTitle("Help",     ".help")
 	
@@ -228,6 +231,15 @@ function ui.loadCM(x, y, ref)
 		ui.addCMBreak()
 		ui.addCM("Center camera", document_w ~= 0, "i.center", ctrl_id .. "+G")
 		ui.addCM("Clear canvas", document_w ~= 0 and artboard.active, "i.clear", ctrl_id .. "+R")
+		ui.generateCM(x, y)
+		
+	elseif ref == ".layer" then
+	
+		ui.addCM("New layer", document_w ~= 0, "l.new", ctrl_id .. "+K")
+		ui.addCM("Duplicate layer", document_w ~= 0, "l.clone", ctrl_id .. "+J")
+		ui.addCM("Delete layer", document_w ~= 0, "l.delete", ctrl_id .. "+Delete")
+		ui.addCMBreak()
+		ui.addCM("Rename layer...", document_w ~= 0, "l.rename", "F2")
 		ui.generateCM(x, y)
 		
 	elseif ref == ".select" then
@@ -1333,6 +1345,23 @@ function ui.popupLoseFocus(kind)
 		ui.textbox_selection_origin = ""
 		ui.secondary_textbox = -1
 		ui.active_textbox = ""
+		
+	elseif ui.textbox_selection_origin == "rename" then
+	
+		if ui.textbox_rename_layer ~= -1 then
+				
+			local this_item = ui.layer[ui.textbox_rename_layer]
+			if this_item.name ~= ui.primary_text_orig then
+				tm.store(TM_LAYER_RENAME, ui.textbox_rename_layer, ui.primary_text_orig, this_item.name)
+				tm.step()
+			end
+		
+		end
+	
+		ui.primary_text_orig = ""
+		ui.textbox_selection_origin = ""
+		ui.active_textbox = ""
+		ui.textbox_rename_layer = -1
 	
 	end
 	
@@ -1461,6 +1490,27 @@ function ui.keyboardHit(key)
 				ui.popupLoseFocus("toolbar2")
 				ui.keyboard_last = ""
 				ui.keyboard_test = ""
+			end
+		end
+	
+	elseif ui.textbox_selection_origin == "rename" then
+	
+		local this_menu = ui.layer[ui.textbox_rename_layer]
+	
+		if string.len(key) == 1 then
+		
+			if font:getWidth(this_menu.name .. key) <= 105 then
+				this_menu.name = this_menu.name .. key
+			end
+			
+		else
+			if (key == "backspace") then
+				this_menu.name = string.sub(this_menu.name, 0, string.len(this_menu.name) - 1)
+			elseif (key == "return") then
+				ui.popupLoseFocus("rename")
+				ui.keyboard_last = ""
+				ui.keyboard_test = ""
+				ui.popup_enter = true
 			end
 		end
 	
@@ -2170,6 +2220,56 @@ function ui.update(dt)
 			
 	end
 	
+	if double_click_timer_rename ~= 0 then
+
+		double_click_timer_rename = double_click_timer_rename + (60 * dt)
+	
+		if double_click_timer_rename > 30 then
+			double_click_timer_rename = 0
+		end
+	
+	end
+
+	-- Check if layer name was clicked on, rename layer
+	if mouse_switch == _PRESS and (mx >= layx + 77) and (mx <= layx + layw) and (my >= layy + 40) and (my <= layy + 40 + layh) then
+	
+		local moffset = my - 392
+	
+		local layer_amt = #ui.layer
+		local layer_element_size = math.max((25 * layer_amt) - layh - 1, 0)
+		local scroll_offset = math.floor(ui.lyr_scroll_percent * layer_element_size)
+		
+		local layer_hit = layer_amt - math.floor((moffset + scroll_offset) / 25)
+		
+		if layer_amt > 0 and ui.layer[layer_hit] ~= nil then
+			ui.popupLoseFocus("rename")
+			
+			if double_click_timer_rename > 0 and double_click_timer_rename < 14 then
+		
+				ui.textbox_selection_origin = "rename"
+				ui.textbox_rename_layer = layer_hit
+				ui.primary_text_orig = ui.layer[layer_hit].name
+				ui.rename_click = true
+				
+				double_click_timer_rename = 0
+			else
+				double_click_timer_rename = 0
+			end
+		
+			double_click_timer_rename = double_click_timer_rename + (60 * dt)
+			
+			ui_active = true
+		end
+		
+	else
+		ui.rename_click = false
+	end
+	
+	if mouse_switch == _PRESS and ui.textbox_selection_origin == "rename" and ui.rename_click == false then
+		ui.popupLoseFocus("rename")
+		ui_active = true
+	end
+	
 	if (mouse_switch == _ON) and ui.lyr_clicked ~= 0 then
 	
 		local layer_element_size = math.max((25 * #ui.layer), 0)
@@ -2253,6 +2353,10 @@ function ui.update(dt)
 					end
 					
 					if (ui.lyr_clicked ~= swap_pos) then
+						if ui.textbox_selection_origin == "rename" then
+							ui.popupLoseFocus("rename")
+						end
+					
 						ui.moveLayer(ui.lyr_clicked, swap_pos)
 						tm.store(TM_MOVE_LAYER, ui.lyr_clicked, swap_pos)
 						tm.step()
@@ -2264,6 +2368,10 @@ function ui.update(dt)
 			
 				-- Swap to top position
 				if (ui.lyr_clicked ~= layer_num - 1) then
+					if ui.textbox_selection_origin == "rename" then
+						ui.popupLoseFocus("rename")
+					end
+				
 					ui.moveLayer(ui.lyr_clicked, layer_num - 1)
 					tm.store(TM_MOVE_LAYER, ui.lyr_clicked, layer_num - 1)
 					tm.step()
@@ -4441,6 +4549,27 @@ function ui.draw()
 			lg.print(ui.layer[i].name, layx + 77, layy + yy + 3)
 			lg.rectangle("fill", layx + 1, layy + yy + 24, layw, 1)
 			lg.rectangle("fill", layx + 32, layy + yy, 1, 24)
+			
+			if ui.textbox_rename_layer == i then
+
+				local col = box_color
+				
+				local this_item = ui.layer[ui.textbox_rename_layer]
+				
+				local ix, iy = layx + 77, layy + yy - 24
+				lg.setColor(c_off_white)
+				lg.rectangle("fill", ix - 5, iy + 25, 116, 21)
+				lg.setColor(col)
+				lg.rectangle("line", ix - 5, iy + 25, 116, 21)
+				lg.setColor(c_black)
+				lg.print(this_item.name, ix, iy + 26 + 1)
+
+				if ui.input_cursor_visible then
+					local lxx, lyy = ix + font:getWidth(this_item.name) + 3, iy + 25 + 3
+					lg.line(lxx, lyy, lxx, lyy + 16)
+				end
+				
+			end
 			
 			lg.setColor(c_white)
 			

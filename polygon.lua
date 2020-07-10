@@ -303,6 +303,10 @@ function polygon.redo()
 			ui.layerCloneButton(false)
 			palette.updateAccentColor()
 		
+		elseif moment[1].action == TM_LAYER_RENAME then
+	
+			ui.layer[moment[1].layer].name = moment[1].new
+		
 		end
 	
 	end
@@ -416,6 +420,10 @@ function polygon.undo()
 			table.remove(ui.layer)
 			table.remove(polygon.data)
 			palette.updateAccentColor()
+		
+		elseif moment[1].action == TM_LAYER_RENAME then
+	
+			ui.layer[moment[1].layer].name = moment[1].original
 		
 		end
 		
