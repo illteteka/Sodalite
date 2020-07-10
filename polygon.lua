@@ -46,7 +46,7 @@ function polygon.calcVertex(x, y, loc, use_grid)
 		
 		-- Scale selection radius if the camera is scaled
 		if camera_zoom > 1 then
-			vertex_radius = math.max(vertex_radius / camera_zoom, 1)
+			vertex_radius = math.max(vertex_radius / camera_zoom, 2)
 		elseif camera_zoom < 1 then
 			vertex_radius = (vertex_radius / camera_zoom)
 		end
