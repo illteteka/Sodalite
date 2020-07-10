@@ -100,6 +100,7 @@ grid_y = 0
 grid_w = 32
 grid_h = 32
 grid_snap = true
+pixel_perfect = true
 
 mouse_x = -1
 mouse_y = -1
@@ -424,6 +425,14 @@ function storeMovedShapes()
 
 end
 
+function pixelFloor(x)
+	if pixel_perfect then
+		return math.floor(x)
+	else
+		return x
+	end
+end
+
 function love.load()
 	
 	if love.system.getOS() == "OS X" then
@@ -508,6 +517,7 @@ function love.load()
 	icon_polyline = lg.newImage("textures/icon_polyline.png")
 	icon_clone = lg.newImage("textures/icon_clone.png")
 	icon_sodalite = lg.newImage("textures/icon_sodalite.png")
+	icon_pixel = lg.newImage("textures/icon_pixel.png")
 	
 	cursor_typing = love.mouse.getSystemCursor("ibeam")
 	cursor_size_h = love.mouse.getSystemCursor("sizewe")
@@ -603,7 +613,7 @@ end
 function love.update(dt)
 
 	mouse_x_previous, mouse_y_previous = mouse_x, mouse_y
-	local mx, my = math.floor(love.mouse.getX() / camera_zoom), math.floor(love.mouse.getY() / camera_zoom)
+	local mx, my = pixelFloor(love.mouse.getX() / camera_zoom), pixelFloor(love.mouse.getY() / camera_zoom)
 	mouse_x, mouse_y = mx, my
 	
 	global_message_timer = math.max(global_message_timer - (dt * 60), 0)
@@ -768,7 +778,7 @@ function love.update(dt)
 	
 		if (mouse_switch == _PRESS) then
 		
-			local test_x, test_y = mx - math.floor(camera_x), my - math.floor(camera_y)
+			local test_x, test_y = mx - pixelFloor(camera_x), my - pixelFloor(camera_y)
 			local test_hit_polygon = polygon.click(test_x, test_y, false)
 			local use_color = nil
 			
@@ -961,7 +971,7 @@ function love.update(dt)
 		if (mouse_switch == _PRESS) and not ignore_click_from_preview then
 		
 			local use_shape_sel = shape_selection[1] ~= nil
-			local test_x, test_y = mx - math.floor(camera_x), my - math.floor(camera_y)
+			local test_x, test_y = mx - pixelFloor(camera_x), my - pixelFloor(camera_y)
 			local test_hit_polygon = polygon.click(test_x, test_y, use_shape_sel)
 			local test_double_click = polygon.click(test_x, test_y, false)
 			
@@ -1026,8 +1036,8 @@ function love.update(dt)
 					cx = ((math.floor((calc_mouse_x - camera_x) / grid_w) * grid_w) + (grid_x % grid_w))
 					cy = ((math.floor((calc_mouse_y - camera_y) / grid_h) * grid_h) + (grid_y % grid_h))
 				else
-					cx = calc_mouse_x - math.floor(camera_x)
-					cy = calc_mouse_y - math.floor(camera_y)
+					cx = calc_mouse_x - pixelFloor(camera_x)
+					cy = calc_mouse_y - pixelFloor(camera_y)
 				end
 				
 				local n = 1
@@ -1055,7 +1065,7 @@ function love.update(dt)
 					test_x = ((math.floor((mx - camera_x) / grid_w) * grid_w) + (grid_x % grid_w))
 					test_y = ((math.floor((my - camera_y) / grid_h) * grid_h) + (grid_y % grid_h))
 				else
-					test_x, test_y = mx - math.floor(camera_x), my - math.floor(camera_y)
+					test_x, test_y = mx - pixelFloor(camera_x), my - pixelFloor(camera_y)
 				end
 				
 				mouse_x_offset, mouse_y_offset = -test_x, -test_y
@@ -1146,8 +1156,8 @@ function love.update(dt)
 					polygon.new(tm.polygon_loc, new_col, polygon.kind, true)
 				end
 				
-				selection_mouse_x = mx - math.floor(camera_x)
-				selection_mouse_y = my - math.floor(camera_y)
+				selection_mouse_x = mx - pixelFloor(camera_x)
+				selection_mouse_y = my - pixelFloor(camera_y)
 				
 				-- Test if we are placing a vertex or moving a vertex
 				polygon.calcVertex(selection_mouse_x, selection_mouse_y, tm.polygon_loc, not ui.toolbar[ui.toolbar_grid].active)
@@ -1193,8 +1203,8 @@ function love.update(dt)
 							cx = ((math.floor((calc_mouse_x - camera_x) / grid_w) * grid_w) + (grid_x % grid_w))
 							cy = ((math.floor((calc_mouse_y - camera_y) / grid_h) * grid_h) + (grid_y % grid_h))
 						else
-							cx = calc_mouse_x - math.floor(camera_x)
-							cy = calc_mouse_y - math.floor(camera_y)
+							cx = calc_mouse_x - pixelFloor(camera_x)
+							cy = calc_mouse_y - pixelFloor(camera_y)
 						end
 						
 						-- Move verices by offset of selection_mouse_*
@@ -1291,14 +1301,14 @@ function love.update(dt)
 				if mouse_switch == _ON then
 					if artboard.canvas ~= nil then
 						ui_off_mouse_down = true
-						artboard.add(mx - math.floor(camera_x), my - math.floor(camera_y), mouse_x_previous - math.floor(camera_x), mouse_y_previous - math.floor(camera_y))
+						artboard.add(math.floor(mx - camera_x), math.floor(my - camera_y), math.floor(mouse_x_previous - camera_x), math.floor(mouse_y_previous - camera_y))
 					end
 				end
 				
 				if rmb_switch == _ON then
 					if artboard.canvas ~= nil then
 						ui_off_mouse_down = true
-						artboard.add(mx - math.floor(camera_x), my - math.floor(camera_y), mouse_x_previous - math.floor(camera_x), mouse_y_previous - math.floor(camera_y), true)
+						artboard.add(math.floor(mx - camera_x), math.floor(my - camera_y), math.floor(mouse_x_previous - camera_x), math.floor(mouse_y_previous - camera_y), true)
 					end
 				end
 				

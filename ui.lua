@@ -148,6 +148,7 @@ TIP_PREV_ZOOM_FIT = 22
 TIP_PREV_FREEDRAW = 23
 TIP_PREV_BG = 24
 TIP_CLONE_LAYER = 25
+TIP_GRID_PP = 26
 
 function ui.init()
 	-- Add palette sliders
@@ -733,6 +734,8 @@ function ui.getTooltip(x)
 		return "Toggle the visibility of the drawing canvas"
 	elseif x == TIP_PREV_BG then
 		return "Preview window background color, paste a palette color here to change colors"
+	elseif x == TIP_GRID_PP then
+		return "Toggle the forced 1x1 pixel grid"
 	end
 end
 
@@ -753,6 +756,7 @@ function ui.panelGrid()
 	ui.addPanel(ui.secondary_panel, 'grid.x',    'X Offset', true, grid_x, 0, math.max(document_w, document_h))
 	ui.addPanel(ui.secondary_panel, 'grid.y',    'Y Offset', true, grid_y, 0, math.max(document_w, document_h))
 	ui.addPanel(ui.secondary_panel, 'grid.snap', icon_magnet, false, not grid_snap)
+	ui.addPanel(ui.secondary_panel, 'grid.pp',   icon_pixel,  false, not pixel_perfect)
 
 end
 
@@ -3019,6 +3023,10 @@ function ui.update(dt)
 						ui.setTooltip(TIP_GRID_SNAP)
 					end
 					
+					if ui.secondary_panel[i].id == "grid.pp" then
+						ui.setTooltip(TIP_GRID_PP)
+					end
+					
 					if ui.secondary_panel[i].id == "zoom.in" then
 						ui.setTooltip(TIP_ZOOM_IN)
 					end
@@ -3044,6 +3052,11 @@ function ui.update(dt)
 					if ui.secondary_panel[i].id == "grid.snap" then
 						grid_snap = not grid_snap
 						ui.secondary_panel[i].active = not grid_snap
+					end
+					
+					if ui.secondary_panel[i].id == "grid.pp" then
+						pixel_perfect = not pixel_perfect
+						ui.secondary_panel[i].active = not pixel_perfect
 					end
 					
 					if ui.secondary_panel[i].id == "zoom.in" then
