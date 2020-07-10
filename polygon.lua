@@ -623,6 +623,7 @@ end
 
 function polygon.draw(skip_in_preview)
 
+	local tri_count = 0
 	local i = 1
 	
 	while i <= #ui.layer do
@@ -673,6 +674,7 @@ function polygon.draw(skip_in_preview)
 						local a_loc, b_loc = clone.raw[j].va, clone.raw[j].vb
 						local aa, bb, cc = clone.raw[j], clone.raw[a_loc], clone.raw[b_loc]
 						lg.polygon("fill", aa.x * sc, aa.y * sc, bb.x * sc, bb.y * sc, cc.x * sc, cc.y * sc)
+						tri_count = tri_count + 1
 						
 					end
 					
@@ -727,6 +729,7 @@ function polygon.draw(skip_in_preview)
 						end
 						
 						lg.polygon("fill", cx * sc, cy * sc, (cx + cxx2) * sc, (cy + cyy2) * sc, (cx + cxx3) * sc, (cy + cyy3) * sc)
+						tri_count = tri_count + 1
 						--lg.line(cx + cxx2, cy + cyy2, cx + cxx3, cy + cyy3) -- Draw outline
 						
 						v = v + cinc
@@ -743,6 +746,8 @@ function polygon.draw(skip_in_preview)
 		
 		i = i + 1
 	end
+	
+	total_triangles = tri_count
 
 end
 

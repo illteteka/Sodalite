@@ -162,6 +162,7 @@ OVERWRITE_SVG = 1
 OVERWRITE_PNG = 2
 
 PROJECT_MAX_FILENAME_LEN = 20
+total_triangles = 0
 
 bad_is_dev = false
 

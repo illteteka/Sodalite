@@ -4832,6 +4832,7 @@ function ui.draw()
 	lg.print("Size: " .. document_w .. ", " .. document_h, info_x, info_y)
 	lg.print("Mouse: " .. infomx .. ", " .. infomy, info_x, info_y + 15)
 	lg.print("Zoom: " .. math.floor(camera_zoom * 100) .. "%", info_x, info_y + 30)
+	lg.printf("Tris: " .. total_triangles, info_x, info_y + 30, 190, "right")
 	
 	-- Draw active toolbar shortcuts
 	local ix, iy
