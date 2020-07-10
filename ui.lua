@@ -236,8 +236,8 @@ function ui.loadCM(x, y, ref)
 	elseif ref == ".layer" then
 	
 		ui.addCM("New layer", document_w ~= 0, "l.new", ctrl_id .. "+K")
-		ui.addCM("Duplicate layer", document_w ~= 0, "l.clone", ctrl_id .. "+J")
-		ui.addCM("Delete layer", document_w ~= 0, "l.delete", ctrl_id .. "+Delete")
+		ui.addCM("Duplicate layer", polygon.data[tm.polygon_loc] ~= nil, "l.clone", ctrl_id .. "+J")
+		ui.addCM("Delete layer", (#ui.layer > 1), "l.delete", ctrl_id .. "+Delete")
 		ui.addCMBreak()
 		ui.addCM("Rename layer...", document_w ~= 0, "l.rename", "F2")
 		ui.generateCM(x, y)
@@ -304,9 +304,8 @@ function ui.loadPopup(ref)
 			ui.addPopup("OK", "ok", "col")
 			ui.addPopup("Cancel", "cancel", "row")
 			ui.generatePopup()
-		end
-		
-		if ref == "f.overwrite" then
+			
+		elseif ref == "f.overwrite" then
 		
 			storeMovedVertices()
 			vertex_selection_mode = false
@@ -323,9 +322,7 @@ function ui.loadPopup(ref)
 			ui.addPopup("Cancel", "cancel", "row")
 			ui.generatePopup()
 		
-		end
-		
-		if ref == "save.disabled" then
+		elseif ref == "save.disabled" then
 		
 			ui.addPopup("DOCUMENT SAVING DISABLED!", "save.disabled", "col")    
 			ui.addPopup("Document saving has been disabled for this session as Sodalite", "text", "col")
@@ -338,9 +335,7 @@ function ui.loadPopup(ref)
 			ui.addPopup("Exit", "exit", "row")
 			ui.generatePopup()
 		
-		end
-		
-		if ref == "h.about" then
+		elseif ref == "h.about" then
 			storeMovedVertices()
 			vertex_selection_mode = false
 			vertex_selection = {}
@@ -356,9 +351,8 @@ function ui.loadPopup(ref)
 			ui.addPopup("Sodalite © 2020 Nick Gilmartin. All Rights Reserved.", "text", "col")
 			ui.addPopup("OK", "ok", "col")
 			ui.generatePopup()
-		end
-		
-		if ref == "f.save" then
+			
+		elseif ref == "f.save" then
 			local test_save = export.test(OVERWRITE_LOL)
 			if test_save and can_overwrite == false then
 				ui.loadPopup("f.overwrite")
@@ -367,9 +361,9 @@ function ui.loadPopup(ref)
 				export.saveArtboard()
 				can_overwrite = true
 			end
-		end
+			
+		elseif ref == "f.svg" then
 		
-		if ref == "f.svg" then
 			local test_save = export.test(OVERWRITE_SVG)
 			if test_save and can_overwrite == false then
 				ui.loadPopup("f.overwrite")
@@ -377,9 +371,9 @@ function ui.loadPopup(ref)
 				export.saveSVG()
 				can_overwrite = true
 			end
-		end
+			
+		elseif ref == "f.png" then
 		
-		if ref == "f.png" then
 			local test_save = export.test(OVERWRITE_PNG)
 			if test_save and can_overwrite == false then
 				ui.loadPopup("f.overwrite")
@@ -387,9 +381,8 @@ function ui.loadPopup(ref)
 				export.savePNG()
 				can_overwrite = true
 			end
-		end
-		
-		if ref == "e.pcopy" then
+			
+		elseif ref == "e.pcopy" then
 		
 			if ui.cm_color_area == 2 then
 
@@ -403,9 +396,7 @@ function ui.loadPopup(ref)
 
 			end
 		
-		end
-		
-		if ref == "e.ppaste" then
+		elseif ref == "e.ppaste" then
 		
 			if ui.cm_color_area == 2 then
 
@@ -425,50 +416,38 @@ function ui.loadPopup(ref)
 
 			end
 		
-		end
-		
-		if ref == "s.all" then
+		elseif ref == "s.all" then
 			if shape_grabber then
 				editorSelectAllShapes()
 			else
 				editorSelectAll()
 			end
-		end
-		
-		if ref == "s.de" then
+			
+		elseif ref == "s.de" then
 			vertex_selection_mode = false
 			vertex_selection = {}
 			
 			shape_selection_mode = false
 			shape_selection = {}
 			multi_shape_selection = false
-		end
-		
-		if ref == "i.center" then
+			
+		elseif ref == "i.center" then
 			resetCamera()
-		end
-		
-		if ref == "i.clear" then
+		elseif ref == "i.clear" then
 			artboard.clear()
-		end
-		
-		if ref == "e.undo" then
+		elseif ref == "e.undo" then
 			if artboard.active == false then
 				editorUndo()
 			else
 				artboard.undo()
 			end
-		end
-		
-		if ref == "e.redo" then
+		elseif ref == "e.redo" then
 			if artboard.active == false then
 				editorRedo()
 			else
 				artboard.redo()
 			end
-		end
-		
-		if ref == "f.exit" then
+		elseif ref == "f.exit" then
 		
 			if document_w ~= 0 and fs_enable_save then
 				is_trying_to_quit = true
@@ -492,6 +471,33 @@ function ui.loadPopup(ref)
 				safe_to_quit = true
 				love.event.quit()
 			end
+		
+		elseif ref == "l.new" then
+		
+			ui.layerAddButton()
+		
+		elseif ref == "l.clone" then
+		
+			storeMovedVertices()
+			vertex_selection_mode = false
+			vertex_selection = {}
+
+			storeMovedShapes()
+			shape_selection_mode = false
+			shape_selection = {}
+			multi_shape_selection = false
+
+			ui.layerCloneButton(true)
+
+			ui.lyr_scroll_percent = 0
+		
+		elseif ref == "l.delete" then
+		
+			ui.layerDeleteButton()
+		
+		elseif ref == "l.rename" then
+		
+			ui.layerRenameButton()
 		
 		end
 	
@@ -1009,6 +1015,77 @@ function ui.artboardButton()
 		artboard.active = true
 		ui.panelArtboard()
 	end
+
+end
+
+function ui.layerAddButton()
+
+	storeMovedVertices()
+	vertex_selection_mode = false
+	vertex_selection = {}
+	
+	storeMovedShapes()
+	shape_selection_mode = false
+	shape_selection = {}
+	multi_shape_selection = false
+
+	local old_layer = tm.polygon_loc
+	tm.polygon_loc = #ui.layer + #ui.layer_trash + 1
+
+	tm.store(TM_PICK_LAYER, old_layer, tm.polygon_loc, true, false)
+	tm.step()
+
+	ui.addLayer()
+	palette.updateAccentColor()
+				
+end
+
+function ui.layerDeleteButton()
+
+	storeMovedVertices()
+	vertex_selection_mode = false
+	vertex_selection = {}
+	
+	storeMovedShapes()
+	shape_selection_mode = false
+	shape_selection = {}
+	multi_shape_selection = false
+	
+	local find_layer = 0
+	for i = 1, #ui.layer do
+		if ui.layer[i].count == tm.polygon_loc then
+			find_layer = i
+		end
+	end
+	
+	if find_layer ~= 0 then
+		ui.deleteLayer(find_layer)
+		tm.store(TM_PICK_LAYER, find_layer, tm.polygon_loc, false, true)
+		tm.step()
+		tm.polygon_loc = ui.layer[#ui.layer].count
+		palette.updateAccentColor()
+		ui.lyr_scroll_percent = 0
+	end
+
+end
+
+function ui.layerRenameButton()
+
+	ui.popupLoseFocus("rename")
+	
+	ui.textbox_selection_origin = "rename"
+	
+	local i = 1
+	local this_layer = 1
+	for i = 1, #ui.layer do
+		if ui.layer[i].count == tm.polygon_loc then
+			this_layer = i
+		end
+	end
+	
+	ui.textbox_rename_layer = this_layer
+	ui.primary_text_orig = ui.layer[this_layer].name
+	ui.rename_click = true
 
 end
 
@@ -1783,6 +1860,11 @@ function ui.update(dt)
 	
 	ui.tooltip_disable = true
 	
+	if ui.context_menu[1] == nil and f2_key ~= PRESS and mouse_switch == _PRESS and ui.textbox_selection_origin == "rename" and ui.rename_click == false then
+		ui.popupLoseFocus("rename")
+		ui_active = true
+	end
+	
 	local disabled_prompt = (ui.popup[1] ~= nil and ui.popup[1][1].kind == "save.disabled")
 	
 	-- Check collision on title bar
@@ -2098,23 +2180,8 @@ function ui.update(dt)
 			-- Add layer button
 			if (mx >= layx + 4) and (mx <= layx + 4 + 24) and (my >= layy + 13) and (my <= layy + 13 + 24) then
 				
-				storeMovedVertices()
-				vertex_selection_mode = false
-				vertex_selection = {}
+				ui.layerAddButton()
 				
-				storeMovedShapes()
-				shape_selection_mode = false
-				shape_selection = {}
-				multi_shape_selection = false
-			
-				local old_layer = tm.polygon_loc
-				tm.polygon_loc = #ui.layer + #ui.layer_trash + 1
-
-				tm.store(TM_PICK_LAYER, old_layer, tm.polygon_loc, true, false)
-				tm.step()
-
-				ui.addLayer()
-				palette.updateAccentColor()
 				ui.lyr_scroll_percent = 0
 				ui.lyr_button_active = 1
 			end
@@ -2147,31 +2214,7 @@ function ui.update(dt)
 			if (mx >= layx + 4 + 24 + 4 + 24 + 4) and (mx <= layx + 4 + 24 + 24 + 4 + 24) and (my >= layy + 13) and (my <= layy + 13 + 24) then
 				
 				if (#ui.layer > 1) then
-					storeMovedVertices()
-					vertex_selection_mode = false
-					vertex_selection = {}
-					
-					storeMovedShapes()
-					shape_selection_mode = false
-					shape_selection = {}
-					multi_shape_selection = false
-					
-					local find_layer = 0
-					for i = 1, #ui.layer do
-						if ui.layer[i].count == tm.polygon_loc then
-							find_layer = i
-						end
-					end
-					
-					if find_layer ~= 0 then
-						ui.deleteLayer(find_layer)
-						tm.store(TM_PICK_LAYER, find_layer, tm.polygon_loc, false, true)
-						tm.step()
-						tm.polygon_loc = ui.layer[#ui.layer].count
-						palette.updateAccentColor()
-						ui.lyr_scroll_percent = 0
-					end
-					
+					ui.layerDeleteButton()
 				end
 				
 				ui.lyr_button_active = 2
@@ -2263,11 +2306,6 @@ function ui.update(dt)
 		
 	else
 		ui.rename_click = false
-	end
-	
-	if mouse_switch == _PRESS and ui.textbox_selection_origin == "rename" and ui.rename_click == false then
-		ui.popupLoseFocus("rename")
-		ui_active = true
 	end
 	
 	if (mouse_switch == _ON) and ui.lyr_clicked ~= 0 then

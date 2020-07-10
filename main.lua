@@ -49,6 +49,9 @@ t_key = _OFF
 r_key = _OFF
 e_key = _OFF
 g_key = _OFF
+j_key = _OFF
+k_key = _OFF
+f2_key = _OFF
 num_1_key = _OFF
 num_2_key = _OFF
 num_3_key = _OFF
@@ -67,6 +70,7 @@ minus_key = _OFF
 plus_key = _OFF
 scz_key = _OFF
 undo_key = _OFF
+delete_key = _OFF
 
 up_key = _OFF
 down_key = _OFF
@@ -612,6 +616,8 @@ function love.update(dt)
 	e_key = input.pullSwitch(love.keyboard.isDown("e"), e_key)
 	g_key = input.pullSwitch(love.keyboard.isDown("g"), g_key)
 	i_key = input.pullSwitch(love.keyboard.isDown("i"), i_key)
+	j_key = input.pullSwitch(love.keyboard.isDown("j"), j_key)
+	k_key = input.pullSwitch(love.keyboard.isDown("k"), k_key)
 	o_key = input.pullSwitch(love.keyboard.isDown("o"), o_key)
 	n_key = input.pullSwitch(love.keyboard.isDown("n"), n_key)
 	p_key = input.pullSwitch(love.keyboard.isDown("p"), p_key)
@@ -639,6 +645,8 @@ function love.update(dt)
 	left_key = input.pullSwitch(love.keyboard.isDown("left"), left_key)
 	right_key = input.pullSwitch(love.keyboard.isDown("right"), right_key)
 	
+	f2_key = input.pullSwitch(love.keyboard.isDown("f2"), f2_key)
+	delete_key = input.pullSwitch(love.keyboard.isDown("delete"), delete_key)
 	lctrl_key = input.pullSwitch(love.keyboard.isDown("l" .. ctrl_name), lctrl_key)
 	rctrl_key = input.pullSwitch(love.keyboard.isDown("r" .. ctrl_name), rctrl_key)
 	lshift_key = input.pullSwitch(love.keyboard.isDown("lshift"), lshift_key)
@@ -881,6 +889,33 @@ function love.update(dt)
 		if num_9_key == _PRESS then
 			ui.artboardButton()
 			ui_active = true
+		end
+		
+		if input.ctrlCombo(k_key) then
+			ui.layerAddButton()
+		end
+		
+		if input.ctrlCombo(j_key) and polygon.data[tm.polygon_loc] ~= nil then
+			storeMovedVertices()
+			vertex_selection_mode = false
+			vertex_selection = {}
+
+			storeMovedShapes()
+			shape_selection_mode = false
+			shape_selection = {}
+			multi_shape_selection = false
+
+			ui.layerCloneButton(true)
+
+			ui.lyr_scroll_percent = 0
+		end
+		
+		if input.ctrlCombo(delete_key) and (#ui.layer > 1) then
+			ui.layerDeleteButton()
+		end
+		
+		if f2_key == _PRESS then
+			ui.layerRenameButton()
 		end
 	
 	end
