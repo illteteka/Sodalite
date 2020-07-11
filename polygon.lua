@@ -4,8 +4,12 @@ local polygon = {}
 polygon.data = {}
 
 polygon.kind = "polygon"
+-- Ellipse vars
 polygon.segments = 25
 polygon._angle = 0
+-- Polyline vars
+polygon.thickness = 10
+polygon.separation = 6
 
 -- Generators
 
@@ -89,7 +93,16 @@ function polygon.calcVertex(x, y, loc, use_grid)
 	-- Stop ellipses from having more than 2 vertices
 	local ellipse_limit = polygon.data[tm.polygon_loc].kind == "ellipse" and #polygon.data[tm.polygon_loc].raw == 2
 	
-	if point_selected == -1 and not ellipse_limit and not vertex_selection_mode then
+	local is_line = polygon.data[tm.polygon_loc].kind == "line"
+	
+	if is_line then
+		
+		line_x = x
+		line_y = y
+		
+	end
+	
+	if point_selected == -1 and not ellipse_limit and not vertex_selection_mode and not is_line then
 	
 	local line_to_purge = -1
 	
@@ -134,6 +147,43 @@ function polygon.calcVertex(x, y, loc, use_grid)
 	
 	this_point = polygon.addVertex(x, y, loc, line_to_purge, true)
 	
+	end
+
+end
+
+function polygon.beginLine(loc, x1, y1, x2, y2, new_polyline)
+
+	--local copy = polygon.data[loc]
+	
+	local thick = polygon.thickness/2
+	
+	-- get angle of p1 to p2
+	local l_ang = -lume.angle(x1, y1, x2, y2)
+	
+	-- get perpendicular of angle
+	local a_pos, a_neg = l_ang + (math.pi/2), l_ang - (math.pi/2)
+	
+	local ldx_pos, ldy_pos = polygon.lengthdir_x(thick, a_pos), polygon.lengthdir_y(thick, a_pos)
+	local ldx_neg, ldy_neg = polygon.lengthdir_x(thick, a_neg), polygon.lengthdir_y(thick, a_neg)
+	
+	-- calculate 4 new points
+	local pf = pixelFloor
+	
+	local a, b = pf(x1 + ldx_pos),     pf(y1 + ldy_pos)
+	local c, d = pf(x1 + ldx_neg),     pf(y1 + ldy_neg)
+	
+	local e, f = pf(x2 + ldx_pos),     pf(y2 + ldy_pos)
+	local g, h = pf(x2 + ldx_neg),     pf(y2 + ldy_neg)
+	
+	--print(rr(a), rr(b), rr(c), rr(d), rr(e), rr(f), rr(g), rr(h))
+	if new_polyline then
+		polygon.addVertex(a, b, loc, 0, false)
+		polygon.addVertex(c, d, loc, 0, false)
+		polygon.addVertex(e, f, loc, 0, false)
+		polygon.addVertex(g, h, loc, 3, false)
+	else
+		polygon.addVertex(e, f, loc, #polygon.data[loc].cache - 1, false)
+		polygon.addVertex(g, h, loc, #polygon.data[loc].cache - 1, false)
 	end
 
 end
@@ -478,7 +528,7 @@ function polygon.click(mx, my, skip_selection)
 			local clone = polygon.data[ui.layer[i].count]
 			
 			-- Draw the shape
-			if clone.kind == "polygon" then
+			if clone.kind == "polygon" or clone.kind == "line" then
 			
 				local j = 1
 				while j <= #clone.raw do
@@ -662,7 +712,7 @@ function polygon.draw(skip_in_preview)
 			lg.setColor(clone.color)
 			
 			-- Draw the shape
-			if clone.kind == "polygon" then
+			if clone.kind == "polygon" or clone.kind == "line" then
 			
 				local j = 1
 				while j <= #clone.raw do

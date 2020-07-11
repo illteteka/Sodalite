@@ -203,14 +203,14 @@ function import.read(file)
 					elseif (data_count == 2) then
 						polygon.data[poly_count].raw[vertex_count].y = data_value
 					elseif (data_count == 3) then
-						if polygon.data[poly_count].kind == "polygon" then
+						if polygon.data[poly_count].kind == "polygon" or polygon.data[poly_count].kind == "line" then
 							polygon.data[poly_count].raw[vertex_count].va = data_value
 							table.insert(polygon.data[poly_count].cache, {vertex_count, polygon.data[poly_count].raw[vertex_count].va})
 						else
 							polygon.data[poly_count].segments = data_value
 						end
 					elseif (data_count == 4) then
-						if polygon.data[poly_count].kind == "polygon" then
+						if polygon.data[poly_count].kind == "polygon" or polygon.data[poly_count].kind == "line" then
 							polygon.data[poly_count].raw[vertex_count].vb = data_value
 							table.insert(polygon.data[poly_count].cache, {vertex_count, polygon.data[poly_count].raw[vertex_count].vb})
 						else
@@ -226,7 +226,7 @@ function import.read(file)
 				
 				end
 				
-				if polygon.data[poly_count].kind == "polygon" then
+				if polygon.data[poly_count].kind == "polygon" or polygon.data[poly_count].kind == "line" then
 				
 					local cache = polygon.data[poly_count].cache
 					

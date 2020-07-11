@@ -165,6 +165,9 @@ OVERWRITE_PNG = 2
 PROJECT_MAX_FILENAME_LEN = 20
 total_triangles = 0
 
+line_x = 0
+line_y = 0
+
 bad_is_dev = false
 
 function resetEditor(exit_popup, add_layer, reset_cam)
@@ -518,6 +521,7 @@ function love.load()
 	icon_clone = lg.newImage("textures/icon_clone.png")
 	icon_sodalite = lg.newImage("textures/icon_sodalite.png")
 	icon_pixel = lg.newImage("textures/icon_pixel.png")
+	icon_polyline = lg.newImage("textures/icon_polyline.png")
 	
 	cursor_typing = love.mouse.getSystemCursor("ibeam")
 	cursor_size_h = love.mouse.getSystemCursor("sizewe")
@@ -1177,6 +1181,8 @@ function love.update(dt)
 			
 			end
 			
+			--if 
+			
 			if mouse_switch == _ON and selection_and_ui_active == false and lock_preview_vertices == false then
 			
 				ui_off_mouse_down = true
@@ -1188,6 +1194,32 @@ function love.update(dt)
 					calc_mouse_x, calc_mouse_y = mx, my
 				else
 					calc_mouse_x, calc_mouse_y = mx + mouse_x_offset, my + mouse_y_offset
+				end
+				
+				if polygon.data[tm.polygon_loc] ~= nil and polygon.data[tm.polygon_loc].kind == "line" then
+				
+					local lx, ly
+					if ui.toolbar[ui.toolbar_grid].active == false and grid_snap then
+						lx = ((math.floor((calc_mouse_x - camera_x) / grid_w) * grid_w) + (grid_x % grid_w))
+						ly = ((math.floor((calc_mouse_y - camera_y) / grid_h) * grid_h) + (grid_y % grid_h))
+					else
+						lx = calc_mouse_x - pixelFloor(camera_x)
+						ly = calc_mouse_y - pixelFloor(camera_y)
+					end
+				
+					if lume.distance(line_x, line_y, lx, ly, true) >= polygon.separation * polygon.separation then
+				
+						if polygon.data[tm.polygon_loc].raw[1] == nil then
+							polygon.beginLine(tm.polygon_loc, line_x, line_y, lx, ly, true)
+						else
+							local line_copy = polygon.data[tm.polygon_loc].raw[#polygon.data[tm.polygon_loc].raw]
+							polygon.beginLine(tm.polygon_loc, line_copy.x, line_copy.y, lx, ly, false)
+						end
+						
+						line_x, line_y = lx, ly
+					
+					end
+				
 				end
 				
 				-- If a point is selected, have it follow the mouse

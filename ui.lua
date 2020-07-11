@@ -90,6 +90,7 @@ ui.toolbar_redo = nil
 ui.toolbar_artboard = nil
 ui.toolbar_polygon = nil
 ui.toolbar_ellipse = nil
+ui.toolbar_polyline = nil
 ui.toolbar_preview = nil
 ui.toolbar_grid = nil
 ui.toolbar_pick = nil
@@ -149,6 +150,7 @@ TIP_PREV_FREEDRAW = 23
 TIP_PREV_BG = 24
 TIP_CLONE_LAYER = 25
 TIP_GRID_PP = 26
+TIP_TOOLBAR_POLYLINE = 27
 
 function ui.init()
 	-- Add palette sliders
@@ -178,6 +180,7 @@ function ui.init()
 	ui.toolbar_polygon  = ui.addTool(TIP_TOOLBAR_POLYGON,    icon_triangle, ".tri")
 	ui.toolbar_ellipse  = ui.addTool(TIP_TOOLBAR_ELLIPSE,    icon_circle,   ".circ")
 	ui.toolbar_artboard = ui.addTool(TIP_TOOLBAR_FREEDRAW,   icon_draw,     ".artb")
+	ui.toolbar_polyline = ui.addTool(TIP_TOOLBAR_POLYLINE,   icon_polyline, ".line")
 	ui.addToolBreak()
 	ui.toolbar_undo = ui.addTool(TIP_TOOLBAR_UNDO,           icon_undo,     ".undo")
 	ui.toolbar_redo = ui.addTool(TIP_TOOLBAR_REDO,           icon_redo,     ".redo")
@@ -624,6 +627,33 @@ function ui.panelEllipse()
 
 end
 
+function ui.panelPolyline()
+
+	ui.primary_textbox = -1
+	ui.keyboard_last = ""
+	ui.keyboard_test = ""
+	ui.textbox_selection_origin = "toolbox"
+	ui.popupLoseFocus()
+
+	ui.primary_panel = nil
+	ui.primary_panel = {}
+	ui.primary_panel.name = "Polyline:"
+	
+	-- local load_seg, load_ang = 0, 0
+	-- if polygon.data[1] ~= nil and polygon.data[tm.polygon_loc] ~= nil and polygon.data[tm.polygon_loc].kind == "ellipse" then
+		-- local myshape = polygon.data[tm.polygon_loc]
+		-- load_seg = myshape.segments
+		-- load_ang = myshape._angle
+	-- else
+		-- load_seg = polygon.segments
+		-- load_ang = polygon._angle
+	-- end
+	
+	-- ui.addPanel(ui.primary_panel, 'ellipse.seg', 'Segments', true, load_seg, 3, 128)
+	-- ui.addPanel(ui.primary_panel, 'ellipse.ang', 'Rotation', true, load_ang, 0, 359)
+
+end
+
 function ui.panelArtboard()
 
 	ui.primary_textbox = -1
@@ -736,6 +766,8 @@ function ui.getTooltip(x)
 		return "Preview window background color, paste a palette color here to change colors"
 	elseif x == TIP_GRID_PP then
 		return "Toggle the forced 1x1 pixel grid"
+	elseif x == TIP_TOOLBAR_POLYLINE then
+		return "youre a shoe"
 	end
 end
 
@@ -1005,6 +1037,20 @@ function ui.ellipseButton()
 		artboard.active = false
 		polygon.kind = "ellipse"
 		ui.panelEllipse()
+	end
+
+end
+
+function ui.polylineButton()
+
+	if ui.toolbar[ui.toolbar_polyline].active then
+		ui.textbox_selection_origin = "preview"
+		ui.popupLoseFocus("preview")
+	
+		ui.active_textbox = ""
+		artboard.active = false
+		polygon.kind = "line"
+		ui.panelPolyline()
 	end
 
 end
@@ -2458,6 +2504,7 @@ function ui.update(dt)
 		ui.toolbar[ui.toolbar_polygon].active = false
 		ui.toolbar[ui.toolbar_ellipse].active = false
 		ui.toolbar[ui.toolbar_artboard].active = false
+		ui.toolbar[ui.toolbar_polyline].active = false
 		ui.toolbar[ui.toolbar_grid].active = false
 		ui.toolbar[ui.toolbar_pick].active = false
 		ui.toolbar[ui.toolbar_preview].active = false
@@ -2471,15 +2518,23 @@ function ui.update(dt)
 				ui.toolbar[ui.toolbar_polygon].active = false
 				ui.toolbar[ui.toolbar_ellipse].active = true
 				ui.toolbar[ui.toolbar_artboard].active = true
-			else
+				ui.toolbar[ui.toolbar_polyline].active = true
+			elseif polygon.kind == "ellipse" then
 				ui.toolbar[ui.toolbar_polygon].active = true
 				ui.toolbar[ui.toolbar_ellipse].active = false
 				ui.toolbar[ui.toolbar_artboard].active = true
+				ui.toolbar[ui.toolbar_polyline].active = true
+			else
+				ui.toolbar[ui.toolbar_polygon].active = true
+				ui.toolbar[ui.toolbar_ellipse].active = true
+				ui.toolbar[ui.toolbar_artboard].active = true
+				ui.toolbar[ui.toolbar_polyline].active = false
 			end
 		else
 			ui.toolbar[ui.toolbar_polygon].active = true
 			ui.toolbar[ui.toolbar_ellipse].active = true
 			ui.toolbar[ui.toolbar_artboard].active = false
+			ui.toolbar[ui.toolbar_polyline].active = true
 		end
 	end
 	
@@ -2504,7 +2559,7 @@ function ui.update(dt)
 			-- Add an offset to offset the distance of the line breaks
 			if second_offset then
 				y_offset = 24
-				add_one_because_top_is_even = 1
+				add_one_because_top_is_even = 2
 			elseif first_offset then
 				y_offset = 12
 				add_one_because_top_is_even = 1
@@ -2573,6 +2628,10 @@ function ui.update(dt)
 					elseif tool.ref == ".artb" then
 						
 						ui.artboardButton()
+						
+					elseif tool.ref == ".line" then
+						
+						ui.polylineButton()
 						
 					elseif tool.ref == ".undo" then
 						
@@ -4862,8 +4921,10 @@ function ui.draw()
 		lg.draw(ui.toolbar[ui.toolbar_artboard].icon, ix - 2, iy)
 	elseif polygon.kind == "polygon" then
 		lg.draw(ui.toolbar[ui.toolbar_polygon].icon, ix - 2, iy + 1)
-	else
+	elseif polygon.kind == "ellipse" then
 		lg.draw(ui.toolbar[ui.toolbar_ellipse].icon, ix - 3, iy)
+	else
+		lg.draw(ui.toolbar[ui.toolbar_polyline].icon, ix - 2, iy)
 	end
 	
 	if document_w ~= 0 then
