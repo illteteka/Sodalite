@@ -8,8 +8,8 @@ polygon.kind = "polygon"
 polygon.segments = 25
 polygon._angle = 0
 -- Polyline vars
-polygon.thickness = 10
-polygon.separation = 6
+polygon.thickness = 50
+polygon.separation = 10
 
 -- Generators
 

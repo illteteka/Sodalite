@@ -1181,8 +1181,6 @@ function love.update(dt)
 			
 			end
 			
-			--if 
-			
 			if mouse_switch == _ON and selection_and_ui_active == false and lock_preview_vertices == false then
 			
 				ui_off_mouse_down = true

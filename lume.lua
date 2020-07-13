@@ -1,25 +1,37 @@
 --
 -- lume
 --
--- Copyright (c) 2015 rxi
+-- Copyright (c) 2020 rxi
 --
--- This library is free software; you can redistribute it and/or modify it
--- under the terms of the MIT license. See LICENSE for details.
+-- Permission is hereby granted, free of charge, to any person obtaining a copy of
+-- this software and associated documentation files (the "Software"), to deal in
+-- the Software without restriction, including without limitation the rights to
+-- use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+-- of the Software, and to permit persons to whom the Software is furnished to do
+-- so, subject to the following conditions:
+--
+-- The above copyright notice and this permission notice shall be included in all
+-- copies or substantial portions of the Software.
+--
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+-- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+-- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+-- SOFTWARE.
 --
 
-local lume = { _version = "2.2.3" }
+local lume = { _version = "2.3.0" }
 
 local pairs, ipairs = pairs, ipairs
 local type, assert, unpack = type, assert, unpack or table.unpack
 local tostring, tonumber = tostring, tonumber
 local math_floor = math.floor
 local math_ceil = math.ceil
-local math_random = math.random
-local math_atan2 = math.atan2 or math.atan
+local math_atan2 = math.atan2
 local math_sqrt = math.sqrt
 local math_abs = math.abs
-local math_sin = math.sin
-local math_cos = math.cos
 
 local noop = function()
 end
@@ -65,9 +77,12 @@ local iteratee = function(x)
   return function(z) return z[x] end
 end
 
+
+
 function lume.clamp(x, min, max)
   return x < min and min or (x > max and max or x)
 end
+
 
 function lume.round(x, increment)
   if increment then return lume.round(x / increment) * increment end
@@ -110,15 +125,20 @@ function lume.angle(x1, y1, x2, y2)
 end
 
 
+function lume.vector(angle, magnitude)
+  return math.cos(angle) * magnitude, math.sin(angle) * magnitude
+end
+
+
 function lume.random(a, b)
   if not a then a, b = 0, 1 end
   if not b then b = 0 end
-  return a + math_random() * (b - a)
+  return a + math.random() * (b - a)
 end
 
 
 function lume.randomchoice(t)
-  return t[math_random(#t)]
+  return t[math.random(#t)]
 end
 
 
@@ -138,7 +158,7 @@ end
 
 
 function lume.isarray(x)
-  return (type(x) == "table" and x[1] ~= nil) and true or false
+  return type(x) == "table" and x[1] ~= nil
 end
 
 
@@ -193,7 +213,7 @@ end
 function lume.shuffle(t)
   local rtn = {}
   for i = 1, #t do
-    local r = math_random(i)
+    local r = math.random(i)
     if r ~= i then
       rtn[i] = rtn[r]
     end
@@ -266,8 +286,8 @@ end
 
 
 function lume.reduce(t, fn, first)
+  local started = first ~= nil
   local acc = first
-  local started = first and true or false
   local iter = getiter(t)
   for _, v in iter(t) do
     if started then
@@ -282,7 +302,7 @@ function lume.reduce(t, fn, first)
 end
 
 
-function lume.set(t)
+function lume.unique(t)
   local rtn = {}
   for k in pairs(lume.invert(t)) do
     rtn[#rtn + 1] = k
@@ -657,7 +677,7 @@ end
 
 function lume.uuid()
   local fn = function(x)
-    local r = math_random(16) - 1
+    local r = math.random(16) - 1
     r = (x == "x") and (r + 1) or (r % 4) + 9
     return ("0123456789abcdef"):sub(r, r)
   end
@@ -704,7 +724,9 @@ end
 local ripairs_iter = function(t, i)
   i = i - 1
   local v = t[i]
-  if v then return i, v end
+  if v ~= nil then
+    return i, v
+  end
 end
 
 function lume.ripairs(t)
@@ -731,15 +753,6 @@ function lume.color(str, mul)
     error(("bad color string '%s'"):format(str))
   end
   return r * mul, g * mul, b * mul, a * mul
-end
-
-
-function lume.rgba(color)
-  local a = math_floor((color / 16777216) % 256)
-  local r = math_floor((color /    65536) % 256)
-  local g = math_floor((color /      256) % 256)
-  local b = math_floor((color) % 256)
-  return r, g, b, a
 end
 
 
