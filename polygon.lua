@@ -8,8 +8,7 @@ polygon.kind = "polygon"
 polygon.segments = 25
 polygon._angle = 0
 -- Polyline vars
-polygon.thickness = 50
-polygon.separation = 10
+polygon.thickness = 10
 
 -- Generators
 
@@ -69,7 +68,13 @@ function polygon.calcVertex(x, y, loc, use_grid)
 		
 		end
 		
-		if (lume.distance(x, y, vx, vy) < vertex_radius) and add_to_selection then
+		local if_line_is_valid = true
+		local clone = polygon.data[tm.polygon_loc].raw
+		if clone[i].l ~= nil and clone[i].l == "-" then
+			if_line_is_valid = false
+		end
+		
+		if (lume.distance(x, y, vx, vy) < vertex_radius) and add_to_selection and if_line_is_valid then
 			point_selected = i
 			i = #polygon.data[tm.polygon_loc].raw + 1
 			
@@ -145,7 +150,7 @@ function polygon.calcVertex(x, y, loc, use_grid)
 	
 	end
 	
-	this_point = polygon.addVertex(x, y, loc, line_to_purge, true)
+	this_point = polygon.addVertex(x, y, loc, line_to_purge, true, polygon.kind == "line")
 	
 	end
 
@@ -158,6 +163,8 @@ function polygon.beginLine(loc, x1, y1, x2, y2, new_polyline)
 	local thick = polygon.thickness/2
 	
 	-- get angle of p1 to p2
+	--local l_ang = math.rad(lume.round(math.deg(lume.angle(x1, y1, x2, y2))  , 10))
+	--print(math.deg(l_ang))
 	local l_ang = -lume.angle(x1, y1, x2, y2)
 	
 	-- get perpendicular of angle
@@ -177,18 +184,18 @@ function polygon.beginLine(loc, x1, y1, x2, y2, new_polyline)
 	
 	--print(rr(a), rr(b), rr(c), rr(d), rr(e), rr(f), rr(g), rr(h))
 	if new_polyline then
-		polygon.addVertex(a, b, loc, 0, false)
-		polygon.addVertex(c, d, loc, 0, false)
-		polygon.addVertex(e, f, loc, 0, false)
-		polygon.addVertex(g, h, loc, 3, false)
+		polygon.addVertex(a, b, loc, 0, false, true)
+		polygon.addVertex(c, d, loc, 0, false, true)
+		polygon.addVertex(e, f, loc, 0, false, true)
+		polygon.addVertex(g, h, loc, 3, false, true)
 	else
-		polygon.addVertex(e, f, loc, #polygon.data[loc].cache - 1, false)
-		polygon.addVertex(g, h, loc, #polygon.data[loc].cache - 1, false)
+		polygon.addVertex(e, f, loc, #polygon.data[loc].cache - 1, false, true)
+		polygon.addVertex(g, h, loc, #polygon.data[loc].cache - 1, false, true)
 	end
 
 end
 
-function polygon.addVertex(x, y, loc, old_line, use_tm)
+function polygon.addVertex(x, y, loc, old_line, use_tm, is_line)
 
 	local copy = polygon.data[loc]
 	local point = {}
@@ -247,6 +254,16 @@ function polygon.addVertex(x, y, loc, old_line, use_tm)
 		tm.store(TM_DEL_LINE,   old_line, old_a, old_b)
 	end
 	
+	if is_line then
+		
+		copy.raw[#copy.raw].l = "-"
+		
+		if copy.raw[#copy.raw - 1] ~= nil and copy.raw[#copy.raw - 1].l == "-" then
+			copy.raw[#copy.raw].l = "+"
+		end
+		
+	end
+	
 	-- Add new vertex to selection group
 	if tm.enabled then
 		local moved_point = {}
@@ -276,7 +293,7 @@ function polygon.redo()
 		
 		if moment[1].action == TM_NEW_POLYGON then
 			polygon.new(tm.polygon_loc, moment[1].color, moment[1].kind, false)
-			polygon.addVertex(move_moment.x, move_moment.y, tm.polygon_loc, -1, false)
+			polygon.addVertex(move_moment.x, move_moment.y, tm.polygon_loc, -1, false, false)
 			
 			if moment[1].kind == "ellipse" then
 				polygon.data[tm.polygon_loc].segments = moment[3].segments
@@ -287,7 +304,7 @@ function polygon.redo()
 			
 		elseif moment[1].action == TM_ADD_VERTEX then
 		
-			polygon.addVertex(move_moment.x, move_moment.y, tm.polygon_loc, moment[1].old_line, false)
+			polygon.addVertex(move_moment.x, move_moment.y, tm.polygon_loc, moment[1].old_line, false, false)
 			
 		elseif moment[1].action == TM_MOVE_VERTEX then
 		

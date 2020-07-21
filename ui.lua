@@ -4203,7 +4203,12 @@ function ui.update(dt)
 								
 								local tx, ty = clone.raw[j].x, clone.raw[j].y
 								
-								if tx >= sx and tx <= sx + sw and ty >= sy and ty <= sy + sh then
+								if_line_is_valid = true
+								if clone.raw[j].l ~= nil and clone.raw[j].l == "-" then
+									if_line_is_valid = false
+								end
+								
+								if if_line_is_valid and tx >= sx and tx <= sx + sw and ty >= sy and ty <= sy + sh then
 									
 									local vert_exists = false
 									local k = 1

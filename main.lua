@@ -1194,7 +1194,7 @@ function love.update(dt)
 					calc_mouse_x, calc_mouse_y = mx + mouse_x_offset, my + mouse_y_offset
 				end
 				
-				if polygon.data[tm.polygon_loc] ~= nil and polygon.data[tm.polygon_loc].kind == "line" then
+				if polygon.data[tm.polygon_loc] ~= nil and polygon.data[tm.polygon_loc].kind == "line" and #vertex_selection == 0 and (ui_active == false) then
 				
 					local lx, ly
 					if ui.toolbar[ui.toolbar_grid].active == false and grid_snap then
@@ -1205,7 +1205,7 @@ function love.update(dt)
 						ly = calc_mouse_y - pixelFloor(camera_y)
 					end
 				
-					if lume.distance(line_x, line_y, lx, ly, true) >= polygon.separation * polygon.separation then
+					if lume.distance(line_x, line_y, lx, ly, true) >= polygon.thickness * polygon.thickness then
 				
 						if polygon.data[tm.polygon_loc].raw[1] == nil then
 							polygon.beginLine(tm.polygon_loc, line_x, line_y, lx, ly, true)
@@ -1641,7 +1641,7 @@ function love.draw()
 		
 			local shape_index = ui.layer[shape_selection[n].index].count
 			
-			if polygon.data[shape_index].kind == "polygon" then
+			if polygon.data[shape_index].kind == "polygon" or polygon.data[shape_index].kind == "line" then
 			
 				local o = 1
 				local this_shape = polygon.data[shape_index].cache
@@ -1744,8 +1744,12 @@ function love.draw()
 			local vertex_radius = 100 / camera_zoom
 			local tx, ty = clone.raw[j].x, clone.raw[j].y
 			local sc = camera_zoom
+			local if_line_is_valid = true
+			if clone.raw[j].l ~= nil and clone.raw[j].l == "-" then
+				if_line_is_valid = false
+			end
 			
-			if (#clone.raw < 3) or (lume.distance(mx - math.floor(camera_x), my - math.floor(camera_y), tx, ty) < vertex_radius) or (select_grabber) then
+			if ((#clone.raw < 3) or (lume.distance(mx - math.floor(camera_x), my - math.floor(camera_y), tx, ty) < vertex_radius) or (select_grabber)) and if_line_is_valid then
 				lg.draw(spr_vertex, math.floor(tx * sc) - 5, math.floor(ty * sc) - 5)
 			end
 			
@@ -1766,8 +1770,14 @@ function love.draw()
 			
 			local tx, ty = clone.raw[vertex_selection[j].index].x, clone.raw[vertex_selection[j].index].y
 			local sc = camera_zoom
+			local if_line_is_valid = true
+			if clone.raw[j].l ~= nil and clone.raw[j].l == "-" then
+				if_line_is_valid = false
+			end
 			
-			lg.draw(spr_vertex, math.floor(tx * sc) - 5, math.floor(ty * sc) - 5)
+			if if_line_is_valid then
+				lg.draw(spr_vertex, math.floor(tx * sc) - 5, math.floor(ty * sc) - 5)
+			end
 			
 			j = j + 1
 		
