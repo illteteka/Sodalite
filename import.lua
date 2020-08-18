@@ -59,6 +59,7 @@ function import.open(file)
 		
 		resetEditor(true, false, false)
 		import.read(file_contents)
+		polygon.max_thickness = math.max(document_w, document_h)
 		
 		artboard.init()
 

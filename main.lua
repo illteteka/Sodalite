@@ -316,12 +316,31 @@ function editorSelectAll()
 	local i
 	for i = 1, #polygon.data[tm.polygon_loc].raw do
 	
+		local clone = polygon.data[tm.polygon_loc]
+		local tx, ty = polygon.data[tm.polygon_loc].raw[i].x, polygon.data[tm.polygon_loc].raw[i].y
 		local moved_point = {}
 		moved_point.index = i
-		moved_point.x = polygon.data[tm.polygon_loc].raw[i].x
-		moved_point.y = polygon.data[tm.polygon_loc].raw[i].y
+		moved_point.x = tx
+		moved_point.y = ty
 		table.insert(vertex_selection, moved_point)
 		vertex_selection_mode = true
+		
+		-- Add vertex sibling if it's a line
+		if clone.raw[i].l ~= nil and clone.raw[i].l == "+" then
+			
+			local sib_1 = clone.raw[i]
+			local sib_2 = clone.raw[i - 1]
+			
+			local moved_point_sister = {}
+			moved_point_sister.index = i - 1
+			moved_point_sister.t = math.ceil(lume.distance(sib_1.x, sib_1.y, sib_2.x, sib_2.y))
+			moved_point_sister.a = -lume.angle(sib_1.x, sib_1.y, sib_2.x, sib_2.y)
+			moved_point_sister.x = math.floor(tx + polygon.lengthdir_x(moved_point_sister.t, moved_point_sister.a))
+			moved_point_sister.y = math.floor(ty + polygon.lengthdir_y(moved_point_sister.t, moved_point_sister.a))
+			
+			table.insert(vertex_selection, moved_point_sister)
+			
+		end
 	
 	end
 
@@ -1278,30 +1297,52 @@ function love.update(dt)
 					local pp = polygon.data[tm.polygon_loc].raw[vertex_selection[i].index]
 					local pp_one = polygon.data[tm.polygon_loc].raw[vertex_selection[1].index]
 					
-					if i == 1 then
+					-- Check if we're performing a special action on a line
+					if (lctrl_key == _ON or rctrl_key == _ON) then -- and selection contains line
 						
-						if arrow_key_selection == false then
-						
-							local j
-							for j = 1, #vertex_selection do
-								local vert_copy = vertex_selection[j].index
-								vertex_selection[j].x = polygon.data[tm.polygon_loc].raw[vert_copy].x
-								vertex_selection[j].y = polygon.data[tm.polygon_loc].raw[vert_copy].y
-							end
+						if vertex_selection[i].t ~= nil then
 							
-							arrow_key_selection = true
+							vertex_selection[i].t = math.max(math.min(vertex_selection[i].t + (vt_dir * vt_key), polygon.max_thickness), polygon.min_thickness)
+							vertex_selection[i].a = vertex_selection[i].a + ((math.pi/180) * -hz_dir * hz_key)
 							
-						end
-						
-						if ui.toolbar[ui.toolbar_grid].active == false and grid_snap then
-							pp.x, pp.y = pp.x + (hz_dir * hz_key * grid_w), pp.y + (-vt_dir * vt_key * grid_h)
-						else
-							pp.x, pp.y = pp.x + (hz_dir * hz_key), pp.y + (-vt_dir * vt_key)
+							-- Keep angle in range of 0-359 deg
+							if vertex_selection[i].a > math.pi*2 then vertex_selection[i].a = vertex_selection[i].a - math.pi * 2 end
+							if vertex_selection[i].a < 0 then vertex_selection[i].a = vertex_selection[i].a + math.pi * 2 end
+							
+							vertex_selection[i].x = pixelFloor(vertex_selection[i - 1].x + polygon.lengthdir_x(vertex_selection[i].t, vertex_selection[i].a))
+							vertex_selection[i].y = pixelFloor(vertex_selection[i - 1].y + polygon.lengthdir_y(vertex_selection[i].t, vertex_selection[i].a))
+							pp.x, pp.y = vertex_selection[i].x, vertex_selection[i].y
+							
 						end
 					
 					else
 					
-						pp.x, pp.y = vertex_selection[i].x + (pp_one.x - vertex_selection[1].x), vertex_selection[i].y + (pp_one.y - vertex_selection[1].y)
+						if i == 1 then
+							
+							if arrow_key_selection == false then
+							
+								local j
+								for j = 1, #vertex_selection do
+									local vert_copy = vertex_selection[j].index
+									vertex_selection[j].x = polygon.data[tm.polygon_loc].raw[vert_copy].x
+									vertex_selection[j].y = polygon.data[tm.polygon_loc].raw[vert_copy].y
+								end
+								
+								arrow_key_selection = true
+								
+							end
+							
+							if ui.toolbar[ui.toolbar_grid].active == false and grid_snap then
+								pp.x, pp.y = pp.x + (hz_dir * hz_key * grid_w), pp.y + (-vt_dir * vt_key * grid_h)
+							else
+								pp.x, pp.y = pp.x + (hz_dir * hz_key), pp.y + (-vt_dir * vt_key)
+							end
+						
+						else
+						
+							pp.x, pp.y = vertex_selection[i].x + (pp_one.x - vertex_selection[1].x), vertex_selection[i].y + (pp_one.y - vertex_selection[1].y)
+						
+						end
 					
 					end
 				
@@ -1744,12 +1785,8 @@ function love.draw()
 			local vertex_radius = 100 / camera_zoom
 			local tx, ty = clone.raw[j].x, clone.raw[j].y
 			local sc = camera_zoom
-			local if_line_is_valid = true
-			if clone.raw[j].l ~= nil and clone.raw[j].l == "-" then
-				if_line_is_valid = false
-			end
 			
-			if ((#clone.raw < 3) or (lume.distance(mx - math.floor(camera_x), my - math.floor(camera_y), tx, ty) < vertex_radius) or (select_grabber)) and if_line_is_valid then
+			if ((#clone.raw < 3) or (lume.distance(mx - math.floor(camera_x), my - math.floor(camera_y), tx, ty) < vertex_radius) or (select_grabber)) then
 				lg.draw(spr_vertex, math.floor(tx * sc) - 5, math.floor(ty * sc) - 5)
 			end
 			
@@ -1770,14 +1807,8 @@ function love.draw()
 			
 			local tx, ty = clone.raw[vertex_selection[j].index].x, clone.raw[vertex_selection[j].index].y
 			local sc = camera_zoom
-			local if_line_is_valid = true
-			if clone.raw[j].l ~= nil and clone.raw[j].l == "-" then
-				if_line_is_valid = false
-			end
 			
-			if if_line_is_valid then
-				lg.draw(spr_vertex, math.floor(tx * sc) - 5, math.floor(ty * sc) - 5)
-			end
+			lg.draw(spr_vertex, math.floor(tx * sc) - 5, math.floor(ty * sc) - 5)
 			
 			j = j + 1
 		

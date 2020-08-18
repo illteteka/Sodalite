@@ -3601,6 +3601,7 @@ function ui.update(dt)
 				can_overwrite = false
 				document_w = tonumber(ui.popup[3][2].name)
 				document_h = tonumber(ui.popup[4][2].name)
+				polygon.max_thickness = math.max(document_w, document_h)
 				
 				if pop_kind == "i.setup" or pop_kind == "f.as" then
 					artboard.init(true)
@@ -3846,6 +3847,7 @@ function ui.update(dt)
 									can_overwrite = false
 									document_w = tonumber(ui.popup[3][2].name)
 									document_h = tonumber(ui.popup[4][2].name)
+									polygon.max_thickness = math.max(document_w, document_h)
 									
 									if pop_kind == "i.setup" or pop_kind == "f.as" then
 										artboard.init(true)
@@ -4229,6 +4231,23 @@ function ui.update(dt)
 										table.insert(vertex_selection, moved_point)
 										select_success = true
 										vertex_selection_mode = true
+										
+										-- Add vertex sibling if it's a line
+										if clone.raw[j].l ~= nil and clone.raw[j].l == "+" then
+											
+											local sib_1 = clone.raw[j]
+											local sib_2 = clone.raw[j - 1]
+											
+											local moved_point_sister = {}
+											moved_point_sister.index = j - 1
+											moved_point_sister.t = math.ceil(lume.distance(sib_1.x, sib_1.y, sib_2.x, sib_2.y))
+											moved_point_sister.a = -lume.angle(sib_1.x, sib_1.y, sib_2.x, sib_2.y)
+											moved_point_sister.x = math.floor(tx + polygon.lengthdir_x(moved_point_sister.t, moved_point_sister.a))
+											moved_point_sister.y = math.floor(ty + polygon.lengthdir_y(moved_point_sister.t, moved_point_sister.a))
+											
+											table.insert(vertex_selection, moved_point_sister)
+											
+										end
 									
 									end
 									
@@ -4424,7 +4443,16 @@ function ui.draw()
 		while i <= #vertex_selection do
 		
 			local this_vert = polygon.data[tm.polygon_loc].raw[vertex_selection[i].index]
-			select_text = select_text .. "[" .. vertex_selection[i].index .. "]: (" .. this_vert.x .. ", " .. this_vert.y .. ")"
+			
+			if vertex_selection[i].t ~= nil then
+				local t_ang = (vertex_selection[i].a * 180 / math.pi) - 90
+				if t_ang < 0 then t_ang = t_ang + 360 end
+				t_ang = math.floor(t_ang)
+				select_text = select_text .. "[" .. vertex_selection[i].index .. "]: {size: " .. vertex_selection[i].t .. ", ang: " .. t_ang .. "°} (" .. this_vert.x .. ", " .. this_vert.y .. ")"
+			else
+				select_text = select_text .. "[" .. vertex_selection[i].index .. "]: (" .. this_vert.x .. ", " .. this_vert.y .. ")"
+			end
+			
 			if i + 1 <= #vertex_selection then
 				select_text = select_text .. ", "
 			end

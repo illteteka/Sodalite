@@ -10,6 +10,9 @@ polygon._angle = 0
 -- Polyline vars
 polygon.thickness = 10
 
+polygon.min_thickness = 10
+polygon.max_thickness = 512
+
 -- Generators
 
 function polygon.new(loc, color, kind, use_tm)
@@ -84,6 +87,24 @@ function polygon.calcVertex(x, y, loc, use_grid)
 			moved_point.x = vx
 			moved_point.y = vy
 			table.insert(vertex_selection, moved_point)
+			
+			-- Add vertex sibling if it's a line
+			if clone[point_selected].l ~= nil and clone[point_selected].l == "+" then
+				
+				local sibling_copy = polygon.data[tm.polygon_loc].raw
+				local sib_1 = sibling_copy[point_selected]
+				local sib_2 = sibling_copy[point_selected - 1]
+				
+				local moved_point_sister = {}
+				moved_point_sister.index = point_selected - 1
+				moved_point_sister.t = math.ceil(lume.distance(sib_1.x, sib_1.y, sib_2.x, sib_2.y))
+				moved_point_sister.a = -lume.angle(sib_1.x, sib_1.y, sib_2.x, sib_2.y)
+				moved_point_sister.x = math.floor(vx + polygon.lengthdir_x(moved_point_sister.t, moved_point_sister.a))
+				moved_point_sister.y = math.floor(vy + polygon.lengthdir_y(moved_point_sister.t, moved_point_sister.a))
+				
+				table.insert(vertex_selection, moved_point_sister)
+				
+			end
 			
 		end
 		
