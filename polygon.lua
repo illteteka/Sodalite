@@ -13,6 +13,8 @@ polygon.thickness = 10
 polygon.min_thickness = 10
 polygon.max_thickness = 512
 
+polygon.line = false
+
 -- Generators
 
 function polygon.new(loc, color, kind, use_tm)
@@ -119,9 +121,9 @@ function polygon.calcVertex(x, y, loc, use_grid)
 	-- Stop ellipses from having more than 2 vertices
 	local ellipse_limit = polygon.data[tm.polygon_loc].kind == "ellipse" and #polygon.data[tm.polygon_loc].raw == 2
 	
-	local is_line = polygon.data[tm.polygon_loc].kind == "line"
+	local is_line = polygon.line
 	
-	if is_line then
+	if is_line and polygon.data[tm.polygon_loc].raw[1] == nil then
 		
 		line_x = x
 		line_y = y
@@ -135,6 +137,9 @@ function polygon.calcVertex(x, y, loc, use_grid)
 	local i = 1
 	if polygon.data[tm.polygon_loc] ~= nil then
 	
+		closest_line = -1
+		closest_dist = -1
+	
 		-- Retrieve closest line segment to the new point
 		for i = 1, #polygon.data[tm.polygon_loc].cache do
 		
@@ -143,26 +148,10 @@ function polygon.calcVertex(x, y, loc, use_grid)
 			local xa, ya, xb, yb = polygon.data[tm.polygon_loc].raw[cc[1]].x, polygon.data[tm.polygon_loc].raw[cc[1]].y, polygon.data[tm.polygon_loc].raw[cc[2]].x, polygon.data[tm.polygon_loc].raw[cc[2]].y
 			-- Calculate line distance to mouse position
 			local dp = (math.abs(((xa + xb)/2) - x) + math.abs(((ya + yb)/2) - y))
-			polygon.data[tm.polygon_loc].cache[i].dp = dp
-		
-		end
-		
-		closest_line = -1
-		closest_dist = -1
-		
-		-- Loop line cache to find the closest segment based on lowest scoring 'dp' value
-		for i = 1, #polygon.data[tm.polygon_loc].cache do
-		
-			if polygon.data[tm.polygon_loc].cache[i].dp ~= nil then
-				
-				if closest_dist == -1 or polygon.data[tm.polygon_loc].cache[i].dp < closest_dist then
-					closest_line = i
-					closest_dist = polygon.data[tm.polygon_loc].cache[i].dp
-				end
-				
-				-- Remove dp from the cache since it's no longer needed
-				polygon.data[tm.polygon_loc].cache[i].dp = nil
-				
+			
+			if closest_dist == -1 or dp < closest_dist then
+				closest_line = i
+				closest_dist = dp
 			end
 		
 		end
@@ -171,7 +160,7 @@ function polygon.calcVertex(x, y, loc, use_grid)
 	
 	end
 	
-	this_point = polygon.addVertex(x, y, loc, line_to_purge, true, polygon.kind == "line")
+	this_point = polygon.addVertex(x, y, loc, line_to_purge, true, polygon.line)
 	
 	end
 
@@ -179,13 +168,9 @@ end
 
 function polygon.beginLine(loc, x1, y1, x2, y2, new_polyline)
 
-	--local copy = polygon.data[loc]
-	
 	local thick = polygon.thickness/2
 	
 	-- get angle of p1 to p2
-	--local l_ang = math.rad(lume.round(math.deg(lume.angle(x1, y1, x2, y2))  , 10))
-	--print(math.deg(l_ang))
 	local l_ang = -lume.angle(x1, y1, x2, y2)
 	
 	-- get perpendicular of angle
@@ -566,7 +551,7 @@ function polygon.click(mx, my, skip_selection)
 			local clone = polygon.data[ui.layer[i].count]
 			
 			-- Draw the shape
-			if clone.kind == "polygon" or clone.kind == "line" then
+			if clone.kind == "polygon" then
 			
 				local j = 1
 				while j <= #clone.raw do
@@ -750,7 +735,7 @@ function polygon.draw(skip_in_preview)
 			lg.setColor(clone.color)
 			
 			-- Draw the shape
-			if clone.kind == "polygon" or clone.kind == "line" then
+			if clone.kind == "polygon" then
 			
 				local j = 1
 				while j <= #clone.raw do

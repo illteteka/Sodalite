@@ -1022,6 +1022,7 @@ function ui.triangleButton()
 		ui.active_textbox = ""
 		artboard.active = false
 		polygon.kind = "polygon"
+		polygon.line = false
 		ui.panelPolygon()
 	end
 
@@ -1036,6 +1037,7 @@ function ui.ellipseButton()
 		ui.active_textbox = ""
 		artboard.active = false
 		polygon.kind = "ellipse"
+		polygon.line = false
 		ui.panelEllipse()
 	end
 
@@ -1049,7 +1051,8 @@ function ui.polylineButton()
 	
 		ui.active_textbox = ""
 		artboard.active = false
-		polygon.kind = "line"
+		polygon.kind = "polygon"
+		polygon.line = true
 		ui.panelPolyline()
 	end
 
@@ -1063,6 +1066,7 @@ function ui.artboardButton()
 	
 		ui.active_textbox = ""
 		artboard.active = true
+		polygon.line = false
 		ui.panelArtboard()
 	end
 
@@ -2514,7 +2518,7 @@ function ui.update(dt)
 	else
 	
 		if artboard.active == false then
-			if polygon.kind == "polygon" then
+			if polygon.kind == "polygon" and polygon.line == false then
 				ui.toolbar[ui.toolbar_polygon].active = false
 				ui.toolbar[ui.toolbar_ellipse].active = true
 				ui.toolbar[ui.toolbar_artboard].active = true
@@ -4952,7 +4956,7 @@ function ui.draw()
 	
 	if artboard.active then
 		lg.draw(ui.toolbar[ui.toolbar_artboard].icon, ix - 2, iy)
-	elseif polygon.kind == "polygon" then
+	elseif polygon.kind == "polygon" and polygon.line == false then
 		lg.draw(ui.toolbar[ui.toolbar_polygon].icon, ix - 2, iy + 1)
 	elseif polygon.kind == "ellipse" then
 		lg.draw(ui.toolbar[ui.toolbar_ellipse].icon, ix - 3, iy)

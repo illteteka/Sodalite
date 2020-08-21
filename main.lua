@@ -167,6 +167,8 @@ total_triangles = 0
 
 line_x = 0
 line_y = 0
+line_active = false
+line_disable = false
 
 bad_is_dev = false
 
@@ -1099,6 +1101,9 @@ function love.update(dt)
 		
 		if mouse_switch == _RELEASE then
 		
+			line_active = false
+			line_disable = false
+			
 			if selection_and_ui_active then
 				selection_and_ui_active = false
 			end
@@ -1213,10 +1218,12 @@ function love.update(dt)
 					calc_mouse_x, calc_mouse_y = mx + mouse_x_offset, my + mouse_y_offset
 				end
 				
-				if polygon.data[tm.polygon_loc] ~= nil and polygon.data[tm.polygon_loc].kind == "line" and #vertex_selection == 0 and (ui_active == false) then
+				if polygon.data[tm.polygon_loc] ~= nil and polygon.line and #vertex_selection == 0 and (ui_active == false) then
+				
+					local grid_is_on = ui.toolbar[ui.toolbar_grid].active == false and grid_snap
 				
 					local lx, ly
-					if ui.toolbar[ui.toolbar_grid].active == false and grid_snap then
+					if grid_is_on then
 						lx = ((math.floor((calc_mouse_x - camera_x) / grid_w) * grid_w) + (grid_x % grid_w))
 						ly = ((math.floor((calc_mouse_y - camera_y) / grid_h) * grid_h) + (grid_y % grid_h))
 					else
@@ -1224,16 +1231,45 @@ function love.update(dt)
 						ly = calc_mouse_y - pixelFloor(camera_y)
 					end
 				
-					if lume.distance(line_x, line_y, lx, ly, true) >= polygon.thickness * polygon.thickness then
-				
-						if polygon.data[tm.polygon_loc].raw[1] == nil then
-							polygon.beginLine(tm.polygon_loc, line_x, line_y, lx, ly, true)
-						else
+					local mouse_to_last_line = lume.distance(line_x, line_y, lx, ly, true)
+					
+					if mouse_to_last_line >= polygon.thickness * polygon.thickness and not line_disable then
+						
+						-- Do first when using line tool
+						if line_active == false then
+						
+							if polygon.data[tm.polygon_loc].raw[1] == nil then
+								-- Create a new line
+								polygon.beginLine(tm.polygon_loc, line_x, line_y, lx, ly, true)
+								line_active = true
+								line_x, line_y = lx, ly
+							else
+							
+								-- Detect where to place a new line
+								local temp_max_dist = polygon.thickness * polygon.thickness * polygon.thickness * 7
+								local larger_grid = math.max(grid_w * grid_w, grid_h * grid_h)
+								--print(mouse_to_last_line, temp_max_dist, larger_grid)
+								
+								if (mouse_to_last_line <= temp_max_dist) or ((mouse_to_last_line <= larger_grid) and grid_is_on) then
+									
+									-- Find closest line segment to mouse
+									
+									line_active = true
+								else
+									line_disable = true
+								end
+								
+							end
+							
+						else -- Do while line tool is _ON
+						
 							local line_copy = polygon.data[tm.polygon_loc].raw[#polygon.data[tm.polygon_loc].raw]
 							polygon.beginLine(tm.polygon_loc, line_copy.x, line_copy.y, lx, ly, false)
+							line_x, line_y = lx, ly
+						
 						end
 						
-						line_x, line_y = lx, ly
+						--line_x, line_y = lx, ly
 					
 					end
 				
@@ -1270,6 +1306,9 @@ function love.update(dt)
 			end
 			
 			if mouse_switch == _RELEASE then
+			
+				line_active = false
+				line_disable = false
 			
 				lock_preview_vertices = false
 			
@@ -1682,7 +1721,7 @@ function love.draw()
 		
 			local shape_index = ui.layer[shape_selection[n].index].count
 			
-			if polygon.data[shape_index].kind == "polygon" or polygon.data[shape_index].kind == "line" then
+			if polygon.data[shape_index].kind == "polygon" then
 			
 				local o = 1
 				local this_shape = polygon.data[shape_index].cache
