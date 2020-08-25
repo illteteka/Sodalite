@@ -137,8 +137,8 @@ function polygon.calcVertex(x, y, loc, use_grid)
 	local i = 1
 	if polygon.data[tm.polygon_loc] ~= nil then
 	
-		closest_line = -1
-		closest_dist = -1
+		local closest_line = -1
+		local closest_dist = -1
 	
 		-- Retrieve closest line segment to the new point
 		for i = 1, #polygon.data[tm.polygon_loc].cache do
@@ -160,7 +160,7 @@ function polygon.calcVertex(x, y, loc, use_grid)
 	
 	end
 	
-	this_point = polygon.addVertex(x, y, loc, line_to_purge, true, polygon.line)
+	polygon.addVertex(x, y, loc, line_to_purge, true, polygon.line)
 	
 	end
 

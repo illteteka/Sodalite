@@ -1251,12 +1251,75 @@ function love.update(dt)
 								--print(mouse_to_last_line, temp_max_dist, larger_grid)
 								
 								if (mouse_to_last_line <= temp_max_dist) or ((mouse_to_last_line <= larger_grid) and grid_is_on) then
-									
-									-- Find closest line segment to mouse
-									
 									line_active = true
 								else
-									line_disable = true
+									-- Find closest line segment to mouse
+									local closest_line_to_mouse = nil
+									local closest_line = -1
+									
+									local j = 1
+									if polygon.data[tm.polygon_loc] ~= nil then
+									
+										local closest_dist = -1
+										
+										-- Retrieve closest line segment to the new point
+										for j = 1, #polygon.data[tm.polygon_loc].cache do
+										
+											local cc = polygon.data[tm.polygon_loc].cache[j]
+											-- Line cache stores the lines index, so we need to get the actual x1, y1, x2, y2 of the line
+											local xa, ya, xb, yb = polygon.data[tm.polygon_loc].raw[cc[1]].x, polygon.data[tm.polygon_loc].raw[cc[1]].y, polygon.data[tm.polygon_loc].raw[cc[2]].x, polygon.data[tm.polygon_loc].raw[cc[2]].y
+											-- Calculate line distance to mouse position
+											local dp = (math.abs(((xa + xb)/2) - lx) + math.abs(((ya + yb)/2) - ly))
+											
+											if closest_dist == -1 or dp < closest_dist then
+												closest_line = j
+												closest_dist = dp
+											end
+										
+										end
+										
+										closest_line_to_mouse = polygon.data[tm.polygon_loc].cache[closest_line]
+									
+									end
+									
+									if closest_line_to_mouse ~= nil then
+									
+										local la, lb = closest_line_to_mouse[1], closest_line_to_mouse[2]
+										local clone = polygon.data[tm.polygon_loc]
+										local segment_dist = lume.distance(clone.raw[la].x, clone.raw[la].y, clone.raw[lb].x, clone.raw[lb].y, false)
+										local pthick = polygon.thickness
+										local size_variation = 1
+										
+										if (segment_dist <= pthick + size_variation) and (segment_dist >= pthick - size_variation) then
+											-- jmp back to that location instead of making a new one
+											print("sounds good")
+										else
+											local seg_h = (segment_dist/2) + (pthick/2)
+											local seg_k = (segment_dist/2) - (pthick/2)
+											local seg_ang = -lume.angle(clone.raw[la].x, clone.raw[la].y, clone.raw[lb].x, clone.raw[lb].y)
+											local base_x, base_y = clone.raw[la].x, clone.raw[la].y
+											local ax, ay = base_x + polygon.lengthdir_x(seg_h, seg_ang), base_y + polygon.lengthdir_y(seg_h, seg_ang)
+											local bx, by = base_x + polygon.lengthdir_x(seg_k, seg_ang), base_y + polygon.lengthdir_y(seg_k, seg_ang)
+											local cx, cy = base_x + polygon.lengthdir_x((segment_dist/2), seg_ang), base_y + polygon.lengthdir_y((segment_dist/2), seg_ang)
+											--print("a", ax, ay)
+											--print("b", bx, by)
+											--print_r(closest_line_to_mouse)
+											print("extending")
+											
+											polygon.addVertex(bx, by, tm.polygon_loc, closest_line, false, false)
+											polygon.addVertex(ax, ay, tm.polygon_loc, #polygon.data[tm.polygon_loc].cache, false, false)
+											
+											polygon.beginLine(tm.polygon_loc, cx, cy, lx, ly, false)
+											line_active = true
+											line_x, line_y = lx, ly
+											
+											--line_disable = true
+										end
+									
+									else
+										line_disable = true
+									end
+									
 								end
 								
 							end
@@ -1824,8 +1887,12 @@ function love.draw()
 			local vertex_radius = 100 / camera_zoom
 			local tx, ty = clone.raw[j].x, clone.raw[j].y
 			local sc = camera_zoom
-			
-			if ((#clone.raw < 3) or (lume.distance(mx - math.floor(camera_x), my - math.floor(camera_y), tx, ty) < vertex_radius) or (select_grabber)) then
+			local if_line_is_valid = true
+			if clone.raw[j].l ~= nil and clone.raw[j].l == "-" then
+				if_line_is_valid = false
+			end
+
+			if ((#clone.raw < 3) or (lume.distance(mx - math.floor(camera_x), my - math.floor(camera_y), tx, ty) < vertex_radius) or (select_grabber)) and if_line_is_valid then
 				lg.draw(spr_vertex, math.floor(tx * sc) - 5, math.floor(ty * sc) - 5)
 			end
 			
