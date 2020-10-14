@@ -60,10 +60,10 @@ ui.lyr_button_active = -1
 ui.preview_active = false
 ui.preview_x = 100
 ui.preview_y = 100
-ui.preview_w = 252
-ui.preview_h = 252
-ui.preview_w_min = 252
-ui.preview_h_min = 252
+ui.preview_w = 308
+ui.preview_h = 308
+ui.preview_w_min = 308
+ui.preview_h_min = 308
 ui.preview_w_max = 500
 ui.preview_h_max = 500
 ui.preview_w_init_pos = 0
@@ -82,6 +82,8 @@ ui.preview_textbox_locked = true
 ui.preview_textbox_orig = ""
 ui.preview_textbox_mode = "px"
 ui.preview_button_active = -1
+ui.preview_flip_h = false
+ui.preview_flip_v = false
 
 ui.toolbar = {}
 ui.toolbar_clicked = -1
@@ -151,6 +153,8 @@ TIP_PREV_BG = 24
 TIP_CLONE_LAYER = 25
 TIP_GRID_PP = 26
 TIP_TOOLBAR_POLYLINE = 27
+TIP_PREV_HFLIP = 28
+TIP_PREV_VFLIP = 29
 
 function ui.init()
 	-- Add palette sliders
@@ -768,6 +772,10 @@ function ui.getTooltip(x)
 		return "Toggle the forced 1x1 pixel grid"
 	elseif x == TIP_TOOLBAR_POLYLINE then
 		return "youre a shoe"
+	elseif x == TIP_PREV_HFLIP then
+		return "Flip the preview horizontally"
+	elseif x == TIP_PREV_VFLIP then
+		return "Flip the preview vertically"
 	end
 end
 
@@ -3317,6 +3325,16 @@ function ui.update(dt)
 			if (mx >= ix + 112) and (mx <= ix + 24 + 112) and (my >= iy) and (my <= iy + 24) then
 				ui.setTooltip(TIP_PREV_FREEDRAW)
 			end
+			
+			-- Toggle horizontal flip
+			if (mx >= ix + 140) and (mx <= ix + 24 + 140) and (my >= iy) and (my <= iy + 24) then
+				ui.setTooltip(TIP_PREV_HFLIP)
+			end
+			
+			-- Toggle vertical flip
+			if (mx >= ix + 168) and (mx <= ix + 24 + 168) and (my >= iy) and (my <= iy + 24) then
+				ui.setTooltip(TIP_PREV_VFLIP)
+			end
 
 			-- Background color
 			if (mx >= rx + rw - 26) and (mx <= rx + rw - 3) and (my >= iy) and (my <= iy + 23) then
@@ -3410,6 +3428,20 @@ function ui.update(dt)
 						ui.preview_artboard_enabled = not ui.preview_artboard_enabled
 						ui.preview_action = ""
 						ui.preview_button_active = 5
+					end
+					
+					-- Toggle horizontal flip
+					if (mx >= ix + 140) and (mx <= ix + 24 + 140) and (my >= iy) and (my <= iy + 24) then
+						ui.preview_flip_h = not ui.preview_flip_h
+						ui.preview_action = ""
+						ui.preview_button_active = 6
+					end
+					
+					-- Toggle vertical flip
+					if (mx >= ix + 168) and (mx <= ix + 24 + 168) and (my >= iy) and (my <= iy + 24) then
+						ui.preview_flip_v = not ui.preview_flip_v
+						ui.preview_action = ""
+						ui.preview_button_active = 7
 					end
 
 					-- Background color
@@ -5217,6 +5249,16 @@ function ui.draw()
 		lg.translate(bx, by)
 		lg.translate(math.floor(ui.preview_window_x * ui.preview_zoom), math.floor(ui.preview_window_y * ui.preview_zoom))
 		
+		if ui.preview_flip_h then
+			lg.translate(document_w * ui.preview_zoom, 0)
+			lg.scale(-1, 1)
+		end
+		
+		if ui.preview_flip_v then
+			lg.translate(0, document_h * ui.preview_zoom)
+			lg.scale(1, -1)
+		end
+		
 		camera_zoom = ui.preview_zoom
 		
 		if artboard.draw_top and artboard.canvas ~= nil and ui.preview_artboard_enabled then
@@ -5359,9 +5401,55 @@ function ui.draw()
 		if (mouse_switch ~= _OFF) and (ui.preview_button_active == 5) and prev_buttons_enabled then
 			btn_state = BTN_HIGHLIGHT_OFF
 		end
+		
+		if ui.preview_artboard_enabled then
+			btn_state = BTN_GRAY
+		end
 		ui.drawButtonOutline(btn_state, ix + 112, iy, 24, 24)
 		lg.setColor(c_white)
 		lg.draw(icon_draw, ix + 112, iy)
+		
+		-- Toggle horizontal flip
+		local btn_state = BTN_DEFAULT
+
+		local mouse_hover_tool = false
+		mouse_hover_tool = ((mx >= ix + 140) and (mx <= ix + 23 + 140) and (my >= iy) and (my <= iy + 23))
+		
+		if mouse_hover_tool and (ui.preview_button_active == -1) and prev_buttons_enabled then
+			btn_state = BTN_HIGHLIGHT_ON
+		end
+		
+		if (mouse_switch ~= _OFF) and (ui.preview_button_active == 6) and prev_buttons_enabled then
+			btn_state = BTN_HIGHLIGHT_OFF
+		end
+		
+		if ui.preview_flip_h then
+			btn_state = BTN_GRAY
+		end
+		ui.drawButtonOutline(btn_state, ix + 140, iy, 24, 24)
+		lg.setColor(c_white)
+		lg.draw(icon_flip_h, ix + 140, iy)
+		
+		-- Toggle vertical flip
+		local btn_state = BTN_DEFAULT
+
+		local mouse_hover_tool = false
+		mouse_hover_tool = ((mx >= ix + 168) and (mx <= ix + 23 + 168) and (my >= iy) and (my <= iy + 23))
+		
+		if mouse_hover_tool and (ui.preview_button_active == -1) and prev_buttons_enabled then
+			btn_state = BTN_HIGHLIGHT_ON
+		end
+		
+		if (mouse_switch ~= _OFF) and (ui.preview_button_active == 7) and prev_buttons_enabled then
+			btn_state = BTN_HIGHLIGHT_OFF
+		end
+		
+		if ui.preview_flip_v then
+			btn_state = BTN_GRAY
+		end
+		ui.drawButtonOutline(btn_state, ix + 168, iy, 24, 24)
+		lg.setColor(c_white)
+		lg.draw(icon_flip_v, ix + 168, iy)
 		
 		-- Background color
 		lg.setColor(ui.preview_bg_color)

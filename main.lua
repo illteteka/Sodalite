@@ -542,6 +542,8 @@ function love.load()
 	icon_sodalite = lg.newImage("textures/icon_sodalite.png")
 	icon_pixel = lg.newImage("textures/icon_pixel.png")
 	icon_polyline = lg.newImage("textures/icon_polyline.png")
+	icon_flip_h = lg.newImage("textures/icon_flip_h.png")
+	icon_flip_v = lg.newImage("textures/icon_flip_v.png")
 	
 	cursor_typing = love.mouse.getSystemCursor("ibeam")
 	cursor_size_h = love.mouse.getSystemCursor("sizewe")
