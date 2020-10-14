@@ -1510,7 +1510,7 @@ function ui.keyboardHit(key)
 					if tonumber(key) ~= nil and string.len(this_menu.name) < 5 then
 						this_menu.name = this_menu.name .. key
 					end
-				elseif string.len(this_menu.name) < PROJECT_MAX_FILENAME_LEN then
+				elseif font:getWidth(this_menu.name .. key) <= 240 then
 					this_menu.name = this_menu.name .. key
 				end
 				
@@ -1769,6 +1769,22 @@ function ui.resizeWindow()
 	ui.popup_x = math.floor((screen_width / 2) - (ui.popup_w / 2))
 	ui.popup_y = math.floor((screen_height / 2) - (ui.popup_h / 2))
 	
+	-- the preview window is set to be 90% of the screen width and screen height
+	local new_h_max = math.floor((screen_height - 56) * 0.9)
+	local new_w_max = math.floor((screen_width - 208 - 64) * 0.9)
+	
+	if ui.preview_h_max ~= new_h_max or ui.preview_w_max ~= new_w_max then
+		ui.preview_h_max = new_h_max
+		ui.preview_w_max = new_w_max
+		
+		lock_w_max, lock_w_min, lock_h_max, lock_h_min = ui.preview_w_max, ui.preview_w_min, ui.preview_h_max, ui.preview_h_min
+		
+		if ui.preview_w < ui.preview_w_min then ui.preview_w = ui.preview_w_min ui.mouse_lock_x = lock_w_min end
+		if ui.preview_h < ui.preview_h_min then ui.preview_h = ui.preview_h_min ui.mouse_lock_y = lock_h_min end
+		if ui.preview_w > ui.preview_w_max then ui.preview_w = ui.preview_w_max ui.mouse_lock_x = lock_w_max end
+		if ui.preview_h > ui.preview_h_max then ui.preview_h = ui.preview_h_max ui.mouse_lock_y = lock_h_max end
+	end
+	
 	if ui.preview_x < 65 then ui.preview_x = 65 ui.mouse_lock_x = math.floor(ui.preview_w/2) end
 	if ui.preview_x > screen_width - ui.preview_w - 209 then ui.preview_x = screen_width - ui.preview_w - 209 ui.mouse_lock_x = math.floor(ui.preview_w/2) end
 	if ui.preview_y < 55 then ui.preview_y = 55 ui.mouse_lock_y = 12 end
@@ -1852,7 +1868,7 @@ function ui.resizeWindow()
 		if ui.preview_w < ui.preview_w_min then ui.preview_w = ui.preview_w_min ui.mouse_lock_x = ui.preview_w_min end
 		if ui.preview_w > ui.preview_w_max then ui.preview_w = ui.preview_w_max ui.mouse_lock_x = ui.preview_w_max end
 		
-	elseif drag == 4 or drag == 5 or drag == 6 then
+	elseif drag == 4 or drag == 5 or drag == 6 then -- E, SE, S
 		lock_w_max, lock_w_min, lock_h_max, lock_h_min = ui.preview_w_max, ui.preview_w_min, ui.preview_h_max, ui.preview_h_min
 		
 		if ui.preview_w < ui.preview_w_min then ui.preview_w = ui.preview_w_min ui.mouse_lock_x = lock_w_min end

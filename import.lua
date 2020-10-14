@@ -30,7 +30,7 @@ function import.open(file)
 			dname = dname:sub(sl + 1)
 		end
 		
-		document_name = dname:sub(0,20)
+		document_name = dname
 	
 	end
 	

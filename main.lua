@@ -162,7 +162,6 @@ OVERWRITE_LOL = 0
 OVERWRITE_SVG = 1
 OVERWRITE_PNG = 2
 
-PROJECT_MAX_FILENAME_LEN = 20
 total_triangles = 0
 
 line_x = 0
@@ -476,7 +475,7 @@ function love.load()
 	bad_is_dev = a ~= nil
 	if bad_is_dev then io.close(a) end
 	
-	love.window.setMode(screen_width, screen_height, {vsync=love.window.getVSync(), resizable=true, minwidth=1024, minheight=600})
+	love.window.setMode(screen_width, screen_height, {vsync=love.window.getVSync(), resizable=true, minwidth=800, minheight=600})
 	lg.setLineWidth(1)
 	lg.setLineStyle("rough")
 	love.keyboard.setKeyRepeat(true)
@@ -1294,9 +1293,12 @@ function love.update(dt)
 											-- jmp back to that location instead of making a new one
 											print("sounds good")
 										else
+											local seg_ang = -lume.angle(clone.raw[la].x, clone.raw[la].y, clone.raw[lb].x, clone.raw[lb].y)
+										
+											print(segment_dist, lx, ly)
 											local seg_h = (segment_dist/2) + (pthick/2)
 											local seg_k = (segment_dist/2) - (pthick/2)
-											local seg_ang = -lume.angle(clone.raw[la].x, clone.raw[la].y, clone.raw[lb].x, clone.raw[lb].y)
+											
 											local base_x, base_y = clone.raw[la].x, clone.raw[la].y
 											local ax, ay = base_x + polygon.lengthdir_x(seg_h, seg_ang), base_y + polygon.lengthdir_y(seg_h, seg_ang)
 											local bx, by = base_x + polygon.lengthdir_x(seg_k, seg_ang), base_y + polygon.lengthdir_y(seg_k, seg_ang)
