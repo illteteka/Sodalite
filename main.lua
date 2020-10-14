@@ -1295,25 +1295,45 @@ function love.update(dt)
 											-- jmp back to that location instead of making a new one
 											print("sounds good")
 										else
-											local seg_ang = -lume.angle(clone.raw[la].x, clone.raw[la].y, clone.raw[lb].x, clone.raw[lb].y)
 										
-											print(segment_dist, lx, ly)
-											local seg_h = (segment_dist/2) + (pthick/2)
-											local seg_k = (segment_dist/2) - (pthick/2)
+											-- Find the point where the mouse ray intersects the triangle side
+											local ax, ay, bx, by = clone.raw[la].x, clone.raw[la].y, clone.raw[lb].x, clone.raw[lb].y
+											local ph, pk = 0,0
 											
-											local base_x, base_y = clone.raw[la].x, clone.raw[la].y
-											local ax, ay = base_x + polygon.lengthdir_x(seg_h, seg_ang), base_y + polygon.lengthdir_y(seg_h, seg_ang)
-											local bx, by = base_x + polygon.lengthdir_x(seg_k, seg_ang), base_y + polygon.lengthdir_y(seg_k, seg_ang)
-											local cx, cy = base_x + polygon.lengthdir_x((segment_dist/2), seg_ang), base_y + polygon.lengthdir_y((segment_dist/2), seg_ang)
-											--print("a", ax, ay)
-											--print("b", bx, by)
-											--print_r(closest_line_to_mouse)
+											local horizontal_line_test = (ay ~= by)
+											local vertical_line_test = (ax ~= bx)
+										
+											if horizontal_line_test and vertical_line_test then -- It's not a horizontal or vertical line
+												local ab_slope = (ay - by) / (ax - bx)
+												local ab_b = ay - (ab_slope * ax)
+												local m_slope = -1/ab_slope
+												local m_b = ly - (m_slope * lx)
+												
+												ph = (ab_b - m_b) / (m_slope - ab_slope)
+												pk = (ab_slope * ph) + ab_b
+											elseif horizontal_line_test then -- It's a vertical line
+												ph = ax
+												pk = ly
+											else -- It's a horizontal line
+												ph = lx
+												pk = ay
+											end
+											
+											-- Make two adjacent points
+											local temp_thick = (pthick/2)
+											local seg_ang = -lume.angle(ax, ay, bx, by)
+											local pax, pay = ph + polygon.lengthdir_x(-temp_thick, seg_ang), pk + polygon.lengthdir_y(-temp_thick, seg_ang)
+											local pbx, pby = ph + polygon.lengthdir_x(temp_thick, seg_ang), pk + polygon.lengthdir_y(temp_thick, seg_ang)
+										
 											print("extending")
 											
-											polygon.addVertex(bx, by, tm.polygon_loc, closest_line, false, false)
-											polygon.addVertex(ax, ay, tm.polygon_loc, #polygon.data[tm.polygon_loc].cache, false, false)
+											-- new research suggests reversing pax,pay with pbx, pby results in inverting the broken rotated thingy
+											-- maybe we could detect and flip?
 											
-											polygon.beginLine(tm.polygon_loc, cx, cy, lx, ly, false)
+											polygon.addVertex(pbx, pby, tm.polygon_loc, closest_line, false, false)
+											polygon.addVertex(pax, pay, tm.polygon_loc, #polygon.data[tm.polygon_loc].cache, false, false)
+											
+											polygon.beginLine(tm.polygon_loc, ph, pk, lx, ly, false)
 											line_active = true
 											line_x, line_y = lx, ly
 											
