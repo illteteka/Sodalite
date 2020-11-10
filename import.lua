@@ -169,6 +169,8 @@ function import.read(file)
 				
 				polygon.data[poly_count].raw = {}
 				
+				local line_flag = false
+				
 				while i:len() > 0 do
 				
 					if new_vertex then
@@ -196,6 +198,7 @@ function import.read(file)
 					local string_test = i:sub(cursor, sub_cursor - 1)
 					string_test = string_test:gsub(";", "")
 					
+					local data_value_string = string_test
 					local data_value = tonumber(string_test)
 					
 					if (data_count == 1) then
@@ -205,18 +208,40 @@ function import.read(file)
 						polygon.data[poly_count].raw[vertex_count].y = data_value
 					elseif (data_count == 3) then
 						if polygon.data[poly_count].kind == "polygon" then
-							polygon.data[poly_count].raw[vertex_count].va = data_value
-							table.insert(polygon.data[poly_count].cache, {vertex_count, polygon.data[poly_count].raw[vertex_count].va})
+						
+							if data_value_string == "-" then
+								polygon.data[poly_count].raw[vertex_count].l = data_value_string
+								line_flag = true
+							else
+								polygon.data[poly_count].raw[vertex_count].va = data_value
+								table.insert(polygon.data[poly_count].cache, {vertex_count, polygon.data[poly_count].raw[vertex_count].va})
+							end
+							
 						else
 							polygon.data[poly_count].segments = data_value
 						end
 					elseif (data_count == 4) then
 						if polygon.data[poly_count].kind == "polygon" then
-							polygon.data[poly_count].raw[vertex_count].vb = data_value
-							table.insert(polygon.data[poly_count].cache, {vertex_count, polygon.data[poly_count].raw[vertex_count].vb})
+							
+							if data_value_string == "-" then
+								polygon.data[poly_count].raw[vertex_count].l = data_value_string
+								line_flag = true
+							else
+								polygon.data[poly_count].raw[vertex_count].vb = data_value
+								table.insert(polygon.data[poly_count].cache, {vertex_count, polygon.data[poly_count].raw[vertex_count].vb})
+							end
+
 						else
 							polygon.data[poly_count]._angle = data_value
 						end
+					elseif (data_count == 5) then
+						polygon.data[poly_count].raw[vertex_count].l = data_value_string
+						line_flag = true
+					end
+					
+					if line_flag and polygon.data[poly_count].raw[vertex_count].l == nil then
+						polygon.data[poly_count].raw[vertex_count].l = "+"
+						line_flag = false
 					end
 					
 					-- Repeat

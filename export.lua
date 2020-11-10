@@ -140,6 +140,10 @@ function export.saveLOL(auto, quit)
 						file:write("," .. clone._angle)
 					end
 					
+					if raw_copy.l ~= nil and raw_copy.l == "-" then
+						file:write(",-")
+					end
+					
 					if i == #ui.layer and j == #clone.raw then
 						file:write(";")
 					elseif j == #clone.raw then
