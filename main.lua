@@ -1327,13 +1327,50 @@ function love.update(dt)
 										
 											print("extending")
 											
-											-- new research suggests reversing pax,pay with pbx, pby results in inverting the broken rotated thingy
-											-- maybe we could detect and flip?
-											
 											polygon.addVertex(pbx, pby, tm.polygon_loc, closest_line, false, false)
 											polygon.addVertex(pax, pay, tm.polygon_loc, #polygon.data[tm.polygon_loc].cache, false, false)
 											
 											polygon.beginLine(tm.polygon_loc, ph, pk, lx, ly, false)
+											
+											-- Check if segment AB intersects CD
+											local max_verts = #polygon.data[tm.polygon_loc].raw
+											local vert_a, vert_b, vert_c, vert_d
+											vert_a = polygon.data[tm.polygon_loc].raw[max_verts-3]
+											vert_b = polygon.data[tm.polygon_loc].raw[max_verts-1]
+											
+											vert_c = polygon.data[tm.polygon_loc].raw[max_verts-2]
+											vert_d = polygon.data[tm.polygon_loc].raw[max_verts]
+											
+											local vert_divide_by_zero = (vert_a.x - vert_b.x == 0) or (vert_c.x - vert_d.x == 0)
+											
+											if not vert_divide_by_zero then
+												
+												local A1 = (vert_a.y - vert_b.y)/(vert_a.x - vert_b.x)
+												local A2 = (vert_c.y - vert_d.y)/(vert_c.x - vert_d.x)
+												local b1 = vert_a.y - A1 * vert_a.x
+												local b2 = vert_c.y - A2 * vert_c.x
+												
+												-- Lines are not parallel
+												if (A1 ~= A2) and (A1 - A2 ~= 0) then
+												
+													local Xa = (b2 - b1) / (A1 - A2)
+													
+													local test_a = Xa < math.max( math.min(vert_a.x, vert_b.x), math.min(vert_c.x, vert_d.x) )
+													local test_b = Xa > math.min( math.max(vert_a.x, vert_b.x), math.max(vert_c.x, vert_d.x) )
+													
+													if not (test_a or test_b) then
+														
+														-- Flip A and C because they are intersecting
+														local a_x, a_y = vert_a.x, vert_a.y
+														local c_x, c_y = vert_c.x, vert_c.y
+														vert_a.x, vert_a.y, vert_c.x, vert_c.y = c_x, c_y, a_x, a_y
+														
+													end
+												
+												end
+												
+											end
+											
 											line_active = true
 											line_x, line_y = lx, ly
 											
