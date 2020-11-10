@@ -1025,6 +1025,7 @@ function love.update(dt)
 					double_click_timer = 0
 					test_hit_polygon = -1
 					ui_active = true
+					ui_active_line = true
 				else
 					double_click_timer = 0
 				end
