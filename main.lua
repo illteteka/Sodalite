@@ -168,6 +168,7 @@ line_x = 0
 line_y = 0
 line_active = false
 line_disable = false
+ui_active_line = false
 
 bad_is_dev = false
 
@@ -957,6 +958,10 @@ function love.update(dt)
 	
 	end
 	
+	if ui_active and mouse_switch == _PRESS then
+		ui_active_line = true
+	end
+	
 	ui_on_mouse_up = (ui_active == true) and (mouse_switch == _OFF)
 
 	local ignore_click_from_preview = false
@@ -1206,7 +1211,7 @@ function love.update(dt)
 			
 			end
 			
-			if mouse_switch == _ON and selection_and_ui_active == false and lock_preview_vertices == false then
+			if mouse_switch == _ON and selection_and_ui_active == false and lock_preview_vertices == false and ui_active_line == false then
 			
 				ui_off_mouse_down = true
 			
@@ -1219,7 +1224,7 @@ function love.update(dt)
 					calc_mouse_x, calc_mouse_y = mx + mouse_x_offset, my + mouse_y_offset
 				end
 				
-				if polygon.data[tm.polygon_loc] ~= nil and polygon.line and #vertex_selection == 0 and (ui_active == false) then
+				if polygon.data[tm.polygon_loc] ~= nil and polygon.line and #vertex_selection == 0 then
 				
 					local grid_is_on = ui.toolbar[ui.toolbar_grid].active == false and grid_snap
 				
@@ -1585,6 +1590,8 @@ function love.update(dt)
 	end
 	
 	if mouse_switch == _OFF and artboard.active == false and ((ui_active == false) or (ui_on_mouse_up)) then
+	
+		ui_active_line = false
 	
 		if input.ctrlCombo(d_key) and shape_selection_mode then
 			shape_selection_mode = false
