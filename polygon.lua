@@ -166,7 +166,7 @@ function polygon.calcVertex(x, y, loc, use_grid)
 
 end
 
-function polygon.beginLine(loc, x1, y1, x2, y2, new_polyline)
+function polygon.beginLine(loc, x1, y1, x2, y2, new_polyline, extending_line, old_line)
 
 	local thick = polygon.thickness/2
 	
@@ -194,8 +194,11 @@ function polygon.beginLine(loc, x1, y1, x2, y2, new_polyline)
 		polygon.addVertex(c, d, loc, 0, false, true)
 		polygon.addVertex(e, f, loc, 0, false, true)
 		polygon.addVertex(g, h, loc, 3, false, true)
-	else
+	elseif not extending_line then
 		polygon.addVertex(e, f, loc, #polygon.data[loc].cache - 1, false, true)
+		polygon.addVertex(g, h, loc, #polygon.data[loc].cache - 1, false, true)
+	else
+		polygon.addVertex(e, f, loc, old_line, false, true)
 		polygon.addVertex(g, h, loc, #polygon.data[loc].cache - 1, false, true)
 	end
 

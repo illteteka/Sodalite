@@ -1241,7 +1241,7 @@ function love.update(dt)
 						
 							if polygon.data[tm.polygon_loc].raw[1] == nil then
 								-- Create a new line
-								polygon.beginLine(tm.polygon_loc, line_x, line_y, lx, ly, true)
+								polygon.beginLine(tm.polygon_loc, line_x, line_y, lx, ly, true, false)
 								line_active = true
 								line_x, line_y = lx, ly
 							else
@@ -1249,14 +1249,13 @@ function love.update(dt)
 								-- Detect where to place a new line
 								local temp_max_dist = polygon.thickness * polygon.thickness * polygon.thickness * 7
 								local larger_grid = math.max(grid_w * grid_w, grid_h * grid_h)
-								--print(mouse_to_last_line, temp_max_dist, larger_grid)
+								local closest_line = -1
 								
 								if (mouse_to_last_line <= temp_max_dist) or ((mouse_to_last_line <= larger_grid) and grid_is_on) then
 									line_active = true
 								else
 									-- Find closest line segment to mouse
 									local closest_line_to_mouse = nil
-									local closest_line = -1
 									
 									local j = 1
 									if polygon.data[tm.polygon_loc] ~= nil then
@@ -1292,8 +1291,18 @@ function love.update(dt)
 										local size_variation = 1
 										
 										if (segment_dist <= pthick + size_variation) and (segment_dist >= pthick - size_variation) then
-											-- jmp back to that location instead of making a new one
-											print("sounds good")
+											
+											-- User clicked on a line ending that isn't currently active or
+											-- the segment is the size of the line so
+											-- jump to that position and treat it as a valid line since the size is already correct
+											-- TODO: there's a bug where appending to a polygon that is the correct size end up with a folded line
+											-- I'm sick of fixing these bugs so this'll persist in 0.2
+											
+											line_active = true
+											line_x, line_y = lx, ly
+											
+											polygon.beginLine(tm.polygon_loc, clone.raw[la].x, clone.raw[la].y, lx, ly, false, true, closest_line)
+											
 										else
 										
 											-- Find the point where the mouse ray intersects the triangle side
@@ -1324,22 +1333,20 @@ function love.update(dt)
 											local seg_ang = -lume.angle(ax, ay, bx, by)
 											local pax, pay = ph + polygon.lengthdir_x(-temp_thick, seg_ang), pk + polygon.lengthdir_y(-temp_thick, seg_ang)
 											local pbx, pby = ph + polygon.lengthdir_x(temp_thick, seg_ang), pk + polygon.lengthdir_y(temp_thick, seg_ang)
-										
-											print("extending")
 											
 											polygon.addVertex(pbx, pby, tm.polygon_loc, closest_line, false, false)
 											polygon.addVertex(pax, pay, tm.polygon_loc, #polygon.data[tm.polygon_loc].cache, false, false)
 											
-											polygon.beginLine(tm.polygon_loc, ph, pk, lx, ly, false)
+											polygon.beginLine(tm.polygon_loc, ph, pk, lx, ly, false, false)
 											
 											-- Check if segment AB intersects CD
 											local max_verts = #polygon.data[tm.polygon_loc].raw
 											local vert_a, vert_b, vert_c, vert_d
-											vert_a = polygon.data[tm.polygon_loc].raw[max_verts-3]
-											vert_b = polygon.data[tm.polygon_loc].raw[max_verts-1]
+											vert_a = clone.raw[max_verts-3]
+											vert_b = clone.raw[max_verts-1]
 											
-											vert_c = polygon.data[tm.polygon_loc].raw[max_verts-2]
-											vert_d = polygon.data[tm.polygon_loc].raw[max_verts]
+											vert_c = clone.raw[max_verts-2]
+											vert_d = clone.raw[max_verts]
 											
 											local vert_divide_by_zero = (vert_a.x - vert_b.x == 0) or (vert_c.x - vert_d.x == 0)
 											
@@ -1386,9 +1393,9 @@ function love.update(dt)
 							end
 							
 						else -- Do while line tool is _ON
-						
+							
 							local line_copy = polygon.data[tm.polygon_loc].raw[#polygon.data[tm.polygon_loc].raw]
-							polygon.beginLine(tm.polygon_loc, line_copy.x, line_copy.y, lx, ly, false)
+							polygon.beginLine(tm.polygon_loc, line_copy.x, line_copy.y, lx, ly, false, false)
 							line_x, line_y = lx, ly
 						
 						end
