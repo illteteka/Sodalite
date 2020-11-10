@@ -9,6 +9,7 @@ polygon.segments = 25
 polygon._angle = 0
 -- Polyline vars
 polygon.thickness = 10
+polygon.ruler = false
 
 polygon.min_thickness = 10
 polygon.max_thickness = 512

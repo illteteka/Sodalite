@@ -545,6 +545,9 @@ function love.load()
 	icon_polyline = lg.newImage("textures/icon_polyline.png")
 	icon_flip_h = lg.newImage("textures/icon_flip_h.png")
 	icon_flip_v = lg.newImage("textures/icon_flip_v.png")
+	icon_line_to_triangle = lg.newImage("textures/icon_line_to_triangle.png")
+	icon_ruler = lg.newImage("textures/icon_ruler.png")
+	icon_paint = lg.newImage("textures/icon_paint.png")
 	
 	cursor_typing = love.mouse.getSystemCursor("ibeam")
 	cursor_size_h = love.mouse.getSystemCursor("sizewe")
@@ -926,6 +929,11 @@ function love.update(dt)
 		
 		if num_9_key == _PRESS then
 			ui.artboardButton()
+			ui_active = true
+		end
+		
+		if minus_key == _PRESS then
+			ui.polylineButton()
 			ui_active = true
 		end
 		

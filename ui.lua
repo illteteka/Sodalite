@@ -155,6 +155,8 @@ TIP_GRID_PP = 26
 TIP_TOOLBAR_POLYLINE = 27
 TIP_PREV_HFLIP = 28
 TIP_PREV_VFLIP = 29
+TIP_POLYLINE_CONVERT = 30
+TIP_POLYLINE_MODE = 31
 
 function ui.init()
 	-- Add palette sliders
@@ -643,18 +645,15 @@ function ui.panelPolyline()
 	ui.primary_panel = {}
 	ui.primary_panel.name = "Polyline:"
 	
-	-- local load_seg, load_ang = 0, 0
-	-- if polygon.data[1] ~= nil and polygon.data[tm.polygon_loc] ~= nil and polygon.data[tm.polygon_loc].kind == "ellipse" then
-		-- local myshape = polygon.data[tm.polygon_loc]
-		-- load_seg = myshape.segments
-		-- load_ang = myshape._angle
-	-- else
-		-- load_seg = polygon.segments
-		-- load_ang = polygon._angle
-	-- end
+	ui.addPanel(ui.primary_panel, 'polyline.size', 'Line thickness', true, polygon.thickness, polygon.min_thickness, polygon.max_thickness)
 	
-	-- ui.addPanel(ui.primary_panel, 'ellipse.seg', 'Segments', true, load_seg, 3, 128)
-	-- ui.addPanel(ui.primary_panel, 'ellipse.ang', 'Rotation', true, load_ang, 0, 359)
+	local find_ruler_icon = icon_paint
+	if polygon.ruler then
+		find_ruler_icon = icon_ruler
+	end
+	
+	ui.addPanel(ui.primary_panel, 'polyline.convert', icon_line_to_triangle, false, true)
+	ui.addPanel(ui.primary_panel, 'polyline.ruler', find_ruler_icon, false, true)
 
 end
 
@@ -771,11 +770,19 @@ function ui.getTooltip(x)
 	elseif x == TIP_GRID_PP then
 		return "Toggle the forced 1x1 pixel grid"
 	elseif x == TIP_TOOLBAR_POLYLINE then
-		return "youre a shoe"
+		return "Polyline Tool (-)"
 	elseif x == TIP_PREV_HFLIP then
 		return "Flip the preview horizontally"
 	elseif x == TIP_PREV_VFLIP then
 		return "Flip the preview vertically"
+	elseif x == TIP_POLYLINE_CONVERT then
+		return "Convert all lines on the active layer into polygons"
+	elseif x == TIP_POLYLINE_MODE then
+		if polygon.ruler then
+			return "Polyline ruler, toggle control method to polyline paint"
+		else
+			return "Polyline paint, toggle control method to polyline ruler"
+		end
 	end
 end
 
@@ -1407,6 +1414,10 @@ function ui.popupLoseFocus(kind)
 				artboard.opacity = tonumber(tbox.value)/100
 			end
 		
+		end
+		
+		if tbox.id == "polyline.size" then
+			polygon.thickness = tonumber(tbox.value)
 		end
 		
 		ui.textbox_selection_origin = ""
@@ -2721,6 +2732,10 @@ function ui.update(dt)
 				ui.primary_panel[1].value = artboard.brush_size
 				ui.primary_panel[2].value = artboard.opacity * 100
 			end
+			
+			if ui.primary_panel[1].id == 'polyline.size' then
+				ui.primary_panel[1].value = polygon.thickness
+			end
 		
 		else -- Preview shape while making changes
 		
@@ -2787,6 +2802,27 @@ function ui.update(dt)
 				
 				artboard.brush_size = load_brush
 				artboard.opacity = load_opac / 100
+			end
+			
+			if ui.primary_panel[1].id == 'polyline.size' then
+			
+				local load_size = polygon.thickness
+				
+				-- Update with arrow keys
+				if tonumber(ui.primary_panel[ui.primary_textbox].value) ~= nil and ((hz_dir ~= 0) or (vt_dir ~= 0)) then
+					local this_t = ui.primary_panel[ui.primary_textbox]
+					this_t.value = this_t.value + (hz_key * hz_dir) + (vt_key * vt_dir)
+					
+					this_t.value = math.min(this_t.value, this_t.high)
+					this_t.value = math.max(this_t.value, this_t.low)
+				end
+				
+				if tonumber(ui.primary_panel[1].value) ~= nil then
+					load_size = ui.primary_panel[1].value
+					load_size = math.min(load_size, ui.primary_panel[1].high)
+					load_size = math.max(load_size, ui.primary_panel[1].low)
+				end
+			
 			end
 		
 		end
@@ -2995,6 +3031,14 @@ function ui.update(dt)
 					if ui.primary_panel[i].id == "art.position" then
 						ui.setTooltip(TIP_FREEDRAW_ORDER)
 					end
+					
+					if ui.primary_panel[i].id == "polyline.convert" then
+						ui.setTooltip(TIP_POLYLINE_CONVERT)
+					end
+					
+					if ui.primary_panel[i].id == "polyline.ruler" then
+						ui.setTooltip(TIP_POLYLINE_MODE)
+					end
 				
 				end
 			
@@ -3012,9 +3056,31 @@ function ui.update(dt)
 							ui.primary_panel[i].icon = icon_art_above
 						end
 					end
+					
+					if ui.primary_panel[i].id == "polyline.convert" then
+						
+						-- Convert all active lines into polygons
+						local clone = polygon.data[tm.polygon_loc].raw
+						local i = 1
+						for i = 1, #clone do
+							clone[i].l = nil
+						end
+						
+					end
+					
+					if ui.primary_panel[i].id == "polyline.ruler" then
+						ui.tooltip_active = -1
+						if ui.primary_panel[i].icon == icon_ruler then
+							polygon.ruler = false
+							ui.primary_panel[i].icon = icon_paint
+						else
+							polygon.ruler = true
+							ui.primary_panel[i].icon = icon_ruler
+						end
+					end
 				end
 				
-				if ui.primary_panel[i].id == "art.position" then
+				if ui.primary_panel[i].id == "art.position" or ui.primary_panel[i].id == "polyline.ruler" then
 					panel_x = panel_x + 8
 				end
 				panel_x = panel_x + 24 + 4
@@ -5107,7 +5173,7 @@ function ui.draw()
 				lg.setColor(c_white)
 				lg.draw(this_item.icon, panel_x, 27)
 				
-				if ui.primary_panel[i].id == "art.position" then
+				if ui.primary_panel[i].id == "art.position" or ui.primary_panel[i].id == "polyline.ruler" then
 					panel_x = panel_x + 8
 				end
 				panel_x = panel_x + 24 + 4
