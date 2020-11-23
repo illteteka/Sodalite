@@ -205,6 +205,34 @@ function polygon.beginLine(loc, x1, y1, x2, y2, new_polyline, extending_line, ol
 
 end
 
+function polygon.editLine(loc, x1, y1, x2, y2)
+
+	local clone = polygon.data[loc]
+	
+	local thick = polygon.thickness/2
+	
+	-- get angle of p1 to p2
+	local l_ang = -lume.angle(x1, y1, x2, y2)
+	
+	-- get perpendicular of angle
+	local a_pos, a_neg = l_ang + (math.pi/2), l_ang - (math.pi/2)
+	
+	local ldx_pos, ldy_pos = polygon.lengthdir_x(thick, a_pos), polygon.lengthdir_y(thick, a_pos)
+	local ldx_neg, ldy_neg = polygon.lengthdir_x(thick, a_neg), polygon.lengthdir_y(thick, a_neg)
+	
+	-- calculate 4 new points
+	local pf = pixelFloor
+	
+	local e, f = pf(x2 + ldx_pos),     pf(y2 + ldy_pos)
+	local g, h = pf(x2 + ldx_neg),     pf(y2 + ldy_neg)
+	
+	clone.raw[#clone.raw-1].x = e
+	clone.raw[#clone.raw-1].y = f
+	clone.raw[#clone.raw].x = g
+	clone.raw[#clone.raw].y = h
+
+end
+
 function polygon.addVertex(x, y, loc, old_line, use_tm, is_line)
 
 	local copy = polygon.data[loc]

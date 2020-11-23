@@ -169,6 +169,8 @@ line_y = 0
 line_active = false
 line_disable = false
 ui_active_line = false
+line_start_x = nil
+line_start_y = nil
 
 bad_is_dev = false
 
@@ -1118,6 +1120,8 @@ function love.update(dt)
 		
 			line_active = false
 			line_disable = false
+			line_start_x, line_start_y = nil, nil
+			print("STOP 2???")
 			
 			if selection_and_ui_active then
 				selection_and_ui_active = false
@@ -1256,6 +1260,12 @@ function love.update(dt)
 							if polygon.data[tm.polygon_loc].raw[1] == nil then
 								-- Create a new line
 								polygon.beginLine(tm.polygon_loc, line_x, line_y, lx, ly, true, false)
+								print("new line")
+								
+								if line_start_x == nil then
+									line_start_x, line_start_y = line_x, line_y
+								end
+								
 								line_active = true
 								line_x, line_y = lx, ly
 							else
@@ -1264,8 +1274,20 @@ function love.update(dt)
 								local temp_max_dist = polygon.thickness * polygon.thickness * polygon.thickness * 7
 								local larger_grid = math.max(grid_w * grid_w, grid_h * grid_h)
 								local closest_line = -1
+								local clone = polygon.data[tm.polygon_loc]
 								
 								if (mouse_to_last_line <= temp_max_dist) or ((mouse_to_last_line <= larger_grid) and grid_is_on) then
+									if line_start_x == nil then
+										local last_line_1 = clone.raw[#clone.raw]
+										local last_line_2 = clone.raw[#clone.raw-1]
+										
+										line_start_x = (last_line_1.x + last_line_2.x)/2
+										line_start_y = (last_line_1.y + last_line_2.y)/2
+										
+										polygon.beginLine(tm.polygon_loc, clone.raw[#clone.raw].x, clone.raw[#clone.raw].y, lx, ly, false, true, #clone.cache-1)
+									end
+									
+									print("bithc")
 									line_active = true
 								else
 									-- Find closest line segment to mouse
@@ -1299,7 +1321,6 @@ function love.update(dt)
 									if closest_line_to_mouse ~= nil then
 									
 										local la, lb = closest_line_to_mouse[1], closest_line_to_mouse[2]
-										local clone = polygon.data[tm.polygon_loc]
 										local segment_dist = lume.distance(clone.raw[la].x, clone.raw[la].y, clone.raw[lb].x, clone.raw[lb].y, false)
 										local pthick = polygon.thickness
 										local size_variation = 1
@@ -1315,7 +1336,14 @@ function love.update(dt)
 											line_active = true
 											line_x, line_y = lx, ly
 											
+											if line_start_x == nil then
+												print("get da line")
+												line_start_x = (clone.raw[la].x + clone.raw[lb].x)/2
+												line_start_y = (clone.raw[la].y + clone.raw[lb].y)/2
+											end
+											
 											polygon.beginLine(tm.polygon_loc, clone.raw[la].x, clone.raw[la].y, lx, ly, false, true, closest_line)
+											print("connect to old line")
 											
 										else
 										
@@ -1352,6 +1380,7 @@ function love.update(dt)
 											polygon.addVertex(pax, pay, tm.polygon_loc, #polygon.data[tm.polygon_loc].cache, false, false)
 											
 											polygon.beginLine(tm.polygon_loc, ph, pk, lx, ly, false, false)
+											print("extend line?")
 											
 											-- Check if segment AB intersects CD
 											local max_verts = #polygon.data[tm.polygon_loc].raw
@@ -1392,10 +1421,17 @@ function love.update(dt)
 												
 											end
 											
+											if line_start_x == nil then
+												local last_line_1 = clone.raw[#clone.raw]
+												local last_line_2 = clone.raw[#clone.raw-1]
+												
+												line_start_x = (last_line_1.x + last_line_2.x)/2
+												line_start_y = (last_line_1.y + last_line_2.y)/2
+											end
+											
 											line_active = true
 											line_x, line_y = lx, ly
 											
-											--line_disable = true
 										end
 									
 									else
@@ -1406,15 +1442,25 @@ function love.update(dt)
 								
 							end
 							
-						else -- Do while line tool is _ON
+						elseif not polygon.ruler then -- Do while line tool is _ON
 							
 							local line_copy = polygon.data[tm.polygon_loc].raw[#polygon.data[tm.polygon_loc].raw]
 							polygon.beginLine(tm.polygon_loc, line_copy.x, line_copy.y, lx, ly, false, false)
+							print("real extend line")
 							line_x, line_y = lx, ly
 						
 						end
 						
-						--line_x, line_y = lx, ly
+						if polygon.ruler then
+						
+							if line_start_x ~= nil then
+							
+								polygon.editLine(tm.polygon_loc, line_start_x, line_start_y, lx, ly)
+								line_x, line_y = lx, ly
+							
+							end
+							
+						end
 					
 					end
 				
@@ -1454,6 +1500,8 @@ function love.update(dt)
 			
 				line_active = false
 				line_disable = false
+				line_start_x, line_start_y = nil, nil
+				print("STOP")
 			
 				lock_preview_vertices = false
 			
