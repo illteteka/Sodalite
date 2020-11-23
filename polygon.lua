@@ -15,6 +15,7 @@ polygon.min_thickness = 10
 polygon.max_thickness = 512
 
 polygon.line = false
+polygon.polyline_cache = {}
 
 -- Generators
 
@@ -167,7 +168,7 @@ function polygon.calcVertex(x, y, loc, use_grid)
 
 end
 
-function polygon.beginLine(loc, x1, y1, x2, y2, new_polyline, extending_line, old_line)
+function polygon.addLine(loc, x1, y1, x2, y2, new_polyline, extending_line, old_line)
 
 	local thick = polygon.thickness/2
 	
@@ -189,7 +190,6 @@ function polygon.beginLine(loc, x1, y1, x2, y2, new_polyline, extending_line, ol
 	local e, f = pf(x2 + ldx_pos),     pf(y2 + ldy_pos)
 	local g, h = pf(x2 + ldx_neg),     pf(y2 + ldy_neg)
 	
-	--print(rr(a), rr(b), rr(c), rr(d), rr(e), rr(f), rr(g), rr(h))
 	if new_polyline then
 		polygon.addVertex(a, b, loc, 0, false, true)
 		polygon.addVertex(c, d, loc, 0, false, true)
@@ -230,6 +230,248 @@ function polygon.editLine(loc, x1, y1, x2, y2)
 	clone.raw[#clone.raw-1].y = f
 	clone.raw[#clone.raw].x = g
 	clone.raw[#clone.raw].y = h
+
+end
+
+function polygon.polylineCompare()
+	
+	-- This method takes the state of polygon.data[tm.polygon_loc] BEFORE any lines are drawn
+	-- It uses this state to compile a list of before and after changes
+	-- In the tables before: tbl_changes, after: tbl_new
+	-- This is used to pass data on to the time machine for undo/redo
+	
+	local this_layer = tm.polygon_loc
+	local current_copy = polygon.data[this_layer]
+	
+	local tbl_changes = {}
+	tbl_changes.cache = {}
+	tbl_changes.raw = {}
+	
+	local tbl_new = {}
+	tbl_new.cache = {}
+	tbl_new.raw = {}
+
+	-- Detect changes in the line cache: polygon.data[x].cache
+	local clc = 1
+	while clc <= #current_copy.cache do
+		local new_cache = current_copy.cache[clc]
+		local old_cache = polygon.polyline_cache[1].cache
+		
+		-- If we're making a new line
+		if old_cache[clc] == nil then
+		
+			local cache_tbl = {}
+			table.insert(cache_tbl, new_cache[1])
+			table.insert(cache_tbl, new_cache[2])
+			cache_tbl.index = clc
+			table.insert(tbl_new.cache, cache_tbl)
+		
+		else -- Any other changes
+		
+			local first_correct = old_cache[clc][1] == new_cache[1]
+
+			local second_exists = new_cache[2] ~= nil and old_cache[clc][2] ~= nil and old_cache[clc][2] == new_cache[2]
+			local second_correct = false
+			if second_exists then
+				second_correct = old_cache[clc][2] == new_cache[2]
+			end
+			
+			local cache_tbl = {}
+			local change_tbl = {}
+			
+			if not (first_correct and second_correct) then
+				table.insert(cache_tbl, new_cache[1])
+				table.insert(cache_tbl, new_cache[2])
+				cache_tbl.index = clc
+				table.insert(tbl_new.cache, cache_tbl)
+				
+				table.insert(change_tbl, old_cache[clc][1])
+				table.insert(change_tbl, old_cache[clc][2])
+				change_tbl.index = clc
+				table.insert(tbl_changes.cache, change_tbl)
+			end
+		
+		end
+		
+		clc = clc + 1
+	end
+
+	-- Detect changes in the vertex data: polygon.data[x].raw
+	local clc = 1
+	while clc <= #current_copy.raw do
+		local new_raw = current_copy.raw[clc]
+		local old_raw = polygon.polyline_cache[1].raw
+		
+		-- If we're making a new line
+		if old_raw[clc] == nil then
+		
+			local new_tbl = {}
+			if new_raw.x ~= nil then new_tbl.x, new_tbl.y = new_raw.x, new_raw.y end
+			if new_raw.va ~= nil then new_tbl.va = new_raw.va end
+			if new_raw.vb ~= nil then new_tbl.vb = new_raw.vb end
+			if new_raw.l ~= nil then new_tbl.l = new_raw.l end
+			new_tbl.index = clc
+			table.insert(tbl_new.raw, new_tbl)
+		
+		else -- Any other changes
+		
+			local new_tbl = {}
+			local change_tbl = {}
+			new_tbl.index = clc
+			change_tbl.index = clc
+			local new_edited = false
+			local change_edited = false
+		
+			if old_raw[clc].x ~= new_raw.x or old_raw[clc].y ~= new_raw.y then
+				new_edited, change_edited = true, true
+				new_tbl.x, new_tbl.y = new_raw.x, new_raw.y
+				change_tbl.x, change_tbl.y = old_raw[clc].x, old_raw[clc].y
+			end
+			
+			if (old_raw[clc].va == nil or old_raw[clc].va ~= new_raw.va) and new_raw.va ~= nil then
+				new_edited = true
+				new_tbl.va = new_raw.va
+				
+				if old_raw[clc].va ~= nil then
+					change_edited = true
+					change_tbl.va = old_raw[clc].va
+				end
+			end
+			
+			if (old_raw[clc].vb == nil or old_raw[clc].vb ~= new_raw.vb) and new_raw.vb ~= nil then
+				new_edited = true
+				new_tbl.vb = new_raw.vb
+				
+				if old_raw[clc].vb ~= nil then
+					change_edited = true
+					change_tbl.vb = old_raw[clc].vb
+				end
+			end
+			
+			if (old_raw[clc].l == nil or old_raw[clc].l ~= new_raw.l) and new_raw.l ~= nil then
+				new_edited = true
+				new_tbl.l = new_raw.l
+				
+				if old_raw[clc].l ~= nil then
+					change_edited = true
+					change_tbl.l = old_raw[clc].l
+				end
+			end
+			
+			if new_edited then
+				table.insert(tbl_new.raw, new_tbl)
+			end
+			
+			if change_edited then
+				table.insert(tbl_changes.raw, change_tbl)
+			end
+		
+		end
+		
+		clc = clc + 1
+	end
+	
+	-- tbl_changes and tbl_new are now populated with the appropriate data
+	
+	-- If a table was blank before and after the changes, nil out tbl_changes
+	if tbl_changes.cache[1] == nil then
+		tbl_changes.cache = nil
+	end
+	
+	if tbl_changes.raw[1] == nil then
+		tbl_changes.raw = nil
+	end
+	
+	tm.store(TM_LINE_BLOCK, tbl_changes, tbl_new)
+	tm.step()
+
+end
+
+function polygon.polylineRepair(undo, tbl_changes, tbl_new)
+	
+	local clc = 1
+	while clc <= #tbl_new.cache do
+		local new_cache = tbl_new.cache[clc]
+		
+		if undo then
+			polygon.data[tm.polygon_loc].cache[new_cache.index] = nil
+		else
+		
+			local new_cache = tbl_new.cache[clc]
+			
+			if polygon.data[tm.polygon_loc].cache[new_cache.index] == nil then
+				polygon.data[tm.polygon_loc].cache[new_cache.index] = {}
+			end
+			polygon.data[tm.polygon_loc].cache[new_cache.index][1] = new_cache[1]
+			polygon.data[tm.polygon_loc].cache[new_cache.index][2] = new_cache[2]
+		
+		end
+		
+		clc = clc + 1
+	end
+	
+	if undo then
+		local clc = 1
+		while clc <= #tbl_changes.cache do
+			local old_cache = tbl_changes.cache[clc]
+			
+			if polygon.data[tm.polygon_loc].cache[old_cache.index] == nil then
+				polygon.data[tm.polygon_loc].cache[old_cache.index] = {}
+			end
+			polygon.data[tm.polygon_loc].cache[old_cache.index][1] = old_cache[1]
+			polygon.data[tm.polygon_loc].cache[old_cache.index][2] = old_cache[2]
+			
+			clc = clc + 1
+		end
+	end
+
+	local clc = 1
+	while clc <= #tbl_new.raw do
+		local new_raw = tbl_new.raw[clc]
+		
+		if undo then
+			polygon.data[tm.polygon_loc].raw[new_raw.index] = nil
+		else
+		
+			local new_raw = tbl_new.raw[clc]
+			
+			local this_shape = polygon.data[tm.polygon_loc].raw[new_raw.index]
+			if this_shape == nil then
+				polygon.data[tm.polygon_loc].raw[new_raw.index] = {}
+			end
+			polygon.data[tm.polygon_loc].raw[new_raw.index].x = new_raw.x
+			polygon.data[tm.polygon_loc].raw[new_raw.index].y = new_raw.y
+			
+			if new_raw.va ~= nil then polygon.data[tm.polygon_loc].raw[new_raw.index].va = new_raw.va end
+			if new_raw.vb ~= nil then polygon.data[tm.polygon_loc].raw[new_raw.index].vb = new_raw.vb end
+			if new_raw.l ~= nil then polygon.data[tm.polygon_loc].raw[new_raw.index].l = new_raw.l end
+		
+		end
+		
+		clc = clc + 1
+	end
+	
+	if undo then
+		if tbl_changes.raw ~= nil then
+			local clc = 1
+			while clc <= #tbl_new.raw do
+				local old_raw = tbl_changes.raw[clc]
+				
+				local this_shape = polygon.data[tm.polygon_loc].raw[old_raw.index]
+				if this_shape == nil then
+					polygon.data[tm.polygon_loc].raw[old_raw.index] = {}
+				end
+				polygon.data[tm.polygon_loc].raw[old_raw.index].x = old_raw.x
+				polygon.data[tm.polygon_loc].raw[old_raw.index].y = old_raw.y
+				
+				if old_raw.va ~= nil then polygon.data[tm.polygon_loc].raw[old_raw.index].va = old_raw.va end
+				if old_raw.vb ~= nil then polygon.data[tm.polygon_loc].raw[old_raw.index].vb = old_raw.vb end
+				if old_raw.l ~= nil then polygon.data[tm.polygon_loc].raw[old_raw.index].l = old_raw.l end
+				
+				clc = clc + 1
+			end
+		end
+	end
 
 end
 
@@ -329,7 +571,7 @@ function polygon.redo()
 		local moment = tm.data[tm.cursor]
 		local move_moment = moment[#moment]
 		
-		if moment[1].action == TM_NEW_POLYGON then
+		if moment[1].action == TM_NEW_POLYGON and moment[2].action ~= TM_LINE_BLOCK then
 			polygon.new(tm.polygon_loc, moment[1].color, moment[1].kind, false)
 			polygon.addVertex(move_moment.x, move_moment.y, tm.polygon_loc, -1, false, false)
 			
@@ -405,12 +647,24 @@ function polygon.redo()
 		
 		elseif moment[1].action == TM_CLONE_LAYER then
 		
-			ui.layerCloneButton(false)
+			ui.layerCloneButton(false, false)
 			palette.updateAccentColor()
 		
 		elseif moment[1].action == TM_LAYER_RENAME then
 	
 			ui.layer[moment[1].layer].name = moment[1].new
+		
+		elseif (moment[2] ~= nil and moment[2].action == TM_LINE_BLOCK) or moment[1].action == TM_LINE_BLOCK then
+		
+			local mom_loc = 1
+			if (moment[2] ~= nil and moment[2].action == TM_LINE_BLOCK) then mom_loc = 2 end
+			
+			if mom_loc == 2 then
+				polygon.new(tm.polygon_loc, moment[1].color, moment[1].kind, false)
+				palette.updateAccentColor()
+			end
+			
+			polygon.polylineRepair(false, moment[mom_loc].original, moment[mom_loc].new)
 		
 		end
 	
@@ -430,7 +684,7 @@ function polygon.undo()
 		
 		local moment = tm.data[tm.cursor]
 		
-		if moment[1].action == TM_NEW_POLYGON then
+		if moment[1].action == TM_NEW_POLYGON and moment[2].action ~= TM_LINE_BLOCK then
 		
 			polygon.data[tm.polygon_loc] = nil
 		
@@ -529,6 +783,14 @@ function polygon.undo()
 		elseif moment[1].action == TM_LAYER_RENAME then
 	
 			ui.layer[moment[1].layer].name = moment[1].original
+		
+		elseif (moment[2] ~= nil and moment[2].action == TM_LINE_BLOCK) or moment[1].action == TM_LINE_BLOCK then
+		
+			if moment[2] ~= nil and moment[2].action == TM_LINE_BLOCK then
+				polygon.data[tm.polygon_loc] = nil
+			else
+				polygon.polylineRepair(true, moment[1].original, moment[1].new)
+			end
 		
 		end
 		

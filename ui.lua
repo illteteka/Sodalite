@@ -497,7 +497,7 @@ function ui.loadPopup(ref)
 			shape_selection = {}
 			multi_shape_selection = false
 
-			ui.layerCloneButton(true)
+			ui.layerCloneButton(true, false)
 
 			ui.lyr_scroll_percent = 0
 		
@@ -1158,9 +1158,12 @@ function ui.layerRenameButton()
 
 end
 
-function ui.layerCloneButton(use_tm)
+function ui.layerCloneButton(use_tm, cache_line_state)
 
 	local old_layer = tm.polygon_loc
+	
+	if not cache_line_state then
+	
 	tm.polygon_loc = #ui.layer + #ui.layer_trash + 1
 
 	if use_tm then
@@ -1169,25 +1172,35 @@ function ui.layerCloneButton(use_tm)
 	end
 
 	ui.addLayer()
+	
+	else
+		polygon.polyline_cache = nil
+		polygon.polyline_cache = {}
+	end
 
 	local clone_index = ui.layer[#ui.layer].count
 	local tbl_clone = {}
 	local old_copy = polygon.data[old_layer]
+	
+	if not cache_line_state then
 	tbl_clone.kind = old_copy.kind
 	tbl_clone.color = {}
 	table.insert(tbl_clone.color, old_copy.color[1])
 	table.insert(tbl_clone.color, old_copy.color[2])
 	table.insert(tbl_clone.color, old_copy.color[3])
 	table.insert(tbl_clone.color, old_copy.color[4])
+	end
 
 	tbl_clone.cache = {}
 	tbl_clone.raw = {}
 
+	if not cache_line_state then
 	if tbl_clone.kind == "ellipse" then
 
 		tbl_clone.segments = old_copy.segments
 		tbl_clone._angle = old_copy._angle
 
+	end
 	end
 
 	local clc = 1
@@ -1229,9 +1242,13 @@ function ui.layerCloneButton(use_tm)
 		clc = clc + 1
 	end
 
+	if not cache_line_state then
 	table.insert(polygon.data, tm.polygon_loc, tbl_clone)
 
 	palette.updateAccentColor()
+	else
+	table.insert(polygon.polyline_cache, tbl_clone)
+	end
 
 end
 
@@ -2293,7 +2310,7 @@ function ui.update(dt)
 					shape_selection = {}
 					multi_shape_selection = false
 					
-					ui.layerCloneButton(true)
+					ui.layerCloneButton(true, false)
 					
 					ui.lyr_scroll_percent = 0
 					

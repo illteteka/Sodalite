@@ -171,6 +171,7 @@ line_disable = false
 ui_active_line = false
 line_start_x = nil
 line_start_y = nil
+line_state = _OFF
 
 bad_is_dev = false
 
@@ -953,7 +954,7 @@ function love.update(dt)
 			shape_selection = {}
 			multi_shape_selection = false
 
-			ui.layerCloneButton(true)
+			ui.layerCloneButton(true, false)
 
 			ui.lyr_scroll_percent = 0
 		end
@@ -1253,12 +1254,18 @@ function love.update(dt)
 					
 					if mouse_to_last_line >= polygon.thickness * polygon.thickness and not line_disable then
 						
+						-- Copy the state of the line before we edit
+						if line_state == _OFF then
+							ui.layerCloneButton(false, true)
+							line_state = _ON
+						end
+						
 						-- Do first when using line tool
 						if line_active == false then
 						
 							if polygon.data[tm.polygon_loc].raw[1] == nil then
 								-- Create a new line
-								polygon.beginLine(tm.polygon_loc, line_x, line_y, lx, ly, true, false)
+								polygon.addLine(tm.polygon_loc, line_x, line_y, lx, ly, true, false)
 								
 								if line_start_x == nil then
 									line_start_x, line_start_y = line_x, line_y
@@ -1282,7 +1289,7 @@ function love.update(dt)
 										line_start_x = (last_line_1.x + last_line_2.x)/2
 										line_start_y = (last_line_1.y + last_line_2.y)/2
 										
-										polygon.beginLine(tm.polygon_loc, clone.raw[#clone.raw].x, clone.raw[#clone.raw].y, lx, ly, false, true, #clone.cache-1)
+										polygon.addLine(tm.polygon_loc, clone.raw[#clone.raw].x, clone.raw[#clone.raw].y, lx, ly, false, true, #clone.cache-1)
 									end
 									
 									line_active = true
@@ -1338,7 +1345,7 @@ function love.update(dt)
 												line_start_y = (clone.raw[la].y + clone.raw[lb].y)/2
 											end
 											
-											polygon.beginLine(tm.polygon_loc, clone.raw[la].x, clone.raw[la].y, lx, ly, false, true, closest_line)
+											polygon.addLine(tm.polygon_loc, clone.raw[la].x, clone.raw[la].y, lx, ly, false, true, closest_line)
 											
 										else
 										
@@ -1374,7 +1381,7 @@ function love.update(dt)
 											polygon.addVertex(pbx, pby, tm.polygon_loc, closest_line, false, false)
 											polygon.addVertex(pax, pay, tm.polygon_loc, #polygon.data[tm.polygon_loc].cache, false, false)
 											
-											polygon.beginLine(tm.polygon_loc, ph, pk, lx, ly, false, false)
+											polygon.addLine(tm.polygon_loc, ph, pk, lx, ly, false, false)
 											
 											-- Check if segment AB intersects CD
 											local max_verts = #polygon.data[tm.polygon_loc].raw
@@ -1439,7 +1446,7 @@ function love.update(dt)
 						elseif not polygon.ruler then -- Do while line tool is _ON
 							
 							local line_copy = polygon.data[tm.polygon_loc].raw[#polygon.data[tm.polygon_loc].raw]
-							polygon.beginLine(tm.polygon_loc, line_copy.x, line_copy.y, lx, ly, false, false)
+							polygon.addLine(tm.polygon_loc, line_copy.x, line_copy.y, lx, ly, false, false)
 							line_x, line_y = lx, ly
 						
 						end
@@ -1494,6 +1501,11 @@ function love.update(dt)
 				line_active = false
 				line_disable = false
 				line_start_x, line_start_y = nil, nil
+
+				if line_state == _ON then
+					polygon.polylineCompare()
+					line_state = _OFF
+				end
 			
 				lock_preview_vertices = false
 			

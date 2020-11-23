@@ -13,6 +13,7 @@ TM_ELLIPSE_ANGLE = 9
 TM_MOVE_SHAPE    = 10
 TM_CLONE_LAYER   = 11
 TM_LAYER_RENAME  = 12
+TM_LINE_BLOCK    = 13
 
 function tm.init()
 
@@ -135,6 +136,12 @@ function tm.store(action, a, b, c, d, e)
 			moment.original = b
 			moment.new = c
 		
+		elseif (action == TM_LINE_BLOCK) then
+		
+			moment.action = TM_LINE_BLOCK
+			moment.original = a
+			moment.new = b
+		
 		end
 		
 		if tm.data[tm.location] == nil then
@@ -189,6 +196,8 @@ function tm.print()
 			akind = "TM_CLONE_LAYER"
 		elseif aa == TM_LAYER_RENAME then
 			akind = "TM_LAYER_RENAME"
+		elseif aa == TM_LINE_BLOCK then
+			akind = "TM_LINE_BLOCK"
 		end
 		print("action " .. akind)
 		print_r(tm.data[i])
