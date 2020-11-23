@@ -1121,7 +1121,6 @@ function love.update(dt)
 			line_active = false
 			line_disable = false
 			line_start_x, line_start_y = nil, nil
-			print("STOP 2???")
 			
 			if selection_and_ui_active then
 				selection_and_ui_active = false
@@ -1260,7 +1259,6 @@ function love.update(dt)
 							if polygon.data[tm.polygon_loc].raw[1] == nil then
 								-- Create a new line
 								polygon.beginLine(tm.polygon_loc, line_x, line_y, lx, ly, true, false)
-								print("new line")
 								
 								if line_start_x == nil then
 									line_start_x, line_start_y = line_x, line_y
@@ -1287,7 +1285,6 @@ function love.update(dt)
 										polygon.beginLine(tm.polygon_loc, clone.raw[#clone.raw].x, clone.raw[#clone.raw].y, lx, ly, false, true, #clone.cache-1)
 									end
 									
-									print("bithc")
 									line_active = true
 								else
 									-- Find closest line segment to mouse
@@ -1337,13 +1334,11 @@ function love.update(dt)
 											line_x, line_y = lx, ly
 											
 											if line_start_x == nil then
-												print("get da line")
 												line_start_x = (clone.raw[la].x + clone.raw[lb].x)/2
 												line_start_y = (clone.raw[la].y + clone.raw[lb].y)/2
 											end
 											
 											polygon.beginLine(tm.polygon_loc, clone.raw[la].x, clone.raw[la].y, lx, ly, false, true, closest_line)
-											print("connect to old line")
 											
 										else
 										
@@ -1380,7 +1375,6 @@ function love.update(dt)
 											polygon.addVertex(pax, pay, tm.polygon_loc, #polygon.data[tm.polygon_loc].cache, false, false)
 											
 											polygon.beginLine(tm.polygon_loc, ph, pk, lx, ly, false, false)
-											print("extend line?")
 											
 											-- Check if segment AB intersects CD
 											local max_verts = #polygon.data[tm.polygon_loc].raw
@@ -1446,7 +1440,6 @@ function love.update(dt)
 							
 							local line_copy = polygon.data[tm.polygon_loc].raw[#polygon.data[tm.polygon_loc].raw]
 							polygon.beginLine(tm.polygon_loc, line_copy.x, line_copy.y, lx, ly, false, false)
-							print("real extend line")
 							line_x, line_y = lx, ly
 						
 						end
@@ -1501,7 +1494,6 @@ function love.update(dt)
 				line_active = false
 				line_disable = false
 				line_start_x, line_start_y = nil, nil
-				print("STOP")
 			
 				lock_preview_vertices = false
 			

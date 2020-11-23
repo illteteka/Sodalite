@@ -1221,6 +1221,10 @@ function ui.layerCloneButton(use_tm)
 			raw_tbl.vb = old_raw.vb
 		end
 		
+		if old_raw.l ~= nil then
+			raw_tbl.l = old_raw.l
+		end
+		
 		table.insert(tbl_clone.raw, raw_tbl)
 		clc = clc + 1
 	end
