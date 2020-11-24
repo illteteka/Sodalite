@@ -389,6 +389,10 @@ end
 
 function polygon.polylineRepair(undo, tbl_changes, tbl_new)
 	
+	if tbl_changes.cache == nil then
+		tbl_changes.cache = {}
+	end
+	
 	local clc = 1
 	while clc <= #tbl_new.cache do
 		local new_cache = tbl_new.cache[clc]
@@ -666,6 +670,15 @@ function polygon.redo()
 			
 			polygon.polylineRepair(false, moment[mom_loc].original, moment[mom_loc].new)
 		
+		elseif moment[1].action == TM_LINE_CONVERT then
+		
+			-- Convert all active lines into polygons
+			local clone = polygon.data[tm.polygon_loc].raw
+			local i = 1
+			for i = 1, #clone do
+				clone[i].l = nil
+			end
+		
 		end
 	
 	end
@@ -790,6 +803,15 @@ function polygon.undo()
 				polygon.data[tm.polygon_loc] = nil
 			else
 				polygon.polylineRepair(true, moment[1].original, moment[1].new)
+			end
+		
+		elseif moment[1].action == TM_LINE_CONVERT then
+		
+			-- Convert all old lines back into real lines
+			local clone = polygon.data[tm.polygon_loc].raw
+			local i = 1
+			for i = 1, #moment[1].original.raw do
+				polygon.data[tm.polygon_loc].raw[moment[1].original.raw[i].index].l = moment[1].original.raw[i].l
 			end
 		
 		end

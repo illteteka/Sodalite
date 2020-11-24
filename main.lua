@@ -1505,6 +1505,16 @@ function love.update(dt)
 				if line_state == _ON then
 					polygon.polylineCompare()
 					line_state = _OFF
+				else
+				
+					-- If a line was started but not completed, delete it from polygon.data and the time machine
+					if polygon.data[tm.polygon_loc] ~= nil and polygon.line and polygon.data[tm.polygon_loc].color[1] ~= nil and polygon.data[tm.polygon_loc].raw[1] == nil then
+					
+						polygon.data[tm.polygon_loc] = nil
+						tm.data[tm.location] = nil
+					
+					end
+				
 				end
 			
 				lock_preview_vertices = false

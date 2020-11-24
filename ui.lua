@@ -3080,11 +3080,46 @@ function ui.update(dt)
 					
 					if ui.primary_panel[i].id == "polyline.convert" then
 						
-						-- Convert all active lines into polygons
-						local clone = polygon.data[tm.polygon_loc].raw
-						local i = 1
-						for i = 1, #clone do
-							clone[i].l = nil
+						if polygon.data[tm.polygon_loc] ~= nil and polygon.data[tm.polygon_loc].raw ~= nil then
+						
+							local old_layer = tm.polygon_loc
+
+							local clone_index = ui.layer[#ui.layer].count
+							local tbl_clone = {}
+							local old_copy = polygon.data[old_layer]
+
+							tbl_clone.raw = {}
+
+							local clc = 1
+							while clc <= #old_copy.raw do
+								local old_raw = old_copy.raw[clc]
+								local raw_tbl = {}
+								
+								if old_raw.l ~= nil then
+									raw_tbl.l = old_raw.l
+									raw_tbl.index = clc
+									table.insert(tbl_clone.raw, raw_tbl)
+								end
+								
+								clc = clc + 1
+							end
+							
+							local edited = false
+							-- Convert all active lines into polygons
+							local clone = polygon.data[tm.polygon_loc].raw
+							local i = 1
+							for i = 1, #clone do
+								if clone[i].l ~= nil then
+									clone[i].l = nil
+									edited = true
+								end
+							end
+							
+							if edited then
+								tm.store(TM_LINE_CONVERT, tbl_clone)
+								tm.step()
+							end
+							
 						end
 						
 					end
