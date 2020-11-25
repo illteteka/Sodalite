@@ -41,9 +41,11 @@ ui.popup_sel_b = 0
 ui.popup_enter = false
 
 ui.palette_mode = "RGB"
-ui.palette_text = 0
 ui.palette_slider = 0
 ui.palette = {}
+ui.palette_textbox = 0
+ui.palette_text_entry = 0
+ui.palette_text_original = 0
 
 ui.layer = {}
 ui.layer_trash = {}
@@ -1534,6 +1536,12 @@ function ui.popupLoseFocus(kind)
 		ui.active_textbox = ""
 		ui.textbox_rename_layer = -1
 	
+	elseif ui.textbox_selection_origin == "palette" then
+
+		ui.palette_textbox = 0
+		ui.textbox_selection_origin = ""
+		ui.active_textbox = ""
+		
 	end
 	
 end
@@ -1685,6 +1693,63 @@ function ui.keyboardHit(key)
 			end
 		end
 	
+	elseif ui.textbox_selection_origin == "palette" then
+	
+		local col_changed = false
+		local o_col = ui.palette_text_original
+		local defer_enter = false
+		
+		if string.len(key) == 1 then
+		
+			if tonumber(key) ~= nil and string.len(ui.palette_text_entry) <= 3 then
+				ui.palette_text_entry = ui.palette_text_entry .. key
+				col_changed = true
+				if tonumber(ui.palette_text_entry) > 255 then
+					ui.palette_text_entry = 255
+				end
+			end
+			
+		else
+			if (key == "backspace") then
+				ui.palette_text_entry = string.sub(ui.palette_text_entry, 0, string.len(ui.palette_text_entry) - 1)
+				col_changed = true
+			elseif (key == "return") then
+				defer_enter = true
+			end
+		end
+		
+		if string.len(tostring(ui.palette_text_entry)) == 0 then
+			ui.palette[ui.palette_textbox].value = tonumber(ui.palette_text_original)
+		else
+			ui.palette[ui.palette_textbox].value = tonumber(ui.palette_text_entry)
+		end
+		
+		if col_changed then
+			if ui.palette_textbox < 4 then
+				palette.updateFromRGB()
+			else
+				palette.updateFromHSL()
+			end
+			
+			if palette.activeIsEditable and polygon.data[tm.polygon_loc] ~= nil then
+				tm.store(TM_CHANGE_COLOR, palette.startingColor, palette.active)
+				tm.step()
+						
+				local copy_col = {palette.active[1], palette.active[2], palette.active[3], palette.active[4]}
+				polygon.data[tm.polygon_loc].color = copy_col
+				palette.updateAccentColor()
+			end
+		end
+		
+		if defer_enter then
+		
+			ui.popupLoseFocus("palette")
+			ui.keyboard_last = ""
+			ui.keyboard_test = ""
+			ui.popup_enter = true
+		
+		end
+		
 	end
 	
 end
@@ -1975,6 +2040,11 @@ function ui.update(dt)
 		ui_active = true
 	end
 	
+	if ui.context_menu[1] == nil and mouse_switch == _PRESS and ui.textbox_selection_origin == "palette" then
+		ui.popupLoseFocus("palette")
+		ui_active = true
+	end
+	
 	local disabled_prompt = (ui.popup[1] ~= nil and ui.popup[1][1].kind == "save.disabled")
 	
 	-- Check collision on title bar
@@ -2139,7 +2209,7 @@ function ui.update(dt)
 	local mx_on_menu, my_on_menu
 	mx_on_menu = (mx >= palx) and (mx <= palx + palw)
 	my_on_menu = (my >= paly) and (my <= paly + palh)
-	if mouse_switch == _PRESS and mx_on_menu and my_on_menu then
+	if ui.palette_textbox == 0 and mouse_switch == _PRESS and mx_on_menu and my_on_menu then
 		
 		if my >= 69 and my <= 69 + 18 then -- RGB/HSL buttons
 			
@@ -2213,6 +2283,46 @@ function ui.update(dt)
 					
 				end
 			end
+		end
+		
+		-- Textboxes
+		local tb = 1
+		local h = 0
+		while tb <= 3 do
+			if (mx >= ix - 5) and (mx <= ix + 41 + h - 1) and (my >= iy + 25 + h - 1) and (my <= iy + 45 + h - 1) then
+				
+				local using_hsv = 0
+				if ui.palette_mode == "HSL" then
+					using_hsv = 3
+				end
+				
+				ui.palette_textbox = tb + using_hsv
+				ui.palette_text_entry = ui.palette[tb + using_hsv].value
+				ui.palette_text_original = ui.palette_text_entry
+				
+				if polygon.data[tm.polygon_loc] ~= nil then
+					palette.startingColor = polygon.data[tm.polygon_loc].color
+				else
+					palette.startingColor = palette.active
+				end
+				
+				ui.popupLoseFocus("palette")
+				ui.textbox_selection_origin = "palette"
+				
+				if ui.primary_textbox ~= -1 then
+					ui.textbox_selection_origin = "toolbar"
+					ui.popupLoseFocus("toolbar")
+				end
+				
+				if ui.secondary_textbox ~= -1 then
+					ui.textbox_selection_origin = "toolbar2"
+					ui.popupLoseFocus("toolbar2")
+				end
+				
+				tb = 4
+			end
+			tb = tb + 1
+			h = h + 28
 		end
 		
 		ui_active = true
@@ -4697,14 +4807,35 @@ function ui.draw()
 	if ui.palette_mode == "HSL" then ioff = 3 end
 	
 	for i = 1 + ioff, 3 + ioff do
-	
+		
+		-- Textbox of element
+		local col = col_inactive
+		local this_selected = ui.palette_textbox == i
+		if this_selected then
+			col = c_highlight_active
+			lg.setLineWidth(2)
+		end
+		
 		lg.setColor(c_off_white)
 		lg.rectangle("fill", ix - 5, iy + 25 + h - 1, 46, 20)
-		lg.setColor(col_inactive)
+		lg.setColor(col)
 		lg.rectangle("line", ix - 5, iy + 25 + h - 1, 46, 20)
 		lg.setColor(c_black)
 		lg.print(ui.palette[i].name, ix - font:getWidth(ui.palette[i].name) - 12, iy + 25 + h)
-		lg.print(ui.palette[i].value, ix, iy + 25 + h)
+
+		lg.setLineWidth(1)
+		
+		local col_val = ui.palette[i].value
+		
+		if ui.palette_textbox == i and string.len(tostring(ui.palette_text_entry)) == 0 then
+			col_val = ""
+		end
+		lg.print(col_val, ix, iy + 25 + h)
+		
+		if ui.input_cursor_visible and ui.palette_textbox == i then
+			local lxx, lyy = ix + font:getWidth(col_val) + 3, iy + 25 + 3 + h - 1
+			lg.line(lxx, lyy, lxx, lyy + 14)
+		end
 		
 		local slide_pos = (tonumber(ui.palette[i].value) / 255) * 111
 		

@@ -888,7 +888,7 @@ function love.update(dt)
 	
 	end
 	
-	if (ui.popup[1] == nil) and (ui.context_menu[1] == nil) and (ui.active_textbox == "") and mouse_switch == _OFF and ui.textbox_selection_origin ~= "rename" then
+	if (ui.popup[1] == nil) and (ui.context_menu[1] == nil) and (ui.active_textbox == "") and mouse_switch == _OFF and ui.textbox_selection_origin ~= "rename" and ui.textbox_selection_origin ~= "palette" then
 	
 		if num_1_key == _PRESS then
 			ui.pickColorButton()
