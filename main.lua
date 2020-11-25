@@ -149,6 +149,7 @@ double_click_timer = 0
 double_click_timer_deselect = 0
 double_click_timer_rename = 0
 lock_preview_vertices = false
+throwaway_preview_click = false
 
 global_message = ""
 global_message_timer = 0
@@ -983,12 +984,15 @@ function love.update(dt)
 		
 		if uimx >= upx and uimx <= upx + upw and uimy >= upy and uimy <= upy + uph then
 			ignore_click_from_preview = true
+			if mouse_switch == _PRESS then
+				throwaway_preview_click = true
+			end
 		end
 	end
 	
 	if ui.popup[1] == nil and document_w ~= 0 and ui.textbox_selection_origin ~= "rename" then
 	
-	if shape_grabber and not select_grabber and artboard.active == false and not zoom_grabber and not color_grabber and ((ui_active == false) or (ui_off_mouse_down)) then
+	if not throwaway_preview_click and shape_grabber and not select_grabber and artboard.active == false and not zoom_grabber and not color_grabber and ((ui_active == false) or (ui_off_mouse_down)) then
 	
 		if last_shape_grabbed ~= -1 then
 			double_click_timer = double_click_timer + (60 * dt)
@@ -1183,6 +1187,10 @@ function love.update(dt)
 	
 	if mouse_switch == _PRESS and ignore_click_from_preview and vertex_selection_mode then
 		lock_preview_vertices = true
+	end
+	
+	if mouse_switch == _RELEASE then
+		throwaway_preview_click = false
 	end
 	
 	if artboard.active == false and ((ui_active == false) or (ui_off_mouse_down)) then
@@ -1498,7 +1506,7 @@ function love.update(dt)
 			end
 			
 			if mouse_switch == _RELEASE then
-			
+				
 				line_active = false
 				line_disable = false
 				line_start_x, line_start_y = nil, nil
