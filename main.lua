@@ -1237,7 +1237,7 @@ function love.update(dt)
 					calc_mouse_x, calc_mouse_y = mx + mouse_x_offset, my + mouse_y_offset
 				end
 				
-				if polygon.data[tm.polygon_loc] ~= nil and polygon.line and #vertex_selection == 0 then
+				if polygon.data[tm.polygon_loc] ~= nil and polygon.line and #vertex_selection == 0 and polygon.data[tm.polygon_loc].kind ~= "ellipse" then
 				
 					local grid_is_on = ui.toolbar[ui.toolbar_grid].active == false and grid_snap
 				
@@ -1447,6 +1447,7 @@ function love.update(dt)
 							
 							local line_copy = polygon.data[tm.polygon_loc].raw[#polygon.data[tm.polygon_loc].raw]
 							polygon.addLine(tm.polygon_loc, line_copy.x, line_copy.y, lx, ly, false, false)
+							
 							line_x, line_y = lx, ly
 						
 						end
