@@ -1050,7 +1050,11 @@ function polygon.draw(skip_in_preview)
 			
 			local clone = polygon.data[ui.layer[i].count]
 			
-			lg.setColor(clone.color)
+			if ui.palette_textbox ~= 0 and ui.layer[i].count == tm.polygon_loc then
+				lg.setColor(ui.palette_textbox_color)
+			else
+				lg.setColor(clone.color)
+			end
 			
 			-- Draw the shape
 			if clone.kind == "polygon" then

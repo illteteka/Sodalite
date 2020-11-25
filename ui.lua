@@ -46,6 +46,8 @@ ui.palette = {}
 ui.palette_textbox = 0
 ui.palette_text_entry = 0
 ui.palette_text_original = 0
+ui.palette_changed = false
+ui.palette_textbox_color = {}
 
 ui.layer = {}
 ui.layer_trash = {}
@@ -1538,6 +1540,19 @@ function ui.popupLoseFocus(kind)
 	
 	elseif ui.textbox_selection_origin == "palette" then
 
+		if ui.palette_changed then
+			if palette.activeIsEditable and polygon.data[tm.polygon_loc] ~= nil then
+				tm.store(TM_CHANGE_COLOR, palette.startingColor, palette.active)
+				tm.step()
+						
+				local copy_col = {palette.active[1], palette.active[2], palette.active[3], palette.active[4]}
+				polygon.data[tm.polygon_loc].color = copy_col
+				palette.updateAccentColor()
+			end
+		end
+		
+		ui.palette_changed = false
+	
 		ui.palette_textbox = 0
 		ui.textbox_selection_origin = ""
 		ui.active_textbox = ""
@@ -1695,14 +1710,15 @@ function ui.keyboardHit(key)
 	
 	elseif ui.textbox_selection_origin == "palette" then
 	
-		local col_changed = false
 		local o_col = ui.palette_text_original
 		local defer_enter = false
+		local col_changed = false
 		
 		if string.len(key) == 1 then
 		
 			if tonumber(key) ~= nil and string.len(ui.palette_text_entry) <= 3 then
 				ui.palette_text_entry = ui.palette_text_entry .. key
+				ui.palette_changed = true
 				col_changed = true
 				if tonumber(ui.palette_text_entry) > 255 then
 					ui.palette_text_entry = 255
@@ -1712,6 +1728,7 @@ function ui.keyboardHit(key)
 		else
 			if (key == "backspace") then
 				ui.palette_text_entry = string.sub(ui.palette_text_entry, 0, string.len(ui.palette_text_entry) - 1)
+				ui.palette_changed = true
 				col_changed = true
 			elseif (key == "return") then
 				defer_enter = true
@@ -1720,6 +1737,8 @@ function ui.keyboardHit(key)
 		
 		if string.len(tostring(ui.palette_text_entry)) == 0 then
 			ui.palette[ui.palette_textbox].value = tonumber(ui.palette_text_original)
+			ui.palette_changed = false
+			col_changed = true
 		else
 			ui.palette[ui.palette_textbox].value = tonumber(ui.palette_text_entry)
 		end
@@ -1732,12 +1751,7 @@ function ui.keyboardHit(key)
 			end
 			
 			if palette.activeIsEditable and polygon.data[tm.polygon_loc] ~= nil then
-				tm.store(TM_CHANGE_COLOR, palette.startingColor, palette.active)
-				tm.step()
-						
-				local copy_col = {palette.active[1], palette.active[2], palette.active[3], palette.active[4]}
-				polygon.data[tm.polygon_loc].color = copy_col
-				palette.updateAccentColor()
+				ui.palette_textbox_color = palette.active
 			end
 		end
 		
@@ -2296,15 +2310,19 @@ function ui.update(dt)
 					using_hsv = 3
 				end
 				
+				local old_cc = palette.active
+				if polygon.data[tm.polygon_loc] ~= nil then
+					local old_cc = polygon.data[tm.polygon_loc].color
+				end
+				
+				local copy_cc = {}
+				copy_cc[1], copy_cc[2], copy_cc[3], copy_cc[4] = old_cc[1], old_cc[2], old_cc[3], old_cc[4]
+				palette.startingColor = copy_cc
+				ui.palette_textbox_color[1], ui.palette_textbox_color[2], ui.palette_textbox_color[3], ui.palette_textbox_color[4] = old_cc[1], old_cc[2], old_cc[3], old_cc[4]
+				
 				ui.palette_textbox = tb + using_hsv
 				ui.palette_text_entry = ui.palette[tb + using_hsv].value
 				ui.palette_text_original = ui.palette_text_entry
-				
-				if polygon.data[tm.polygon_loc] ~= nil then
-					palette.startingColor = polygon.data[tm.polygon_loc].color
-				else
-					palette.startingColor = palette.active
-				end
 				
 				ui.popupLoseFocus("palette")
 				ui.textbox_selection_origin = "palette"
