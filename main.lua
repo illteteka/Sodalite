@@ -1347,7 +1347,7 @@ function love.update(dt)
 											
 											polygon.addLine(tm.polygon_loc, clone.raw[la].x, clone.raw[la].y, lx, ly, false, true, closest_line)
 											
-										else
+										elseif #clone.raw > 2 then
 										
 											-- Find the point where the mouse ray intersects the triangle side
 											local ax, ay, bx, by = clone.raw[la].x, clone.raw[la].y, clone.raw[lb].x, clone.raw[lb].y
@@ -1547,6 +1547,17 @@ function love.update(dt)
 					if (lctrl_key == _ON or rctrl_key == _ON) then -- and selection contains line
 						
 						if vertex_selection[i].t ~= nil then
+						
+							if arrow_key_selection == false then
+						
+								local j
+								for j = 1, #vertex_selection do
+									local vert_copy = vertex_selection[j].index
+									vertex_selection[j].x = polygon.data[tm.polygon_loc].raw[vert_copy].x
+									vertex_selection[j].y = polygon.data[tm.polygon_loc].raw[vert_copy].y
+								end
+							
+							end
 							
 							vertex_selection[i].t = math.max(math.min(vertex_selection[i].t + (vt_dir * vt_key), polygon.max_thickness), polygon.min_thickness)
 							vertex_selection[i].a = vertex_selection[i].a + ((math.pi/180) * -hz_dir * hz_key)
@@ -1555,9 +1566,10 @@ function love.update(dt)
 							if vertex_selection[i].a > math.pi*2 then vertex_selection[i].a = vertex_selection[i].a - math.pi * 2 end
 							if vertex_selection[i].a < 0 then vertex_selection[i].a = vertex_selection[i].a + math.pi * 2 end
 							
-							vertex_selection[i].x = pixelFloor(vertex_selection[i - 1].x + polygon.lengthdir_x(vertex_selection[i].t, vertex_selection[i].a))
-							vertex_selection[i].y = pixelFloor(vertex_selection[i - 1].y + polygon.lengthdir_y(vertex_selection[i].t, vertex_selection[i].a))
-							pp.x, pp.y = vertex_selection[i].x, vertex_selection[i].y
+							pp.x = pixelFloor(vertex_selection[i - 1].x + polygon.lengthdir_x(vertex_selection[i].t, vertex_selection[i].a))
+							pp.y = pixelFloor(vertex_selection[i - 1].y + polygon.lengthdir_y(vertex_selection[i].t, vertex_selection[i].a))
+							
+							arrow_key_selection = true
 							
 						end
 					

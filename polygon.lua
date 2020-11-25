@@ -382,8 +382,10 @@ function polygon.polylineCompare()
 		tbl_changes.raw = nil
 	end
 	
-	tm.store(TM_LINE_BLOCK, tbl_changes, tbl_new)
-	tm.step()
+	if tbl_new.raw[1] ~= nil or tbl_new.cache[1] ~= nil or tbl_changes.cache ~= nil or tbl_changes.raw ~= nil then
+		tm.store(TM_LINE_BLOCK, tbl_changes, tbl_new)
+		tm.step()
+	end
 
 end
 
