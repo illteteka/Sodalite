@@ -47,7 +47,6 @@ ui.palette_textbox = 0
 ui.palette_text_entry = 0
 ui.palette_text_original = 0
 ui.palette_changed = false
-ui.palette_textbox_color = {}
 
 ui.layer = {}
 ui.layer_trash = {}
@@ -1749,10 +1748,6 @@ function ui.keyboardHit(key)
 			else
 				palette.updateFromHSL()
 			end
-			
-			if palette.activeIsEditable and polygon.data[tm.polygon_loc] ~= nil then
-				ui.palette_textbox_color = palette.active
-			end
 		end
 		
 		if defer_enter then
@@ -2318,7 +2313,6 @@ function ui.update(dt)
 				local copy_cc = {}
 				copy_cc[1], copy_cc[2], copy_cc[3], copy_cc[4] = old_cc[1], old_cc[2], old_cc[3], old_cc[4]
 				palette.startingColor = copy_cc
-				ui.palette_textbox_color[1], ui.palette_textbox_color[2], ui.palette_textbox_color[3], ui.palette_textbox_color[4] = old_cc[1], old_cc[2], old_cc[3], old_cc[4]
 				
 				ui.palette_textbox = tb + using_hsv
 				ui.palette_text_entry = ui.palette[tb + using_hsv].value
