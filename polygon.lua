@@ -1050,7 +1050,7 @@ function polygon.draw(skip_in_preview)
 			
 			local clone = polygon.data[ui.layer[i].count]
 			
-			if ui.palette_textbox ~= 0 and ui.layer[i].count == tm.polygon_loc then
+			if palette.activeIsEditable and ui.palette_textbox ~= 0 and ui.layer[i].count == tm.polygon_loc then
 				lg.setColor(palette.active)
 			else
 				lg.setColor(clone.color)
