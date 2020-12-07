@@ -358,7 +358,7 @@ function ui.loadPopup(ref)
 			multi_shape_selection = false
 		
 			ui.addPopup("About Sodalite", "h.about", "col")
-			ui.addPopup("Sodalite v0.2 beta (build 1)", "text", "col")
+			ui.addPopup("Sodalite v0.2 beta (build 2)", "text", "col")
 			ui.addPopup("https://illteteka.itch.io/", "text", "col")
 			ui.addPopup("Sample artwork courtesy of Sunny Faucher and Chris Bradshaw", "text", "col")
 			ui.addPopup("Sodalite © 2020 Nick Gilmartin. All Rights Reserved.", "text", "col")
@@ -3900,7 +3900,6 @@ function ui.update(dt)
 				polygon.max_thickness = math.max(document_w, document_h)
 				
 				if pop_kind == "i.setup" or pop_kind == "f.as" then
-					artboard.init(true)
 					-- Exit popup
 					ui.popup = {}
 					ui_active = true
@@ -4146,7 +4145,7 @@ function ui.update(dt)
 									polygon.max_thickness = math.max(document_w, document_h)
 									
 									if pop_kind == "i.setup" or pop_kind == "f.as" then
-										artboard.init(true)
+										-- removed clearing artboard
 									else
 										resetEditor(false, true, true)
 									end

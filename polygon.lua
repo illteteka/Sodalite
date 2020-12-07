@@ -11,7 +11,7 @@ polygon._angle = 0
 polygon.thickness = 10
 polygon.ruler = false
 
-polygon.min_thickness = 10
+polygon.min_thickness = 1
 polygon.max_thickness = 512
 
 polygon.line = false
