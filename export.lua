@@ -285,6 +285,7 @@ function export.saveSVG()
 	save_svg_total = #ui.layer
 	save_svg_count = 1
 	save_svg_delay = 0
+	inkfile_count = 1
 	export.saveLOL(true, false)
 end
 
@@ -366,7 +367,7 @@ function export.saveSVGLayer(this_layer)
 							end
 							
 							local verts = cx .. "," .. cy .. " " .. (cx + cxx2) .. "," .. (cy + cyy2) .. " " .. (cx + cxx3) .. "," .. (cy + cyy3)
-							file:write('  <polygon points="' .. verts .. '" style="fill:rgb(' .. colour .. ')" stroke="rgb(' .. colour .. ')" stroke-width="1" />')
+							file:write('  <polygon points="' .. verts .. '" style="fill:rgb(' .. colour .. ')" />')
 						
 							if not (k + 1 < cseg) then
 								-- Do nothing

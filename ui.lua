@@ -5751,7 +5751,8 @@ function ui.draw()
 
 		if ui.popup[1][1].kind == "f.convert" then
 			lg.setColor(c_white)
-			local count_box = (100/7) * save_svg_progress
+			local svg_total = math.max(save_svg_total, 1)
+			local count_box = (100/svg_total) * inkfile_count
 			lg.draw(grad_inactive, px + 14, py + 42, 0, 100/256, 23)
 			lg.draw(grad_active, px + 14, py + 42, 0, count_box/256, 23)
 		end
