@@ -273,15 +273,6 @@ function export.savePNG()
 
 end
 
---[[
-"C:\Program Files\Inkscape\bin\inkscape.exe" -g --actions="EditSelectAll;SelectionUnion;export-filename:export_to.svg;export-do;" import_from.svg
-taskkill /F /IM inkscape.exe /T
-
-????
-
-svgo C:\Users\Nick\Documents\Git\import_cleaned.svg -o C:\Users\Nick\Documents\Git\export_final_n3.svg
-]]
-
 save_svg_progress = 0
 save_svg_total = 0
 save_svg_count = 0
@@ -294,6 +285,7 @@ function export.saveSVG()
 	save_svg_total = #ui.layer
 	save_svg_count = 1
 	save_svg_delay = 0
+	export.saveLOL(true, false)
 end
 
 function export.saveSVGLayer(this_layer)

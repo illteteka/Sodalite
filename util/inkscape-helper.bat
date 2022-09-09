@@ -1,0 +1,1 @@
+timeout 4 & taskkill /F /IM inkscape.exe /T

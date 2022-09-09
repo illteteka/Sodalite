@@ -1,5 +1,5 @@
-COMP_PATH = "\"C:\\Users\\Sick\\Documents\\Git\\MDOS\\"
-LUA_PATH = "\"C:\\Users\\Sick\\Documents\\LuaJIT-2.0.0\\src\""
+COMP_PATH = "\"C:\\Users\\Nick\\Documents\\Git\\sodalite\\"
+LUA_PATH = "\"C:\\Users\\Nick\\Documents\\System\\LuaJIT-2.1.0\\src\""
 
 BINS = {}
 LUAS = {}
