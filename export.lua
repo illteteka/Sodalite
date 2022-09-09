@@ -182,6 +182,15 @@ function export.saveLOL(auto, quit)
 
 end
 
+--[[
+"C:\Program Files\Inkscape\bin\inkscape.exe" -g --actions="EditSelectAll;SelectionUnion;export-filename:export_to.svg;export-do;" import_from.svg
+taskkill /F /IM inkscape.exe /T
+
+????
+
+svgo C:\Users\Nick\Documents\Git\import_cleaned.svg -o C:\Users\Nick\Documents\Git\export_final_n3.svg
+]]
+
 function export.saveSVG()
 	
 	local prefix = ""
@@ -190,15 +199,17 @@ function export.saveSVG()
 		if mac_string then prefix = export.mac(prefix) end
 	end
 	
-	os.remove(prefix .. document_name .. ".svg")
-	local file = io.open(prefix .. document_name .. ".svg", "w")
+	local i = 1
+	while i <= #ui.layer do
+	
+	os.remove(prefix .. document_name .. "_layer_" .. i .. ".svg")
+	local file = io.open(prefix .. document_name .. "_layer_" .. i ..".svg", "w")
 	
 	file:write('<?xml version="1.0" encoding="UTF-8" ?>')
 	file:write('\n')
 	file:write('<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="', document_w, '" height="', document_h, '">\n')
 	
-	local i = 1
-	while i <= #ui.layer do
+	
 	
 		if polygon.data[ui.layer[i].count] ~= nil and ui.layer[i].visible then
 		
@@ -294,14 +305,16 @@ function export.saveSVG()
 			
 		end
 		
-		i = i + 1
-	end
+		
 	
 	file:write('\n')
 	file:write('</svg>')
 
 	file:flush()
 	file:close()
+	
+	i = i + 1
+	end
 	
 	if win_string then prefix = export.windows(prefix) end
 	
