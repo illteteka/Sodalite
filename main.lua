@@ -9,6 +9,8 @@ export = require "export"
 artboard = require "artboard"
 autosave = require "autosave"
 
+io.stdout:setvbuf("no")
+
 lg = love.graphics
 screen_width = 1280
 screen_height = 700
@@ -613,7 +615,7 @@ function love.wheelmoved(x, y)
 end
 
 function love.textinput(x)
-	if x == "," or x == ":" or x == ";" or x == "/" or x == "\\" or x == "*" or x == "?" or x == "\"" or x == "<" or x == ">" or x == "|" then
+	if x == "," or x == ":" or x == ";" or x == "/" or x == "\\" or x == "*" or x == "'" or x == '"' or x == "?" or x == "\"" or x == "<" or x == ">" or x == "|" then
 		x = ""
 	end
 	ui.keyboardHit(x or "")
@@ -653,6 +655,7 @@ function love.update(dt)
 	global_message_timer = math.max(global_message_timer - (dt * 60), 0)
 	autosave.timer = math.max(autosave.timer - (dt * 60), 0)
 
+	if (save_svg_progress < 2) then
 	-- Update input
 	input.update(dt)
 	a_key = input.pullSwitch(love.keyboard.isDown("a"), a_key)
@@ -1833,6 +1836,130 @@ function love.update(dt)
 		end
 	
 	end
+	end -- svg progress less than 2
+
+	local prefix = love.filesystem.getSourceBaseDirectory() .. "/"
+	if (save_svg_progress == 1) then
+		ui.loadPopup("f.convert")
+		save_svg_progress = 2
+
+		local i = 1
+		while i <= #ui.layer do
+			os.remove(prefix .. document_name .. "_layer_" .. i .. ".svg")
+			os.remove(prefix .. document_name .. "_layer_" .. i .. "e.svg")
+			i = i + 1
+		end
+
+		os.remove(prefix .. document_name .. "c.svg")
+	end
+
+	-- save all svgs from sodalite raw
+	if (save_svg_progress == 2) then
+		-- save next svg
+		if save_svg_count <= save_svg_total then
+			export.saveSVGLayer(save_svg_count)
+			save_svg_count = save_svg_count + 1
+		else
+			save_svg_progress = 3
+			save_svg_delay = 0
+		end
+	end
+
+	-- delay for a bit
+	if (save_svg_progress == 3) then
+		if (save_svg_delay <= 3) then
+			save_svg_delay = save_svg_delay + dt * 60
+		else
+			save_svg_progress = 4
+			inkfile_count = 1
+		end
+	end
+
+	-- run through inkscape combine
+	if (save_svg_progress == 4) then
+		local step_one = '\"\"C:\\Program Files\\Inkscape\\bin\\inkscape.exe\" -g --actions=\"EditSelectAll;SelectionUnion;export-filename:'
+		local step_two = document_name .. "_layer_" .. inkfile_count .. "e.svg"
+		local step_three = ';export-do;\" \"'
+		local step_four = prefix .. document_name .. "_layer_" .. inkfile_count .. ".svg"
+		if (inkstep == 0) then
+			local sentence = step_one .. step_two .. step_three .. step_four .. '\"'
+			os.execute("start cmd.exe /c " .. prefix .. "inkscape-helper.bat")
+			local finish = os.execute(sentence)
+			if inkfile_count < save_svg_total then
+				inkfile_count = inkfile_count + 1
+			else
+				save_svg_progress = 5
+			end
+		end
+	end
+
+	-- splice svg back to one
+	if (save_svg_progress == 5) then
+		--print("yay")
+		local appender = ""
+		local i = 1
+		while i <= save_svg_total do
+			--local load_new = io.open(prefix .. document_name .. "_layer_" .. i ..".svg", "rb")
+			local load_new = io.open(prefix .. document_name .. "_layer_" .. i .."e.svg", "rb")
+			local load_lines = load_new:lines()
+			local is_appending = false
+			for newnewline in load_lines do
+				
+				if string.find(newnewline, "path") then
+					is_appending = true
+				end
+
+				if string.find(newnewline, "svg") then
+					is_appending = false
+				end
+
+				if is_appending then
+					appender = appender .. "\n" .. newnewline
+				end
+			end
+			load_new:close()
+			i = i + 1
+		end
+
+		appender = appender .. "\n</svg>"
+
+		local make_new = io.open(prefix .. document_name .. "c.svg", "w")
+		make_new:write('<?xml version="1.0" encoding="UTF-8" ?>')
+		make_new:write('\n')
+		make_new:write('<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="', document_w, '" height="', document_h, '">\n')
+		make_new:write(appender)
+		make_new:close()
+
+		save_svg_progress = 6
+
+	end
+
+	-- minify svg
+	if (save_svg_progress == 6) then
+		local cleaned_file = prefix .. document_name .. "c.svg"
+		local final_file = prefix .. document_name .. ".svg"
+		os.execute("svgo " .. cleaned_file .. " -o " .. final_file)
+
+		save_svg_progress = 0
+		if win_string then prefix = export.windows(prefix) end
+		
+		global_message = "Image exported to " .. prefix .. document_name .. ".svg"
+		global_message_timer = 60*5
+
+		local i = 1
+		while i <= #ui.layer do
+			os.remove(prefix .. document_name .. "_layer_" .. i .. ".svg")
+			os.remove(prefix .. document_name .. "_layer_" .. i .. "e.svg")
+			i = i + 1
+		end
+
+		os.remove(prefix .. document_name .. "c.svg")
+
+		-- Exit popup
+		ui.popup = {}
+		ui.context_menu = {}
+		ui.title_active = false
+	end
 	
 	mouse_wheel_x, mouse_wheel_y = 0, 0
 
@@ -2129,6 +2256,11 @@ end
 
 function love.quit()
 	if fs_enable_save then
+
+		if save_svg_progress ~= 0 then
+			safe_to_quit = true
+			ui.popup[1] = nil
+		end
 	
 		if not safe_to_quit then
 			is_trying_to_quit = true

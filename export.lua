@@ -182,6 +182,97 @@ function export.saveLOL(auto, quit)
 
 end
 
+function export.saveArtboard()
+	
+	if artboard.edited then
+	
+		artboard.saveCache(true)
+		
+		local copy_png = io.open(love.filesystem.getSaveDirectory() .. "/cache/export.png", "rb")
+		local copy_str = copy_png:read("*a")
+		copy_png:close()
+		
+		local prefix = ""
+		if love ~= nil then
+			prefix = love.filesystem.getSourceBaseDirectory() .. "/"
+			if mac_string then prefix = export.mac(prefix) end
+		end
+		
+		os.remove(prefix .. document_name .. ".png")
+		local save_png = io.open(prefix .. document_name .. ".png", "wb")
+		save_png:write(copy_str)
+		save_png:close()
+		love.filesystem.remove("cache/export.png")
+	
+	end
+	
+end
+
+function export.savePNG()
+
+	local old_zoom = camera_zoom
+	camera_zoom = 1
+	
+	lg.setCanvas(artboard.export)
+	lg.clear()
+	lg.push()
+	lg.setScissor(0, 0, artboard.w, artboard.h)
+	lg.translate(0, 0)
+	
+	if artboard.draw_top and artboard.canvas ~= nil and artboard.edited then
+		local artcol = {1, 1, 1, artboard.opacity}
+		lg.setColor(artcol)
+		lg.draw(artboard.canvas, 0, 0, 0, 1)
+	end
+
+	polygon.draw(false)
+
+	if not artboard.draw_top and artboard.canvas ~= nil and artboard.edited then
+		local artcol = {1, 1, 1, artboard.opacity}
+		
+		lg.setColor(artcol)
+		lg.draw(artboard.canvas, 0, 0, 0, 1)
+	end
+	
+	lg.pop()
+	
+	if (document_w < artboard.w) or (document_h < artboard.h) then
+		lg.setColor(0,0,0,0)
+		lg.setBlendMode("replace", "premultiplied")
+		lg.rectangle("fill", document_w + 1, 0, artboard.w - document_w, artboard.h)
+		lg.rectangle("fill", 0, document_h + 1, artboard.w, artboard.h - document_h)
+		lg.setBlendMode("alpha")
+	end
+	
+	lg.setCanvas()
+	
+	camera_zoom = old_zoom
+	
+	artboard.savePNG()
+	
+	local copy_png = io.open(love.filesystem.getSaveDirectory() .. "/cache/export.png", "rb")
+	local copy_str = copy_png:read("*a")
+	copy_png:close()
+	
+	local prefix = ""
+	if love ~= nil then
+		prefix = love.filesystem.getSourceBaseDirectory() .. "/"
+		if mac_string then prefix = export.mac(prefix) end
+	end
+	
+	os.remove(prefix .. document_name .. ".png")
+	local save_png = io.open(prefix .. document_name .. "_export.png", "wb")
+	save_png:write(copy_str)
+	save_png:close()
+	love.filesystem.remove("cache/export.png")
+	
+	if win_string then prefix = export.windows(prefix) end
+	
+	global_message = "Image exported to " .. prefix .. document_name .. "_export.png"
+	global_message_timer = 60*5
+
+end
+
 --[[
 "C:\Program Files\Inkscape\bin\inkscape.exe" -g --actions="EditSelectAll;SelectionUnion;export-filename:export_to.svg;export-do;" import_from.svg
 taskkill /F /IM inkscape.exe /T
@@ -191,7 +282,21 @@ taskkill /F /IM inkscape.exe /T
 svgo C:\Users\Nick\Documents\Git\import_cleaned.svg -o C:\Users\Nick\Documents\Git\export_final_n3.svg
 ]]
 
+save_svg_progress = 0
+save_svg_total = 0
+save_svg_count = 0
+save_svg_delay = 0
+inkstep = 0
+inkfile_count = 1
+
 function export.saveSVG()
+	save_svg_progress = 1
+	save_svg_total = #ui.layer
+	save_svg_count = 1
+	save_svg_delay = 0
+end
+
+function export.saveSVGLayer(this_layer)
 	
 	local prefix = ""
 	if love ~= nil then
@@ -199,8 +304,8 @@ function export.saveSVG()
 		if mac_string then prefix = export.mac(prefix) end
 	end
 	
-	local i = 1
-	while i <= #ui.layer do
+	local i = this_layer
+	--while i <= #ui.layer do
 	
 	os.remove(prefix .. document_name .. "_layer_" .. i .. ".svg")
 	local file = io.open(prefix .. document_name .. "_layer_" .. i ..".svg", "w")
@@ -313,104 +418,8 @@ function export.saveSVG()
 	file:flush()
 	file:close()
 	
-	i = i + 1
-	end
-	
-	if win_string then prefix = export.windows(prefix) end
-	
-	global_message = "Image exported to " .. prefix .. document_name .. ".svg"
-	global_message_timer = 60*5
-
-end
-
-function export.saveArtboard()
-	
-	if artboard.edited then
-	
-		artboard.saveCache(true)
-		
-		local copy_png = io.open(love.filesystem.getSaveDirectory() .. "/cache/export.png", "rb")
-		local copy_str = copy_png:read("*a")
-		copy_png:close()
-		
-		local prefix = ""
-		if love ~= nil then
-			prefix = love.filesystem.getSourceBaseDirectory() .. "/"
-			if mac_string then prefix = export.mac(prefix) end
-		end
-		
-		os.remove(prefix .. document_name .. ".png")
-		local save_png = io.open(prefix .. document_name .. ".png", "wb")
-		save_png:write(copy_str)
-		save_png:close()
-		love.filesystem.remove("cache/export.png")
-	
-	end
-	
-end
-
-function export.savePNG()
-
-	local old_zoom = camera_zoom
-	camera_zoom = 1
-	
-	lg.setCanvas(artboard.export)
-	lg.clear()
-	lg.push()
-	lg.setScissor(0, 0, artboard.w, artboard.h)
-	lg.translate(0, 0)
-	
-	if artboard.draw_top and artboard.canvas ~= nil and artboard.edited then
-		local artcol = {1, 1, 1, artboard.opacity}
-		lg.setColor(artcol)
-		lg.draw(artboard.canvas, 0, 0, 0, 1)
-	end
-
-	polygon.draw(false)
-
-	if not artboard.draw_top and artboard.canvas ~= nil and artboard.edited then
-		local artcol = {1, 1, 1, artboard.opacity}
-		
-		lg.setColor(artcol)
-		lg.draw(artboard.canvas, 0, 0, 0, 1)
-	end
-	
-	lg.pop()
-	
-	if (document_w < artboard.w) or (document_h < artboard.h) then
-		lg.setColor(0,0,0,0)
-		lg.setBlendMode("replace", "premultiplied")
-		lg.rectangle("fill", document_w + 1, 0, artboard.w - document_w, artboard.h)
-		lg.rectangle("fill", 0, document_h + 1, artboard.w, artboard.h - document_h)
-		lg.setBlendMode("alpha")
-	end
-	
-	lg.setCanvas()
-	
-	camera_zoom = old_zoom
-	
-	artboard.savePNG()
-	
-	local copy_png = io.open(love.filesystem.getSaveDirectory() .. "/cache/export.png", "rb")
-	local copy_str = copy_png:read("*a")
-	copy_png:close()
-	
-	local prefix = ""
-	if love ~= nil then
-		prefix = love.filesystem.getSourceBaseDirectory() .. "/"
-		if mac_string then prefix = export.mac(prefix) end
-	end
-	
-	os.remove(prefix .. document_name .. ".png")
-	local save_png = io.open(prefix .. document_name .. "_export.png", "wb")
-	save_png:write(copy_str)
-	save_png:close()
-	love.filesystem.remove("cache/export.png")
-	
-	if win_string then prefix = export.windows(prefix) end
-	
-	global_message = "Image exported to " .. prefix .. document_name .. "_export.png"
-	global_message_timer = 60*5
+	--i = i + 1
+	--end
 
 end
 

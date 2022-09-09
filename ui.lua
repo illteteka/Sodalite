@@ -334,6 +334,12 @@ function ui.loadPopup(ref)
 			ui.addPopup("Rename", "rename", "row")
 			ui.addPopup("Cancel", "cancel", "row")
 			ui.generatePopup()
+
+		elseif ref == "f.convert" then
+		
+			ui.addPopup("Converting...", "f.convert", "col")    
+			ui.addPopup("", "text", "col")
+			ui.generatePopup()
 		
 		elseif ref == "save.disabled" then
 		
@@ -5741,6 +5747,13 @@ function ui.draw()
 		if ui.popup[1][1].kind == "h.about" then
 			lg.setColor(c_white)
 			lg.draw(icon_sodalite, px + 22, py + 78 - 5)
+		end
+
+		if ui.popup[1][1].kind == "f.convert" then
+			lg.setColor(c_white)
+			local count_box = (100/7) * save_svg_progress
+			lg.draw(grad_inactive, px + 14, py + 42, 0, 100/256, 23)
+			lg.draw(grad_active, px + 14, py + 42, 0, count_box/256, 23)
 		end
 		
 		local i
