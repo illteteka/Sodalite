@@ -388,7 +388,7 @@ function export.saveSVGLayer(this_layer)
 				if raw_copy.vb ~= nil then
 				
 					local verts = raw_copy.x .. "," .. raw_copy.y .. " " .. clone.raw[raw_copy.va].x .. "," .. clone.raw[raw_copy.va].y .. " " .. clone.raw[raw_copy.vb].x .. "," .. clone.raw[raw_copy.vb].y
-					file:write('  <polygon points="' .. verts .. '" style="fill:rgb(' .. colour .. ')" stroke="rgb(' .. colour .. ')" stroke-width="1" />')
+					file:write('  <polygon points="' .. verts .. '" style="fill:rgb(' .. colour .. ')" />')
 				
 					if i == #ui.layer then
 						-- Do nothing
